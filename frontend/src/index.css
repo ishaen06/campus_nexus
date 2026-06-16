@@ -1,0 +1,480 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  background-color: #f8fafc;
+  background-image: none !important;
+  color: #0f172a;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark {
+  background-color: #121214; /* Charcoal Black */
+  background-image: none !important;
+  color: #ffffff;
+}
+
+/* Chrome, Safari, Edge, Opera scrollbar removal */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* IE, Edge and Firefox scrollbar removal */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Enable background blur orbs and glows for premium glassmorphism */
+.blur-sm, .blur, .blur-md, .blur-lg, .blur-xl, .blur-2xl, .blur-3xl {
+  display: block !important;
+}
+
+/* Flat Professional Panel Utilities */
+.glass-panel {
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.glass-panel:hover {
+  border-color: #cbd5e1 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+}
+
+.glass-input {
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: #0f172a;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+}
+
+.glass-input:focus {
+  background-color: #ffffff !important;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12) !important;
+  outline: none;
+}
+
+.glass-button {
+  background-color: #f1f5f9 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: #1e3a8a;
+  font-weight: 700;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.2s ease;
+}
+
+.glass-button:hover {
+  background-color: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  transform: translateY(-0.5px) !important;
+}
+
+/* Flat overrides for Dark Mode (Charcoal Black & White) */
+body.dark .glass-panel {
+  background-color: #1e1e24 !important;
+  border: 1px solid #2e2e36 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark .glass-panel:hover {
+  border-color: #3f3f4a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45) !important;
+}
+
+body.dark .glass-input {
+  background-color: #121214 !important;
+  border: 1.5px solid #2e2e36 !important;
+  color: #ffffff;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+body.dark .glass-input:focus {
+  background-color: #121214 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark .glass-button {
+  background-color: #27272c !important;
+  border: 1.5px solid #3f3f4a !important;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.dark .glass-button:hover {
+  background-color: #32323a !important;
+  border-color: #4f4f5a !important;
+  transform: translateY(-0.5px) !important;
+}
+
+/* Sidebar & Navigation Light Mode Overrides */
+body:not(.dark) nav {
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 1px 0 3px 0 rgba(0, 0, 0, 0.02) !important;
+}
+
+body:not(.dark) nav a, body:not(.dark) nav button {
+  color: #475569 !important;
+}
+
+body:not(.dark) nav a:hover, body:not(.dark) nav button:hover {
+  color: #1e3a8a !important;
+  background-color: transparent !important;
+}
+
+body:not(.dark) nav a.bg-slate-900\/80 {
+  background-color: transparent !important;
+  color: #1e3a8a !important;
+  border-left: 3.5px solid #1e3a8a !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-left: 1.25rem !important;
+}
+
+body:not(.dark) nav a.text-indigo-400 {
+  color: #1e3a8a !important;
+}
+
+body:not(.dark) nav svg {
+  color: #1e3a8a !important;
+}
+
+/* Sidebar & Navigation Dark Mode Overrides */
+body.dark nav {
+  background-color: #121214 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: #2e2e36 !important;
+  box-shadow: none !important;
+}
+
+body.dark nav a, body.dark nav button {
+  color: #a1a1aa !important;
+}
+
+body.dark nav a:hover, body.dark nav button:hover {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+body.dark nav a.bg-slate-900\/80 {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  border-left: 3.5px solid #ffffff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-left: 1.25rem !important;
+}
+
+body.dark nav a.text-indigo-400 {
+  color: #ffffff !important;
+}
+
+body.dark nav svg {
+  color: #ffffff !important;
+}
+
+/* Light Mode Global Accent Mapping */
+body:not(.dark) .text-indigo-600 { color: #1e3a8a !important; }
+body:not(.dark) .text-indigo-700 { color: #172554 !important; }
+body:not(.dark) .text-indigo-500 { color: #1d4ed8 !important; }
+body:not(.dark) .text-indigo-400 { color: #2563eb !important; }
+body:not(.dark) .bg-indigo-600 { background-color: #1e3a8a !important; }
+body:not(.dark) .bg-indigo-600\/90 { background-color: rgba(30, 58, 138, 0.9) !important; }
+body:not(.dark) .bg-indigo-600\/80 { background-color: rgba(30, 58, 138, 0.8) !important; }
+body:not(.dark) .bg-indigo-700 { background-color: #172554 !important; }
+body:not(.dark) .hover\:bg-indigo-700:hover { background-color: #172554 !important; }
+body:not(.dark) .hover\:bg-indigo-800:hover { background-color: #0f172a !important; }
+body:not(.dark) .bg-indigo-50 { background-color: rgba(30, 58, 138, 0.05) !important; }
+body:not(.dark) .bg-indigo-50\/80 { background-color: rgba(30, 58, 138, 0.05) !important; }
+body:not(.dark) .bg-indigo-100 { background-color: rgba(30, 58, 138, 0.08) !important; }
+body:not(.dark) .border-indigo-100 { border-color: rgba(30, 58, 138, 0.12) !important; }
+body:not(.dark) .border-indigo-200 { border-color: rgba(30, 58, 138, 0.2) !important; }
+body:not(.dark) .border-indigo-400 { border-color: #1e3a8a !important; }
+body:not(.dark) .shadow-indigo-500\/20 { box-shadow: 0 4px 14px 0 rgba(30, 58, 138, 0.1) !important; }
+body:not(.dark) .shadow-indigo-500\/30 { box-shadow: 0 4px 14px 0 rgba(30, 58, 138, 0.18) !important; }
+
+/* Dark Mode Global Accent Mapping (Charcoal Black & White) */
+body.dark .text-indigo-600 { color: #ffffff !important; }
+body.dark .text-indigo-700 { color: #f4f4f5 !important; }
+body.dark .text-indigo-500 { color: #e4e4e7 !important; }
+body.dark .text-indigo-400 { color: #d4d4d8 !important; }
+body.dark .bg-indigo-600 { background-color: #ffffff !important; color: #121214 !important; }
+body.dark .bg-indigo-600\/90 { background-color: rgba(255, 255, 255, 0.9) !important; color: #121214 !important; }
+body.dark .bg-indigo-600\/80 { background-color: rgba(255, 255, 255, 0.8) !important; color: #121214 !important; }
+body.dark .bg-indigo-700 { background-color: #f4f4f5 !important; color: #121214 !important; }
+body.dark .hover\:bg-indigo-700:hover { background-color: #e2e8f0 !important; color: #121214 !important; }
+body.dark .hover\:bg-indigo-800:hover { background-color: #f8fafc !important; color: #121214 !important; }
+body.dark .bg-indigo-50 { background-color: rgba(255, 255, 255, 0.08) !important; }
+body.dark .bg-indigo-50\/80 { background-color: rgba(255, 255, 255, 0.08) !important; }
+body.dark .bg-indigo-100 { background-color: rgba(255, 255, 255, 0.12) !important; }
+body.dark .border-indigo-100 { border-color: rgba(255, 255, 255, 0.15) !important; }
+body.dark .border-indigo-200 { border-color: rgba(255, 255, 255, 0.25) !important; }
+body.dark .border-indigo-400 { border-color: #ffffff !important; }
+body.dark .shadow-indigo-500\/20 { box-shadow: 0 4px 14px 0 rgba(255, 255, 255, 0.1) !important; }
+body.dark .shadow-indigo-500\/30 { box-shadow: 0 4px 14px 0 rgba(255, 255, 255, 0.15) !important; }
+
+/* Light Mode Global Color Shifts for Contrast */
+body:not(.dark) .text-indigo-400 {
+  color: #1e3a8a !important;
+}
+body:not(.dark) .text-slate-400 {
+  color: #475569 !important;
+}
+body:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+body:not(.dark) .text-slate-200 {
+  color: #1e293b !important;
+}
+body:not(.dark) .text-slate-100 {
+  color: #0f172a !important;
+}
+body:not(.dark) .text-green-400 {
+  color: #059669 !important;
+}
+body:not(.dark) .bg-green-600\/30 {
+  background-color: rgba(5, 150, 105, 0.15) !important;
+}
+
+/* Dark Mode Global Backgrounds / Borders Overrides */
+body.dark .text-gray-950, body.dark .text-gray-900 { color: #ffffff !important; }
+body.dark .text-gray-800 { color: #f4f4f5 !important; }
+body.dark .text-gray-700 { color: #e4e4e7 !important; }
+body.dark .text-gray-600 { color: #a1a1aa !important; }
+body.dark .text-gray-500 { color: #71717a !important; }
+body.dark .text-gray-400 { color: #a1a1aa !important; }
+
+body.dark .border-gray-100, body.dark .border-gray-200, body.dark .border-gray-200\/50, body.dark .border-gray-300 {
+  border-color: #2e2e36 !important;
+}
+
+body.dark .bg-gray-50 { background-color: #16161a !important; }
+body.dark .bg-gray-100 { background-color: #27272c !important; }
+body.dark .bg-white { background-color: #1e1e24 !important; }
+body.dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.04) !important; }
+body.dark .bg-white\/20 { background-color: rgba(255, 255, 255, 0.08) !important; }
+body.dark .bg-white\/30 { background-color: rgba(255, 255, 255, 0.12) !important; }
+body.dark .bg-white\/40 { background-color: rgba(255, 255, 255, 0.16) !important; }
+body.dark .bg-white\/50 { background-color: rgba(255, 255, 255, 0.2) !important; }
+body.dark .bg-white\/60 { background-color: #1e1e24 !important; }
+body.dark .bg-white\/70 { background-color: #1e1e24 !important; }
+body.dark .bg-white\/80 { background-color: #1e1e24 !important; }
+
+/* Placeholder and Selector values */
+input::placeholder, textarea::placeholder {
+  color: #64748b !important;
+}
+
+select, select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+body.dark select, body.dark select option {
+  background-color: #121214 !important;
+  color: #ffffff !important;
+  border: 1px solid #2e2e36 !important;
+}
+
+/* Global utility classes overrides to decrease roundness globally */
+.rounded-3xl, .rounded-\[28px\] {
+  border-radius: 10px !important;
+}
+.rounded-2xl {
+  border-radius: 8px !important;
+}
+.rounded-xl {
+  border-radius: 6px !important;
+}
+.rounded-lg {
+  border-radius: 4px !important;
+}
+.rounded-md {
+  border-radius: 3px !important;
+}
+.rounded {
+  border-radius: 2px !important;
+}
+
+/* Minimalist Dashboard UI - Remove card/tile looks globally inside layout content */
+main .glass-panel:not(.fixed):not(.absolute):not([role="dialog"]) {
+  background-color: transparent !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  transition: border-color 0.2s ease !important;
+}
+
+body.dark main .glass-panel:not(.fixed):not(.absolute):not([role="dialog"]) {
+  background-color: transparent !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #2e2e36 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  transition: border-color 0.2s ease !important;
+}
+
+main .glass-panel:not(.fixed):not(.absolute):not([role="dialog"]):hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+
+body.dark main .glass-panel:not(.fixed):not(.absolute):not([role="dialog"]):hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-bottom-color: #3f3f4a !important;
+}
+
+/* Swipe Cards on Discovery page - Premium Glassmorphism */
+main .discover-swipe-card {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 6px 0 0 rgba(203, 213, 225, 0.5), 0 30px 60px -12px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+  border-radius: 24px !important;
+  transition: all 0.25s ease;
+}
+
+body.dark main .discover-swipe-card {
+  background: rgba(26, 26, 32, 0.45) !important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 6px 0 0 rgba(18, 18, 22, 0.5), 0 40px 80px -15px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;
+}
+
+/* Glassy bottom section override for swiping cards */
+main .discover-swipe-card div[class*="bg-white/5"] {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+body.dark main .discover-swipe-card div[class*="bg-white/5"] {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Discover Team Cards and Empty States (Immune to flattened glass-panel overrides) */
+main .discover-team-card {
+  background-color: #ffffff !important;
+  border: 2px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 24px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+main .discover-team-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1), 0 0 1px 0 rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(99, 102, 241, 0.6) !important;
+}
+
+body.dark main .discover-team-card {
+  background-color: #1e1e24 !important;
+  border: 2px solid rgba(46, 46, 54, 0.9) !important;
+  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 24px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.dark main .discover-team-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 25px 45px -15px rgba(0, 0, 0, 0.6), 0 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+main .discover-empty-card {
+  background-color: #ffffff !important;
+  border: 2px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 24px !important;
+}
+
+body.dark main .discover-empty-card {
+  background-color: #1e1e24 !important;
+  border: 2px solid rgba(46, 46, 54, 0.9) !important;
+  box-shadow: 0 12px 25px -8px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 24px !important;
+}
+
+/* Ensure modals and overlays always maintain solid background colors */
+main .fixed .glass-panel,
+main .absolute .glass-panel,
+main [role="dialog"],
+main .glass-panel[role="dialog"] {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+}
+
+body.dark main .fixed .glass-panel,
+body.dark main .absolute .glass-panel,
+body.dark main [role="dialog"],
+body.dark main .glass-panel[role="dialog"] {
+  background-color: #1e1e24 !important;
+  border: 1px solid #2e2e36 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+}
+
+/* Make inner roster cards / item lists look flat and clean */
+main div[class*="bg-white/5"], 
+main div[class*="bg-slate-950/20"], 
+main div[class*="bg-slate-900/10"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+body.dark main div[class*="bg-white/5"], 
+body.dark main div[class*="bg-slate-950/20"], 
+body.dark main div[class*="bg-slate-900/10"] {
+  background-color: #16161a !important;
+  border-color: #2e2e36 !important;
+  box-shadow: none !important;
+}
+
+/* Hide number input spinners (steppers) globally to remove the look of scrollbars */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+

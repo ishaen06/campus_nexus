@@ -1,0 +1,39 @@
+# Ignore node modules and frontend build output
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Ignore Python virtual environments
+backend/venv/
+backend/env/
+backend/.venv/
+venv/
+.venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+backend/__pycache__/
+backend/routers/__pycache__/
+
+# Ignore local databases and SQLite files
+*.db
+*.sqlite3
+backend/el_platform.db
+
+# Ignore environment variables / secrets
+.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Ignore uploaded media/files (should be storage-based in production)
+backend/uploads/
+uploads/
+
+# OS specific files
+.DS_Store
+Thumbs.db
