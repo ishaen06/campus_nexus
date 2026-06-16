@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Search } from 'lucide-react';
@@ -34,6 +34,180 @@ export default function ProfileEdit() {
   const [activeCategory, setActiveCategory] = useState('Smileys');
   const [emojiSearch, setEmojiSearch] = useState('');
   const [isMentor, setIsMentor] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000, active: false });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = 0;
+    let height = 0;
+
+    interface Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      color: string;
+      originalVx: number;
+      originalVy: number;
+    }
+
+    let particles: Particle[] = [];
+    const PARTICLE_COUNT = 55;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      width = rect.width;
+      height = rect.height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+      initParticles();
+    };
+
+    const initParticles = () => {
+      particles = [];
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const size = Math.random() * 2 + 1.2;
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const vx = (Math.random() - 0.5) * 0.35;
+        const vy = (Math.random() - 0.5) * 0.35;
+        
+        const colors = [
+          'rgba(129, 140, 248, 0.7)',
+          'rgba(99, 102, 241, 0.7)',
+          'rgba(56, 189, 248, 0.7)',
+          'rgba(147, 197, 253, 0.7)',
+        ];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        particles.push({
+          x,
+          y,
+          vx,
+          vy,
+          size,
+          color,
+          originalVx: vx,
+          originalVy: vy,
+        });
+      }
+    };
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+      const mouse = mouseRef.current;
+
+      particles.forEach((p) => {
+        let targetVx = p.originalVx;
+        let targetVy = p.originalVy;
+
+        if (mouse.active) {
+          const dx = mouse.x - p.x;
+          const dy = mouse.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < 180 && dist > 0.1) {
+            const force = (180 - dist) / 180;
+            targetVx += (dx / dist) * force * 0.5;
+            targetVy += (dy / dist) * force * 0.5;
+          }
+        }
+
+        p.vx += (targetVx - p.vx) * 0.08;
+        p.vy += (targetVy - p.vy) * 0.08;
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) {
+          p.x = 0;
+          p.vx *= -1;
+          p.originalVx *= -1;
+        } else if (p.x > width) {
+          p.x = width;
+          p.vx *= -1;
+          p.originalVx *= -1;
+        }
+
+        if (p.y < 0) {
+          p.y = 0;
+          p.vy *= -1;
+          p.originalVy *= -1;
+        } else if (p.y > height) {
+          p.y = height;
+          p.vy *= -1;
+          p.originalVy *= -1;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      });
+
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 100) {
+            const alpha = ((100 - dist) / 100) * 0.15;
+            ctx.strokeStyle = `rgba(129, 140, 248, ${alpha})`;
+            ctx.lineWidth = 0.75;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+
+        if (mouse.active) {
+          const dx = mouse.x - p1.x;
+          const dy = mouse.y - p1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 160) {
+            const alpha = ((160 - dist) / 160) * 0.25;
+            ctx.strokeStyle = `rgba(147, 197, 253, ${alpha})`;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
 
   useEffect(() => {
     api.get('/users/me').then(res => {
@@ -107,8 +281,25 @@ export default function ProfileEdit() {
   return (
     <div className="min-h-screen bg-transparent pb-24 relative overflow-hidden">
       {/* Dynamic Cover Image */}
-      <div className="h-64 md:h-80 w-full bg-gradient-to-r from-[#000814] via-[#001d3d] to-[#000814] border-b border-slate-200 dark:border-slate-800 relative flex items-end justify-end p-6">
+      <div 
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          mouseRef.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+            active: true
+          };
+        }}
+        onMouseEnter={() => {
+          mouseRef.current.active = true;
+        }}
+        onMouseLeave={() => {
+          mouseRef.current = { x: -1000, y: -1000, active: false };
+        }}
+        className="h-64 md:h-80 w-full bg-gradient-to-r from-[#000814] via-[#001d3d] to-[#000814] border-b border-slate-200 dark:border-slate-800 relative flex items-end justify-end p-6 overflow-hidden select-none"
+      >
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8 -mt-24 relative z-20">
