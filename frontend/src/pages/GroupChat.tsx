@@ -340,24 +340,24 @@ export default function GroupChat() {
       {/* Settings Modal */}
       <AnimatePresence>
         {showSettings && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 dark:bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="glass-panel w-full max-w-lg max-h-[85vh] overflow-y-auto flex flex-col p-6 rounded-[28px] border border-white/10 shadow-2xl relative no-scrollbar"
+              className="w-full max-w-lg max-h-[85vh] overflow-y-auto flex flex-col p-6 rounded-[28px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl relative no-scrollbar"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div className="flex items-center gap-2">
-                  <Settings className="text-indigo-400" size={20} />
+                  <Settings className="text-indigo-600 dark:text-indigo-400" size={20} />
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                     {groupDetails?.created_by === userId ? "Manage Team Settings" : "Team Information"}
                   </h3>
                 </div>
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   <X size={20} />
                 </button>
@@ -365,7 +365,7 @@ export default function GroupChat() {
 
               {/* Team Name Input */}
               <div className="space-y-2 mb-6">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Team Name</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block text-left">Team Name</label>
                 <input
                   type="text"
                   className="w-full glass-input rounded-2xl px-4 py-3 focus:outline-none transition-all text-slate-900 dark:text-slate-100 font-medium disabled:opacity-75 disabled:cursor-not-allowed"
@@ -378,7 +378,7 @@ export default function GroupChat() {
 
               {/* Project Topic Input */}
               <div className="space-y-2 mb-6">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Project Topic</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block text-left">Project Topic</label>
                 <input
                   type="text"
                   className="w-full glass-input rounded-2xl px-4 py-3 focus:outline-none transition-all text-slate-900 dark:text-slate-100 font-medium disabled:opacity-75 disabled:cursor-not-allowed"
@@ -390,7 +390,7 @@ export default function GroupChat() {
               </div>
 
               {/* Public/Private Toggle */}
-              <div className={`flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl mb-6 ${groupDetails?.mentor_status === 'APPROVED' ? 'opacity-65' : ''}`}>
+              <div className={`flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 rounded-2xl mb-6 ${groupDetails?.mentor_status === 'APPROVED' ? 'opacity-65' : ''}`}>
                 <div className="flex flex-col gap-1 pr-4 text-left">
                   <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Public Team Visibility</span>
                   <span className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
@@ -407,12 +407,12 @@ export default function GroupChat() {
                     className="sr-only peer"
                     disabled={groupDetails?.created_by !== userId || groupDetails?.mentor_status === 'APPROVED'}
                   />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+                  <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
               </div>
 
               {/* Team Criteria Validation Checklist */}
-              <div className="space-y-3 mb-6 p-4 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="space-y-3 mb-6 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 rounded-2xl text-left">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Team Formation Rules</span>
                 
                 <div className="flex items-center gap-3">
@@ -445,7 +445,7 @@ export default function GroupChat() {
               </div>
 
               {/* Current Members List */}
-              <div className="space-y-3 mb-6">
+              <div className="space-y-3 mb-6 text-left">
                 <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Current Members ({totalSize}/5)</label>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 no-scrollbar">
                   {teamMembers.map((uid) => {
@@ -457,9 +457,9 @@ export default function GroupChat() {
                     const isCurrentUserAdmin = groupDetails?.created_by === userId;
 
                     return (
-                      <div key={uid} className="flex items-center justify-between p-2.5 bg-white/5 border border-white/5 rounded-xl">
+                      <div key={uid} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/60 rounded-xl">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                          <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-750 overflow-hidden flex items-center justify-center">
                             {avatarConfig ? (
                               <Avatar config={avatarConfig} className="w-full h-full" />
                             ) : (
@@ -504,9 +504,9 @@ export default function GroupChat() {
 
               {/* Add Members Section */}
               {groupDetails?.created_by === userId && (
-                <div className="space-y-3 mb-6">
+                <div className="space-y-3 mb-6 text-left">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-indigo-400" />
+                    <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Add Matched Connections</label>
                   </div>
                   <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 no-scrollbar">
@@ -517,9 +517,9 @@ export default function GroupChat() {
                         const isFull = teamMembers.length >= 5;
 
                         return (
-                          <div key={u.id} className="flex items-center justify-between p-2.5 bg-white/5 border border-white/5 rounded-xl">
+                          <div key={u.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/60 rounded-xl">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                              <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-750 overflow-hidden flex items-center justify-center">
                                 {u.avatar_config ? (
                                   <Avatar config={u.avatar_config} className="w-full h-full" />
                                 ) : (
@@ -550,8 +550,8 @@ export default function GroupChat() {
                               disabled={isFull}
                               className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
                                 isFull 
-                                  ? 'bg-slate-800/50 border-slate-700 text-slate-500 cursor-not-allowed' 
-                                  : 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400'
+                                  ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-750 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
+                                  : 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20 hover:border-indigo-500/40 text-indigo-600 dark:text-indigo-400'
                               }`}
                               title={isFull ? "Team is full" : "Add to Team"}
                             >
@@ -570,7 +570,7 @@ export default function GroupChat() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-850">
                 {groupDetails?.created_by === userId ? (
                   <>
                     <button

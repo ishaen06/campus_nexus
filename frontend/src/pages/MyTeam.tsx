@@ -473,7 +473,7 @@ export default function MyTeam() {
         </motion.div>
       </div>
 
-      {/* Group Creation Glass Modal */}
+      {/* Group Creation Modal */}
       <AnimatePresence>
         {showCreateGroup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -482,22 +482,22 @@ export default function MyTeam() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCreateGroup(false)}
-              className="absolute inset-0 bg-black/30 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-md glass-panel p-8 relative z-10 bg-white/40"
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 relative z-10 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                  <Users className="text-indigo-600" /> Group Chat
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <Users className="text-indigo-600 dark:text-indigo-400" /> Group Chat
                 </h3>
                 <button 
                   onClick={() => setShowCreateGroup(false)}
-                  className="p-1.5 bg-white/80 hover:bg-white rounded-full text-gray-500 hover:text-gray-900 shadow-sm cursor-pointer"
+                  className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white shadow-sm transition-all cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -505,7 +505,7 @@ export default function MyTeam() {
 
               <form onSubmit={handleCreateGroup} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Group Name</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Group Name</label>
                   <input 
                     type="text" 
                     required 
@@ -517,7 +517,7 @@ export default function MyTeam() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Project Topic</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Topic</label>
                   <input 
                     type="text" 
                     placeholder="e.g. IoT Smart Parking System"
@@ -528,9 +528,9 @@ export default function MyTeam() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Members</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Members</label>
                   {connections.filter(c => c.status === 'ACCEPTED').length === 0 ? (
-                    <p className="text-sm text-gray-400 italic">No matches available to create a group.</p>
+                    <p className="text-sm text-slate-400 italic">No matches available to create a group.</p>
                   ) : (
                     <div className="max-h-48 overflow-y-auto space-y-2.5 pr-2 no-scrollbar">
                       {connections.filter(c => c.status === 'ACCEPTED').map(conn => (
@@ -539,15 +539,15 @@ export default function MyTeam() {
                           onClick={() => toggleMemberSelection(conn.other_user.id)}
                           className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
                             selectedMembers.includes(conn.other_user.id)
-                            ? 'bg-indigo-600/10 border-indigo-400/40 shadow-sm'
-                            : 'bg-white/20 border-white/10 hover:bg-white/45'
+                            ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={36} />
-                            <div>
-                              <p className="text-sm font-bold text-gray-900">{conn.other_user.full_name}</p>
-                              <p className="text-[10px] text-gray-400 font-semibold uppercase">
+                            <div className="text-left">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">{conn.other_user.full_name}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
                                 {conn.other_user.is_mentor 
                                   ? 'Mentor' 
                                   : `${conn.other_user.branch || 'N/A'} • Year ${conn.other_user.year_of_study || 'N/A'}`
@@ -559,7 +559,7 @@ export default function MyTeam() {
                           <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
                             selectedMembers.includes(conn.other_user.id)
                             ? 'bg-indigo-600 border-indigo-500 text-white'
-                            : 'border-gray-300 bg-white/50'
+                            : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800'
                           }`}>
                             {selectedMembers.includes(conn.other_user.id) && <Sparkles size={10} />}
                           </div>
@@ -569,10 +569,10 @@ export default function MyTeam() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 bg-white/10 rounded-2xl border border-white/10">
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/60 text-left">
                   <div>
-                    <label className="block text-xs font-bold text-gray-950 tracking-tight">Make Team Public</label>
-                    <span className="text-[10px] text-gray-400 font-semibold block mt-0.5">Let others find and join this team</span>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white tracking-tight">Make Team Public</label>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold block mt-0.5">Let others find and join this team</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input 
@@ -581,12 +581,12 @@ export default function MyTeam() {
                       onChange={e => setIsPublic(e.target.checked)}
                       className="sr-only peer" 
                     />
-                    <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                   </label>
                 </div>
 
                 {/* Team criteria status message */}
-                <div className={`p-3.5 rounded-2xl border text-xs font-semibold ${
+                <div className={`p-3.5 rounded-2xl border text-xs font-semibold text-left ${
                   validation.met 
                     ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-400' 
                     : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400'
