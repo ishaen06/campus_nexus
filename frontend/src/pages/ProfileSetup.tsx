@@ -80,17 +80,17 @@ export default function ProfileSetup() {
         
         <form onSubmit={handleSave} className="space-y-8">
           {/* Avatar Setup Preview & Builder */}
-          <div className="flex flex-col md:flex-row gap-6 items-stretch bg-slate-50 dark:bg-slate-850 p-6 rounded-3xl border border-slate-150 dark:border-slate-800">
+          <div className="flex flex-col md:flex-row gap-6 items-stretch bg-slate-50 dark:bg-slate-900/45 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
             {/* Left preview box */}
-            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl md:w-1/4 shrink-0">
-              <div className="w-24 h-24 rounded-full border-[6px] border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-slate-100 dark:bg-slate-850 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl md:w-1/4 shrink-0">
+              <div className="w-24 h-24 rounded-full border-[6px] border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-slate-100 dark:bg-slate-950 flex items-center justify-center">
                 <Avatar config={avatarConfig} name={fullName} size={84} />
               </div>
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-3">Preview</span>
             </div>
 
             {/* Right options box */}
-            <div className="flex-1 w-full p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-4">
+            <div className="flex-1 w-full p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-4">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2">
                 <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400 animate-pulse" /> Set Your Profile Picture
               </h3>
@@ -198,7 +198,7 @@ export default function ProfileSetup() {
                 </div>
 
                 {/* Manual Type Custom */}
-                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-850 border border-slate-150 dark:border-slate-800/80 p-2 rounded-xl text-left">
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 p-2 rounded-xl text-left">
                   <div className="flex-1">
                     <span className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Or Paste Custom Emoji</span>
                     <p className="text-[9px] text-slate-400 dark:text-slate-500">Enter a specific emoji character from your keyboard.</p>

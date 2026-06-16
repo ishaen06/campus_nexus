@@ -326,7 +326,7 @@ export default function ProfileEdit() {
               {/* Symmetrical Two-Column Layout */}
               <div className="flex flex-col md:flex-row gap-6 w-full items-stretch">
                 {/* Left Side: Avatar Live Preview Card */}
-                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-850 border border-slate-150/80 dark:border-slate-800/60 rounded-3xl md:w-1/3 shrink-0">
+                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl md:w-1/3 shrink-0">
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Live Preview</span>
                   <div className="w-36 h-36 rounded-full border-[6px] border-white dark:border-slate-800 shadow-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative">
                     <Avatar config={avatarConfig} name={fullName} size={130} />
@@ -335,7 +335,7 @@ export default function ProfileEdit() {
                 </div>
 
                 {/* Right Side: Options Panel Card Box */}
-                <div className="flex-1 p-6 bg-slate-50 dark:bg-slate-850 border border-slate-150/80 dark:border-slate-800/60 rounded-3xl flex flex-col space-y-4">
+                <div className="flex-1 p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col space-y-4">
                   <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1 no-scrollbar text-left">
                     {/* Background Selector */}
                     <div>

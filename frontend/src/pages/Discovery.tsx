@@ -184,7 +184,7 @@ export default function Discovery() {
                 <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">No new profiles found. Try checking back later or adjusting your filters.</p>
                 <button 
                   onClick={fetchUsers}
-                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 rounded-full text-indigo-600 dark:text-indigo-400 font-semibold shadow-[0_4px_14px_0_rgba(99,102,241,0.15)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] hover:bg-gray-50 dark:hover:bg-slate-850 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 rounded-full text-indigo-600 dark:text-indigo-400 font-semibold shadow-[0_4px_14px_0_rgba(99,102,241,0.15)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   <RefreshCw size={18} className="animate-spin" style={{ animationDuration: '3s' }} />
                   Refresh Feed

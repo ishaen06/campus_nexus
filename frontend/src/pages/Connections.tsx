@@ -119,7 +119,7 @@ export default function Connections() {
                       {/* Avatar preview trigger */}
                       <div 
                         onClick={(e) => openProfilePreview(conn.other_user, e)}
-                        className="w-12 h-12 rounded-full overflow-hidden bg-slate-200/50 dark:bg-slate-850/50 border border-slate-200/80 dark:border-slate-800 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                        className="w-12 h-12 rounded-full overflow-hidden bg-slate-200/50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 shadow-sm cursor-pointer hover:scale-105 transition-transform"
                       >
                         <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={44} />
                       </div>
@@ -175,7 +175,7 @@ export default function Connections() {
                     <div className="flex items-center gap-5 min-w-0 flex-1">
                       {/* Avatar preview trigger */}
                       <div className="relative shrink-0" onClick={(e) => openProfilePreview(conn.other_user, e)}>
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200/50 dark:bg-slate-850/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center hover:scale-105 transition-transform shadow-sm">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200/50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center hover:scale-105 transition-transform shadow-sm">
                           <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={48} />
                         </div>
                         {isOnline && (

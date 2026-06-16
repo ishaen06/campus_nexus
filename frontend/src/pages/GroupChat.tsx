@@ -300,12 +300,12 @@ export default function GroupChat() {
                 <div className={`flex relative max-w-[75%] md:max-w-[60%] group ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                   
                   {/* Message Bubble */}
-                  <div className={`px-5 py-3 shadow-sm relative backdrop-blur-sm ${
+                  <div className={`px-4 py-2 shadow-sm relative backdrop-blur-sm ${
                     isMine 
-                      ? 'bg-indigo-600/80 text-white border border-indigo-500/30 rounded-[24px] rounded-br-[8px]' 
-                      : 'bg-white/40 border border-white/30 text-gray-800 rounded-[24px] rounded-bl-[8px]'
+                      ? 'bg-indigo-600/80 text-white border border-indigo-500/30 rounded-[16px] rounded-br-[4px]' 
+                      : 'bg-white/40 border border-white/30 text-gray-800 rounded-[16px] rounded-bl-[4px]'
                   }`}>
-                    <p className="text-[15px] leading-relaxed font-medium">{msg.content}</p>
+                    <p className="text-sm leading-relaxed font-medium">{msg.content}</p>
                   </div>
                 </div>
               </motion.div>
@@ -457,7 +457,7 @@ export default function GroupChat() {
                     const isCurrentUserAdmin = groupDetails?.created_by === userId;
 
                     return (
-                      <div key={uid} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/60 rounded-xl">
+                      <div key={uid} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 rounded-xl">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-750 overflow-hidden flex items-center justify-center">
                             {avatarConfig ? (
@@ -517,7 +517,7 @@ export default function GroupChat() {
                         const isFull = teamMembers.length >= 5;
 
                         return (
-                          <div key={u.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/60 rounded-xl">
+                          <div key={u.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 rounded-xl">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-750 overflow-hidden flex items-center justify-center">
                                 {u.avatar_config ? (
@@ -570,7 +570,7 @@ export default function GroupChat() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-850">
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-150 dark:border-slate-800">
                 {groupDetails?.created_by === userId ? (
                   <>
                     <button
