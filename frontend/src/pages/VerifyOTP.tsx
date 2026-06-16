@@ -22,8 +22,19 @@ export default function VerifyOTP() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/verify-otp', { email, otp });
-      navigate('/login');
+      const res = await api.post('/auth/verify-otp', { email, otp });
+      localStorage.setItem('token', res.data.access_token);
+      
+      const meRes = await api.get('/users/me');
+      if (meRes.data.is_mentor) {
+        navigate('/mentor-dashboard');
+      } else {
+        if (meRes.data.bio) {
+          navigate('/discovery');
+        } else {
+          navigate('/profile-setup');
+        }
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Verification failed. Incorrect OTP.');
     } finally {

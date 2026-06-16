@@ -84,7 +84,7 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
     user_out.pop("_id", None)
     return user_out
 
-@router.post("/verify-otp")
+@router.post("/verify-otp", response_model=Token)
 def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
     # Master OTP bypass for development/testing
     if otp_data.otp == "123456":
@@ -92,7 +92,11 @@ def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         db.users.update_one({"email": otp_data.email}, {"$set": {"is_verified": True}})
-        return {"message": "Account verified successfully (Master OTP)"}
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user["email"], "id": user["id"]}, expires_delta=access_token_expires
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
 
     import pymongo
     otp_record = db.otp_codes.find_one(
@@ -113,7 +117,11 @@ def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
     db.users.update_one({"email": otp_data.email}, {"$set": {"is_verified": True}})
     db.otp_codes.delete_one({"_id": otp_record["_id"]})  # Clean up OTP after use
     
-    return {"message": "Account verified successfully"}
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["email"], "id": user["id"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 from fastapi.security import OAuth2PasswordRequestForm
 
