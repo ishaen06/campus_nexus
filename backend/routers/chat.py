@@ -723,7 +723,7 @@ def submit_mentor_approval(group_id: int, current_user = Depends(get_current_use
     db.group_chats.update_one({"id": group_id}, {"$set": {"mentor_token": token, "mentor_status": "PENDING"}})
     
     # Send email
-    from utils import send_mock_email
+    from utils import send_email
     subject = f"Mentor Approval Request for Team: {group['name']}"
     
     members_list_str = "\n".join([f"- {m.get('full_name')} ({m.get('email')}, USN: {m.get('usn') or 'N/A'}, Cycle: {m.get('cycle') or 'N/A'})" for m in members])
@@ -753,7 +753,7 @@ Thank you,
 EL Platform Team
 """
     
-    send_mock_email(group.get("mentor_email"), subject, body)
+    send_email(group.get("mentor_email"), subject, body)
     
     return {"message": "Approval request sent to mentor successfully."}
 

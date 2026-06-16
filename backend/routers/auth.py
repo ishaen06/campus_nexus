@@ -5,7 +5,7 @@ from typing import Any
 from database_mongo import get_mongo_db, get_next_sequence_value
 from schemas import UserCreate, UserResponse, OTPVerify, Token
 from security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from utils import generate_otp, send_mock_email
+from utils import generate_otp, send_email, get_otp_html_template
 
 router = APIRouter()
 
@@ -71,11 +71,12 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
     }
     db.otp_codes.insert_one(otp_record)
     
-    # Mock send email
-    send_mock_email(
+    # Send email
+    send_email(
         to_email=new_user["email"],
-        subject="Verify your EL Account",
-        body=f"Your OTP for Engineering Link is: {otp}. It expires in 10 minutes."
+        subject="Verify your Campus Nexus Account",
+        body=f"Your OTP for Campus Nexus is: {otp}. It expires in 10 minutes.",
+        html_body=get_otp_html_template(otp)
     )
     
     # Clean output dictionary for serialization
@@ -166,10 +167,11 @@ def resend_otp(payload: ResendOTPRequest, db = Depends(get_mongo_db)):
     }
     db.otp_codes.insert_one(otp_record)
     
-    send_mock_email(
+    send_email(
         to_email=email_lower,
-        subject="Verify your EL Account",
-        body=f"Your new OTP for Engineering Link is: {otp}. It expires in 10 minutes."
+        subject="Verify your Campus Nexus Account",
+        body=f"Your new OTP for Campus Nexus is: {otp}. It expires in 10 minutes.",
+        html_body=get_otp_html_template(otp)
     )
     return {"message": "OTP resent successfully"}
 
