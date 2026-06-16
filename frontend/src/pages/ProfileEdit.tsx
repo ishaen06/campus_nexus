@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Sparkles, X, Search } from 'lucide-react';
+import { Sparkles, X, Search } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import type { AvatarConfig } from '../components/Avatar';
 import { EMOJI_CATEGORIES, searchEmojis } from '../utils/emojis';
@@ -107,12 +107,8 @@ export default function ProfileEdit() {
   return (
     <div className="min-h-screen bg-transparent pb-24 relative overflow-hidden">
       {/* Dynamic Cover Image */}
-      <div className="h-64 md:h-80 w-full bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-b border-white/5 relative flex items-end justify-end p-6">
+      <div className="h-64 md:h-80 w-full bg-gradient-to-r from-[#000814] via-[#001d3d] to-[#000814] border-b border-slate-200 dark:border-slate-800 relative flex items-end justify-end p-6">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        <button className="glass-panel border-none px-4 py-2 flex items-center gap-2 text-white font-semibold hover:bg-white/20 transition-colors z-10">
-          <Camera size={18} />
-          Edit Cover
-        </button>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8 -mt-24 relative z-20">

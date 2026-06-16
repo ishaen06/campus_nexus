@@ -54,7 +54,7 @@ export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePr
             {/* Scrollable Container Wrapper */}
             <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col">
               {/* Header/Cover Section */}
-              <div className="h-32 bg-gradient-to-r from-slate-900/90 via-indigo-950/40 to-slate-900/90 border-b border-white/5 relative flex-shrink-0" />
+              <div className="h-32 bg-gradient-to-r from-[#000814] via-[#001d3d] to-[#000814] border-b border-slate-200 dark:border-slate-800 relative flex-shrink-0" />
 
               {/* Content Area */}
               <div className="p-6 pt-0 relative">
