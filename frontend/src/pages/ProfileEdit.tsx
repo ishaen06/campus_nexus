@@ -306,165 +306,172 @@ export default function ProfileEdit() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="glass-panel w-full max-w-2xl overflow-y-auto flex flex-col md:flex-row gap-6 p-6 rounded-[28px] border border-white/10 shadow-2xl relative no-scrollbar max-h-[90vh]"
+              className="w-full max-w-2xl overflow-y-auto flex flex-col p-6 rounded-[28px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl relative no-scrollbar max-h-[95vh]"
             >
               {/* Close Button */}
               <button
                 onClick={() => setShowAvatarModal(false)}
-                className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-full text-slate-400 hover:text-slate-200 transition-colors cursor-pointer z-30"
+                className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer z-30"
               >
                 <X size={20} />
               </button>
 
-              {/* Left Side: Avatar Live Preview */}
-              <div className="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/5 rounded-2xl md:w-1/3 shrink-0">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Live Preview</span>
-                <div className="w-40 h-40 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center relative">
-                  <Avatar config={avatarConfig} name={fullName} size={150} />
-                </div>
-                <span className="text-sm font-bold text-slate-200 mt-4">{fullName || "Your Avatar"}</span>
+              {/* Modal Header */}
+              <div className="w-full flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles size={20} className="text-indigo-600 dark:text-indigo-400" /> Create Your Avatar
+                </h3>
               </div>
 
-              {/* Right Side: Options Panel */}
-              <div className="flex-1 space-y-5">
-                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-white/10 pb-3">
-                  <Sparkles size={20} className="text-indigo-400" /> Create Your Avatar
-                </h3>
-
-                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
-                  {/* Background Selector */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Background Gradient</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {[0, 1, 2, 3, 4, 5].map(i => (
-                        <button
-                          key={i} type="button"
-                          onClick={() => setAvatarConfig(prev => ({ ...prev, bg: i }))}
-                          className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer ${
-                            avatarConfig.bg === i ? 'border-indigo-600 scale-110 shadow-md' : 'border-transparent opacity-75'
-                          }`}
-                          style={{
-                            background: i === 0 ? "linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%)" :
-                                        i === 1 ? "linear-gradient(135deg, #fca5a5 0%, #f87171 100%)" :
-                                        i === 2 ? "linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)" :
-                                        i === 3 ? "linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%)" :
-                                        i === 4 ? "linear-gradient(135deg, #c084fc 0%, #a855f7 100%)" :
-                                                  "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)"
-                          }}
-                        />
-                      ))}
-                    </div>
+              {/* Symmetrical Two-Column Layout */}
+              <div className="flex flex-col md:flex-row gap-6 w-full items-stretch">
+                {/* Left Side: Avatar Live Preview Card */}
+                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-850 border border-slate-150/80 dark:border-slate-800/60 rounded-3xl md:w-1/3 shrink-0">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Live Preview</span>
+                  <div className="w-36 h-36 rounded-full border-[6px] border-white dark:border-slate-800 shadow-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative">
+                    <Avatar config={avatarConfig} name={fullName} size={130} />
                   </div>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white mt-4">{fullName || "Your Avatar"}</span>
+                </div>
 
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-full glass-input rounded-2xl px-4 py-3 pl-10 text-sm focus:outline-none transition-all text-slate-100 font-semibold"
-                      placeholder="Search emojis (e.g. smile, heart, code, animal)..."
-                      value={emojiSearch}
-                      onChange={(e) => setEmojiSearch(e.target.value)}
-                    />
-                    <div className="absolute left-3.5 top-3.5 text-slate-400">
-                      <Search size={16} />
+                {/* Right Side: Options Panel Card Box */}
+                <div className="flex-1 p-6 bg-slate-50 dark:bg-slate-850 border border-slate-150/80 dark:border-slate-800/60 rounded-3xl flex flex-col space-y-4">
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1 no-scrollbar text-left">
+                    {/* Background Selector */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Background Gradient</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {[0, 1, 2, 3, 4, 5].map(i => (
+                          <button
+                            key={i} type="button"
+                            onClick={() => setAvatarConfig(prev => ({ ...prev, bg: i }))}
+                            className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer ${
+                              avatarConfig.bg === i ? 'border-indigo-650 dark:border-indigo-400 scale-110 shadow-md' : 'border-transparent opacity-75'
+                            }`}
+                            style={{
+                              background: i === 0 ? "linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%)" :
+                                          i === 1 ? "linear-gradient(135deg, #fca5a5 0%, #f87171 100%)" :
+                                          i === 2 ? "linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)" :
+                                          i === 3 ? "linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%)" :
+                                          i === 4 ? "linear-gradient(135deg, #c084fc 0%, #a855f7 100%)" :
+                                                    "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)"
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    {emojiSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setEmojiSearch('')}
-                        className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-200 cursor-pointer"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
 
-                  {/* Category Tabs (hidden during active search) */}
-                  {!emojiSearch && (
-                    <div className="flex gap-1.5 justify-between pb-1.5">
-                      {EMOJI_CATEGORIES.map(cat => (
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="w-full glass-input rounded-2xl px-4 py-3 pl-10 text-sm focus:outline-none transition-all text-slate-900 dark:text-white font-semibold"
+                        placeholder="Search emojis (e.g. smile, heart, code, animal)..."
+                        value={emojiSearch}
+                        onChange={(e) => setEmojiSearch(e.target.value)}
+                      />
+                      <div className="absolute left-3.5 top-3.5 text-slate-400">
+                        <Search size={16} />
+                      </div>
+                      {emojiSearch && (
                         <button
-                          key={cat.name}
                           type="button"
-                          onClick={() => setActiveCategory(cat.name)}
-                          title={cat.name}
-                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg transition-all border cursor-pointer ${
-                            activeCategory === cat.name
-                              ? 'bg-indigo-600/30 border-indigo-500 text-slate-100 shadow-md scale-105'
-                              : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-400'
-                          }`}
+                          onClick={() => setEmojiSearch('')}
+                          className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-200 cursor-pointer"
                         >
-                          <span>{cat.icon}</span>
+                          <X size={14} />
                         </button>
-                      ))}
+                      )}
                     </div>
-                  )}
 
-                  {/* Emoji Selection Grid */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                      {emojiSearch ? 'Search Results' : `${activeCategory} Emojis`}
-                    </label>
-                    <div className="grid grid-cols-7 gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent">
-                      {(() => {
-                        const displayedEmojis = emojiSearch 
-                          ? searchEmojis(emojiSearch)
-                          : (EMOJI_CATEGORIES.find(c => c.name === activeCategory)?.emojis || []);
-                        
-                        if (displayedEmojis.length > 0) {
-                          return displayedEmojis.map(em => (
-                            <button
-                              key={em}
-                              type="button"
-                              onClick={() => setAvatarConfig(prev => ({ ...prev, emoji: em }))}
-                              className={`w-10 h-10 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer border ${
-                                avatarConfig.emoji === em
-                                  ? 'bg-indigo-600/40 border-indigo-500 shadow-lg shadow-indigo-600/20 scale-105'
-                                  : 'bg-white/5 border-white/5 hover:bg-white/15 text-slate-200'
-                              }`}
-                            >
-                              {em}
-                            </button>
-                          ));
-                        } else {
-                          return (
-                            <div className="col-span-7 py-8 text-center text-xs text-slate-400 font-bold">
-                              No matching emojis found
-                            </div>
-                          );
-                        }
-                      })()}
+                    {/* Category Tabs */}
+                    {!emojiSearch && (
+                      <div className="flex gap-1.5 justify-between pb-1.5">
+                        {EMOJI_CATEGORIES.map(cat => (
+                          <button
+                            key={cat.name}
+                            type="button"
+                            onClick={() => setActiveCategory(cat.name)}
+                            title={cat.name}
+                            className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg transition-all border cursor-pointer ${
+                              activeCategory === cat.name
+                                ? 'bg-indigo-600/20 dark:bg-indigo-600/30 border-indigo-500 text-indigo-700 dark:text-slate-100 shadow-sm scale-105'
+                                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400'
+                            }`}
+                          >
+                            <span>{cat.icon}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Emoji Selection Grid */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                        {emojiSearch ? 'Search Results' : `${activeCategory} Emojis`}
+                      </label>
+                      <div className="grid grid-cols-7 gap-2 max-h-[160px] overflow-y-auto pr-1 no-scrollbar">
+                        {(() => {
+                          const displayedEmojis = emojiSearch 
+                            ? searchEmojis(emojiSearch)
+                            : (EMOJI_CATEGORIES.find(c => c.name === activeCategory)?.emojis || []);
+                          
+                          if (displayedEmojis.length > 0) {
+                            return displayedEmojis.map(em => (
+                              <button
+                                key={em}
+                                type="button"
+                                onClick={() => setAvatarConfig(prev => ({ ...prev, emoji: em }))}
+                                className={`w-10 h-10 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer border ${
+                                  avatarConfig.emoji === em
+                                    ? 'bg-indigo-650/25 dark:bg-indigo-600/30 border-indigo-500 shadow-md scale-105'
+                                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-950 dark:text-slate-100'
+                                }`}
+                              >
+                                {em}
+                              </button>
+                            ));
+                          } else {
+                            return (
+                              <div className="col-span-7 py-8 text-center text-xs text-slate-400 font-bold">
+                                No matching emojis found
+                              </div>
+                            );
+                          }
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Manual / Specific Emoji Input */}
+                    <div className="flex items-center gap-4 bg-slate-100/50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/80 p-3.5 rounded-2xl">
+                      <div className="flex-1">
+                        <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Type Custom Emoji</span>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500">Paste any specific emoji character from your device keyboard.</p>
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={4}
+                        className="w-12 h-12 glass-input rounded-xl text-center text-xl focus:outline-none transition-all text-slate-900 dark:text-white font-bold border border-slate-200 dark:border-slate-700"
+                        value={avatarConfig.emoji || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAvatarConfig(prev => ({ ...prev, emoji: val }));
+                        }}
+                        placeholder="😎"
+                      />
                     </div>
                   </div>
-
-                  {/* Manual / Specific Emoji Input */}
-                  <div className="flex items-center gap-4 bg-white/5 border border-white/5 p-3.5 rounded-2xl">
-                    <div className="flex-1">
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Type Custom Emoji</span>
-                      <p className="text-[10px] text-slate-500">Paste any specific emoji character from your device keyboard.</p>
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={4}
-                      className="w-12 h-12 glass-input rounded-xl text-center text-xl focus:outline-none transition-all text-slate-100 font-bold border border-white/10"
-                      value={avatarConfig.emoji || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAvatarConfig(prev => ({ ...prev, emoji: val }));
-                      }}
-                      placeholder="😎"
-                    />
-                  </div>
                 </div>
+              </div>
 
-                <div className="pt-4 border-t border-white/10 flex justify-end">
-                  <button
-                    onClick={() => setShowAvatarModal(false)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer uppercase tracking-wider"
-                  >
-                    Confirm Avatar
-                  </button>
-                </div>
+              {/* Modal Footer */}
+              <div className="pt-4 mt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  onClick={() => setShowAvatarModal(false)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer uppercase tracking-wider"
+                >
+                  Confirm Avatar
+                </button>
               </div>
             </motion.div>
           </div>

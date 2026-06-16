@@ -80,18 +80,24 @@ export default function ProfileSetup() {
         
         <form onSubmit={handleSave} className="space-y-8">
           {/* Avatar Setup Preview & Builder */}
-          <div className="flex flex-col md:flex-row gap-6 items-center bg-white/10 p-6 rounded-2xl border border-white/20">
-            <div className="w-24 h-24 rounded-full border-[6px] border-white/80 shadow-xl overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-              <Avatar config={avatarConfig} name={fullName} size={84} />
+          <div className="flex flex-col md:flex-row gap-6 items-stretch bg-slate-50 dark:bg-slate-850 p-6 rounded-3xl border border-slate-150 dark:border-slate-800">
+            {/* Left preview box */}
+            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl md:w-1/4 shrink-0">
+              <div className="w-24 h-24 rounded-full border-[6px] border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-slate-100 dark:bg-slate-850 flex items-center justify-center">
+                <Avatar config={avatarConfig} name={fullName} size={84} />
+              </div>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-3">Preview</span>
             </div>
-            <div className="flex-1 w-full space-y-4">
-              <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-600 animate-pulse" /> Set Your Profile Picture
+
+            {/* Right options box */}
+            <div className="flex-1 w-full p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-4">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400 animate-pulse" /> Set Your Profile Picture
               </h3>
               
               {/* Background selector */}
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Background Gradient</label>
+              <div className="text-left">
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Background Gradient</label>
                 <div className="flex gap-2 flex-wrap">
                   {[0, 1, 2, 3, 4, 5].map(i => (
                     <button
@@ -119,7 +125,7 @@ export default function ProfileSetup() {
                 <div className="relative">
                   <input
                     type="text"
-                    className="w-full glass-input rounded-xl px-3 py-2 pl-9 text-xs focus:outline-none transition-all text-slate-100 font-semibold"
+                    className="w-full glass-input rounded-xl px-3 py-2 pl-9 text-xs focus:outline-none transition-all text-slate-900 dark:text-white font-semibold"
                     placeholder="Search emojis (e.g. smile, heart, code, animal)..."
                     value={emojiSearch}
                     onChange={(e) => setEmojiSearch(e.target.value)}
@@ -149,8 +155,8 @@ export default function ProfileSetup() {
                         title={cat.name}
                         className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg transition-all border cursor-pointer ${
                           activeCategory === cat.name
-                            ? 'bg-indigo-600/30 border-indigo-500 text-slate-100 shadow'
-                            : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-400'
+                            ? 'bg-indigo-650/20 dark:bg-indigo-600/30 border-indigo-505 text-indigo-700 dark:text-slate-100 shadow'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-250 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         <span>{cat.icon}</span>
@@ -160,7 +166,7 @@ export default function ProfileSetup() {
                 )}
 
                 {/* Grid */}
-                <div className="grid grid-cols-7 gap-1.5 max-h-[100px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent">
+                <div className="grid grid-cols-7 gap-1.5 max-h-[100px] overflow-y-auto pr-1 no-scrollbar text-left">
                   {(() => {
                     const displayedEmojis = emojiSearch 
                       ? searchEmojis(emojiSearch)
@@ -174,8 +180,8 @@ export default function ProfileSetup() {
                           onClick={() => setAvatarConfig(prev => ({ ...prev, emoji: em }))}
                           className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg transition-all hover:scale-110 active:scale-95 cursor-pointer border ${
                             avatarConfig.emoji === em
-                              ? 'bg-indigo-600/40 border-indigo-500 shadow scale-105'
-                              : 'bg-white/5 border-white/5 hover:bg-white/15 text-slate-200'
+                              ? 'bg-indigo-650/25 dark:bg-indigo-650/35 border-indigo-500 shadow scale-105'
+                              : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-100'
                           }`}
                         >
                           {em}
@@ -192,15 +198,15 @@ export default function ProfileSetup() {
                 </div>
 
                 {/* Manual Type Custom */}
-                <div className="flex items-center gap-3 bg-white/5 border border-white/5 p-2 rounded-xl">
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-850 border border-slate-150 dark:border-slate-800/80 p-2 rounded-xl text-left">
                   <div className="flex-1">
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Or Paste Custom Emoji</span>
-                    <p className="text-[9px] text-slate-500">Enter a specific emoji character from your keyboard.</p>
+                    <span className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Or Paste Custom Emoji</span>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500">Enter a specific emoji character from your keyboard.</p>
                   </div>
                   <input
                     type="text"
                     maxLength={4}
-                    className="w-9 h-9 glass-input rounded-lg text-center text-lg focus:outline-none transition-all text-slate-100 font-bold border border-white/10"
+                    className="w-9 h-9 glass-input rounded-lg text-center text-lg focus:outline-none transition-all text-slate-900 dark:text-white font-bold border border-slate-200 dark:border-slate-700"
                     value={avatarConfig.emoji || ''}
                     onChange={(e) => {
                       const val = e.target.value;
