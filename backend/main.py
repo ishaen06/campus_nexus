@@ -30,3 +30,23 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to EL API"}
+
+@app.get("/api/debug/email-config")
+def debug_email_config():
+    """Diagnostic endpoint to check email configuration (does NOT expose secrets)."""
+    from utils import load_env
+    load_env()
+    resend_key = os.getenv("RESEND_API_KEY", "")
+    smtp_user = os.getenv("SMTP_USERNAME", "")
+    smtp_pass = os.getenv("SMTP_PASSWORD", "")
+    resend_from = os.getenv("RESEND_FROM", "")
+    return {
+        "RESEND_API_KEY_set": bool(resend_key),
+        "RESEND_API_KEY_prefix": resend_key[:8] + "..." if len(resend_key) > 8 else "(not set)",
+        "RESEND_FROM": resend_from if resend_from else "(using default: onboarding@resend.dev)",
+        "SMTP_USERNAME_set": bool(smtp_user),
+        "SMTP_PASSWORD_set": bool(smtp_pass),
+        "SMTP_SERVER": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
+        "SMTP_PORT": os.getenv("SMTP_PORT", "587"),
+        "env_keys_with_email": [k for k in os.environ.keys() if any(x in k.upper() for x in ["RESEND", "SMTP", "EMAIL", "MAIL"])],
+    }

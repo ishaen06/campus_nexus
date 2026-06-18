@@ -140,10 +140,14 @@ def get_otp_html_template(otp: str) -> str:
 def send_email_via_resend(to_email: str, subject: str, body_text: str, html_body: str = None) -> bool:
     api_key = os.getenv("RESEND_API_KEY")
     if not api_key:
-        print("[RESEND API LOG] WARNING: RESEND_API_KEY is not set.")
+        print("[RESEND API LOG] WARNING: RESEND_API_KEY is not set in environment.")
+        print(f"[RESEND API LOG] All env keys: {[k for k in os.environ.keys() if 'RESEND' in k.upper() or 'SMTP' in k.upper() or 'EMAIL' in k.upper()]}")
         return False
         
-    print("[RESEND API LOG] Initializing email dispatch via Resend REST API...")
+    # Mask key for logging (show first 8 chars only)
+    key_preview = api_key[:8] + "..." if len(api_key) > 8 else "***"
+    print(f"[RESEND API LOG] Initializing email dispatch via Resend REST API...")
+    print(f"[RESEND API LOG] API Key prefix: {key_preview}")
     print(f"[RESEND API LOG] Recipient: {to_email}")
     
     url = "https://api.resend.com/emails"
@@ -153,7 +157,13 @@ def send_email_via_resend(to_email: str, subject: str, body_text: str, html_body
         "User-Agent": "CampusNexus/1.0"
     }
     
+    # IMPORTANT: Resend free tier ONLY allows sending from 'onboarding@resend.dev'
+    # To use a custom address (e.g. noreply@yourdomain.com), you must add and 
+    # verify a custom domain in your Resend dashboard at https://resend.com/domains
+    # Gmail addresses (e.g. campusnexes@gmail.com) CANNOT be used as Resend senders.
     from_address = os.getenv("RESEND_FROM", "Campus Nexus <onboarding@resend.dev>")
+    print(f"[RESEND API LOG] From address: {from_address}")
+    
     payload = {
         "from": from_address,
         "to": [to_email],
@@ -162,31 +172,70 @@ def send_email_via_resend(to_email: str, subject: str, body_text: str, html_body
     }
     if html_body:
         payload["html"] = html_body
+    
+    # Log the full payload (minus HTML for brevity)
+    log_payload = dict(payload)
+    if "html" in log_payload:
+        log_payload["html"] = f"<HTML {len(payload['html'])} chars>"
+    print(f"[RESEND API LOG] Payload: {json.dumps(log_payload)}")
         
     try:
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
         print("[RESEND API LOG] Posting request to Resend HTTPS endpoint...")
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=30) as response:
             res_body = response.read().decode("utf-8")
-            print(f"[RESEND API LOG] SUCCESS: Email sent successfully. Response: {res_body}")
+            status_code = response.getcode()
+            print(f"[RESEND API LOG] SUCCESS (HTTP {status_code}): Email sent. Response: {res_body}")
             return True
     except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        print(f"[RESEND API LOG] HTTP ERROR {e.code}: {e.reason} | Details: {error_body}")
+        error_body = ""
+        try:
+            error_body = e.read().decode("utf-8")
+        except Exception:
+            error_body = "(could not read error body)"
+        print(f"[RESEND API LOG] HTTP ERROR {e.code}: {e.reason}")
+        print(f"[RESEND API LOG] Error details: {error_body}")
+        print(f"[RESEND API LOG] This usually means:")
+        if e.code == 403:
+            print(f"[RESEND API LOG]   - API key is invalid or revoked")
+            print(f"[RESEND API LOG]   - OR the request was blocked by Cloudflare")
+        elif e.code == 422:
+            print(f"[RESEND API LOG]   - The 'from' address is not verified in Resend")
+            print(f"[RESEND API LOG]   - You CANNOT send from Gmail addresses with Resend")
+            print(f"[RESEND API LOG]   - Use 'onboarding@resend.dev' or add a verified domain")
+        elif e.code == 401:
+            print(f"[RESEND API LOG]   - API key is missing or malformed")
+        return False
+    except urllib.error.URLError as e:
+        print(f"[RESEND API LOG] URL ERROR (network issue): {e.reason}")
         return False
     except Exception as e:
-        print(f"[RESEND API LOG] ERROR: Failed to make HTTP request: {e}")
+        print(f"[RESEND API LOG] UNEXPECTED ERROR: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     load_env()
     
+    print(f"[EMAIL] ======= send_email() called =======")
+    print(f"[EMAIL] To: {to_email}")
+    print(f"[EMAIL] Subject: {subject}")
+    print(f"[EMAIL] RESEND_API_KEY present: {bool(os.getenv('RESEND_API_KEY'))}")
+    print(f"[EMAIL] SMTP_USERNAME present: {bool(os.getenv('SMTP_USERNAME'))}")
+    print(f"[EMAIL] SMTP_PASSWORD present: {bool(os.getenv('SMTP_PASSWORD'))}")
+    
     # 1. Try Resend REST API first
-    if os.getenv("RESEND_API_KEY"):
+    resend_key = os.getenv("RESEND_API_KEY")
+    if resend_key:
+        print(f"[EMAIL] Attempting Resend API path...")
         success = send_email_via_resend(to_email, subject, body, html_body)
         if success:
+            print(f"[EMAIL] ✅ Email sent successfully via Resend API")
             return
+        else:
+            print(f"[EMAIL] ❌ Resend API failed, falling back to SMTP...")
 
     # 2. Fallback to direct SMTP
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
