@@ -141,12 +141,28 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     smtp_username = os.getenv("SMTP_USERNAME", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
     
+    print("[SMTP LOG] Initializing email dispatch...")
+    print(f"[SMTP LOG] Recipient: {to_email}")
+    print(f"[SMTP LOG] Configured Server: {smtp_server}:{smtp_port}")
+    print(f"[SMTP LOG] Configured Username: {smtp_username}")
+    
     if smtp_username and smtp_password:
         try:
             port = int(smtp_port)
-            server = smtplib.SMTP(smtp_server, port)
-            server.starttls()
+            print(f"[SMTP LOG] Connecting to server {smtp_server} on port {port}...")
+            
+            if port == 465:
+                print("[SMTP LOG] Using SSL (smtplib.SMTP_SSL)...")
+                server = smtplib.SMTP_SSL(smtp_server, port)
+            else:
+                print("[SMTP LOG] Using TLS (smtplib.SMTP)...")
+                server = smtplib.SMTP(smtp_server, port)
+                print("[SMTP LOG] Starting TLS handshake...")
+                server.starttls()
+                
+            print("[SMTP LOG] Attempting login...")
             server.login(smtp_username, smtp_password)
+            print("[SMTP LOG] Login successful.")
             
             # Use alternative format for HTML support
             msg = MIMEMultipart('alternative')
@@ -161,13 +177,17 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
             if html_body:
                 msg.attach(MIMEText(html_body, 'html'))
             
+            print("[SMTP LOG] Sending message...")
             server.send_message(msg)
             server.quit()
-            print(f"REAL EMAIL SENT TO: {to_email}")
+            print(f"[SMTP LOG] SUCCESS: REAL EMAIL SENT TO: {to_email}")
             return
         except Exception as e:
-            print(f"Failed to send real email via SMTP: {e}")
-            print("Falling back to print mock email.")
+            print(f"[SMTP LOG] ERROR: Failed to send real email via SMTP: {e}")
+            print("[SMTP LOG] Fallback: printing mock email instead.")
+    else:
+        print("[SMTP LOG] WARNING: SMTP_USERNAME or SMTP_PASSWORD is not set.")
+        print("[SMTP LOG] Fallback: printing mock email instead.")
 
     # Fallback mock print
     print("=" * 50)
