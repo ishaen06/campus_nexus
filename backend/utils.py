@@ -222,80 +222,69 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     print(f"[EMAIL] ======= send_email() called =======")
     print(f"[EMAIL] To: {to_email}")
     print(f"[EMAIL] Subject: {subject}")
-    print(f"[EMAIL] RESEND_API_KEY present: {bool(os.getenv('RESEND_API_KEY'))}")
     print(f"[EMAIL] SMTP_USERNAME present: {bool(os.getenv('SMTP_USERNAME'))}")
     print(f"[EMAIL] SMTP_PASSWORD present: {bool(os.getenv('SMTP_PASSWORD'))}")
-    
-    # 1. Try Resend REST API first
-    resend_key = os.getenv("RESEND_API_KEY")
-    if resend_key:
-        print(f"[EMAIL] Attempting Resend API path...")
-        success = send_email_via_resend(to_email, subject, body, html_body)
-        if success:
-            print(f"[EMAIL] ✅ Email sent successfully via Resend API")
-            return
-        else:
-            print(f"[EMAIL] ❌ Resend API failed, falling back to SMTP...")
+    print(f"[EMAIL] RESEND_API_KEY present: {bool(os.getenv('RESEND_API_KEY'))}")
 
-    # 2. Fallback to direct SMTP
+    # 1. PRIMARY: Gmail SMTP
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = os.getenv("SMTP_PORT", "587")
+    smtp_port   = os.getenv("SMTP_PORT", "587")
     smtp_username = os.getenv("SMTP_USERNAME", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
-    
-    print("[SMTP LOG] Initializing email dispatch...")
-    print(f"[SMTP LOG] Recipient: {to_email}")
-    print(f"[SMTP LOG] Configured Server: {smtp_server}:{smtp_port}")
-    print(f"[SMTP LOG] Configured Username: {smtp_username}")
-    
+
+    print(f"[SMTP LOG] Configured Server : {smtp_server}:{smtp_port}")
+    print(f"[SMTP LOG] Configured Account: {smtp_username}")
+
     if smtp_username and smtp_password:
         try:
             port = int(smtp_port)
-            print(f"[SMTP LOG] Connecting to server {smtp_server} on port {port}...")
-            
+            print(f"[SMTP LOG] Connecting to {smtp_server}:{port}...")
+
             if port == 465:
-                print("[SMTP LOG] Using SSL (smtplib.SMTP_SSL)...")
-                server = smtplib.SMTP_SSL(smtp_server, port)
+                print("[SMTP LOG] Using SSL (SMTP_SSL)...")
+                server = smtplib.SMTP_SSL(smtp_server, port, timeout=30)
             else:
-                print("[SMTP LOG] Using TLS (smtplib.SMTP)...")
-                server = smtplib.SMTP(smtp_server, port)
-                print("[SMTP LOG] Starting TLS handshake...")
+                print("[SMTP LOG] Using TLS (SMTP + starttls)...")
+                server = smtplib.SMTP(smtp_server, port, timeout=30)
+                server.ehlo()
                 server.starttls()
-                
-            print("[SMTP LOG] Attempting login...")
+                server.ehlo()
+
+            print("[SMTP LOG] Logging in...")
             server.login(smtp_username, smtp_password)
             print("[SMTP LOG] Login successful.")
-            
-            # Use alternative format for HTML support
+
             msg = MIMEMultipart('alternative')
-            msg['From'] = smtp_username
-            msg['To'] = to_email
+            msg['From']    = f"Campus Nexus <{smtp_username}>"
+            msg['To']      = to_email
             msg['Subject'] = subject
-            
-            # Attach plain text fallback
             msg.attach(MIMEText(body, 'plain'))
-            
-            # Attach HTML content
             if html_body:
                 msg.attach(MIMEText(html_body, 'html'))
-            
+
             print("[SMTP LOG] Sending message...")
             server.send_message(msg)
             server.quit()
-            print(f"[SMTP LOG] SUCCESS: REAL EMAIL SENT TO: {to_email}")
+            print(f"[SMTP LOG] SUCCESS: Email sent to {to_email}")
             return
         except Exception as e:
-            print(f"[SMTP LOG] ERROR: Failed to send real email via SMTP: {e}")
-            print("[SMTP LOG] Fallback: printing mock email instead.")
+            print(f"[SMTP LOG] ERROR: {type(e).__name__}: {e}")
+            print("[SMTP LOG] Falling back to Resend API...")
     else:
-        print("[SMTP LOG] WARNING: SMTP_USERNAME or SMTP_PASSWORD is not set.")
-        print("[SMTP LOG] Fallback: printing mock email instead.")
+        print("[SMTP LOG] WARNING: SMTP credentials not set — skipping SMTP.")
 
-    # 3. Fallback mock print
+    # 2. FALLBACK: Resend API
+    if os.getenv("RESEND_API_KEY"):
+        print("[EMAIL] Attempting Resend API as fallback...")
+        success = send_email_via_resend(to_email, subject, body, html_body)
+        if success:
+            print("[EMAIL] Email sent via Resend API (fallback).")
+            return
+        print("[EMAIL] Resend also failed.")
+
+    # 3. Last resort: print to console log
     print("=" * 50)
-    print(f"MOCK EMAIL SENT TO: {to_email}")
+    print(f"MOCK EMAIL TO: {to_email}")
     print(f"SUBJECT: {subject}")
-    print(f"BODY:\n{body}")
-    if html_body:
-        print(f"HTML BODY ENABLED (length: {len(html_body)} characters)")
+    print(f"BODY: {body}")
     print("=" * 50)
