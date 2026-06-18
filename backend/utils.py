@@ -21,6 +21,73 @@ def load_env():
                     val = val.strip().strip("'\"")
                     os.environ[key.strip()] = val
 
+def send_email_via_brevo(to_email: str, subject: str, body_text: str, html_body: str = None) -> bool:
+    """Send email via Brevo (formerly Sendinblue) HTTPS API. Works on Render free tier."""
+    api_key = os.getenv("BREVO_API_KEY")
+    if not api_key:
+        print("[BREVO] WARNING: BREVO_API_KEY not set.")
+        return False
+
+    sender_email = os.getenv("BREVO_SENDER_EMAIL", "nexus2026.otp@gmail.com")
+    sender_name  = os.getenv("BREVO_SENDER_NAME", "Campus Nexus")
+
+    key_preview = api_key[:8] + "..." if len(api_key) > 8 else "***"
+    print(f"[BREVO] Sending email via Brevo API...")
+    print(f"[BREVO] API Key prefix : {key_preview}")
+    print(f"[BREVO] From           : {sender_name} <{sender_email}>")
+    print(f"[BREVO] To             : {to_email}")
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept":       "application/json",
+        "api-key":      api_key,
+        "content-type": "application/json",
+    }
+    payload = {
+        "sender":   {"name": sender_name, "email": sender_email},
+        "to":       [{"email": to_email}],
+        "subject":  subject,
+        "textContent": body_text,
+    }
+    if html_body:
+        payload["htmlContent"] = html_body
+
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req  = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as response:
+            res_body    = response.read().decode("utf-8")
+            status_code = response.getcode()
+            print(f"[BREVO] SUCCESS (HTTP {status_code}): {res_body}")
+            return True
+    except urllib.error.HTTPError as e:
+        error_body = ""
+        try:
+            error_body = e.read().decode("utf-8")
+        except Exception:
+            error_body = "(could not read error body)"
+        print(f"[BREVO] HTTP ERROR {e.code}: {e.reason}")
+        print(f"[BREVO] Details: {error_body}")
+        return False
+    except Exception as e:
+        print(f"[BREVO] ERROR: {type(e).__name__}: {e}")
+        return False
+
+
+def generate_otp() -> str:
+    return str(random.randint(100000, 999999))
+
+def load_env():
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    val = val.strip().strip("'\"")
+                    os.environ[key.strip()] = val
+
 def get_otp_html_template(otp: str) -> str:
     return f"""<!DOCTYPE html>
 <html>
@@ -218,42 +285,47 @@ def send_email_via_resend(to_email: str, subject: str, body_text: str, html_body
 
 def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     load_env()
-    
-    print(f"[EMAIL] ======= send_email() called =======")
-    print(f"[EMAIL] To: {to_email}")
-    print(f"[EMAIL] Subject: {subject}")
-    print(f"[EMAIL] SMTP_USERNAME present: {bool(os.getenv('SMTP_USERNAME'))}")
-    print(f"[EMAIL] SMTP_PASSWORD present: {bool(os.getenv('SMTP_PASSWORD'))}")
-    print(f"[EMAIL] RESEND_API_KEY present: {bool(os.getenv('RESEND_API_KEY'))}")
 
-    # 1. PRIMARY: Gmail SMTP
-    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port   = os.getenv("SMTP_PORT", "587")
+    print(f"[EMAIL] ======= send_email() called =======")
+    print(f"[EMAIL] To             : {to_email}")
+    print(f"[EMAIL] BREVO_API_KEY  : {bool(os.getenv('BREVO_API_KEY'))}")
+    print(f"[EMAIL] RESEND_API_KEY : {bool(os.getenv('RESEND_API_KEY'))}")
+    print(f"[EMAIL] SMTP_USERNAME  : {bool(os.getenv('SMTP_USERNAME'))}")
+
+    # 1. PRIMARY: Brevo HTTPS API (works on Render free tier, no domain needed)
+    if os.getenv("BREVO_API_KEY"):
+        print("[EMAIL] Trying Brevo API (primary)...")
+        if send_email_via_brevo(to_email, subject, body, html_body):
+            print("[EMAIL] SUCCESS via Brevo.")
+            return
+        print("[EMAIL] Brevo failed, trying Resend...")
+
+    # 2. FALLBACK: Resend HTTPS API (needs verified domain for non-owner emails)
+    if os.getenv("RESEND_API_KEY"):
+        print("[EMAIL] Trying Resend API (fallback 1)...")
+        if send_email_via_resend(to_email, subject, body, html_body):
+            print("[EMAIL] SUCCESS via Resend.")
+            return
+        print("[EMAIL] Resend failed, trying SMTP...")
+
+    # 3. FALLBACK: Gmail SMTP (works locally, blocked on Render free tier)
+    smtp_server   = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port     = os.getenv("SMTP_PORT", "587")
     smtp_username = os.getenv("SMTP_USERNAME", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
 
-    print(f"[SMTP LOG] Configured Server : {smtp_server}:{smtp_port}")
-    print(f"[SMTP LOG] Configured Account: {smtp_username}")
-
     if smtp_username and smtp_password:
+        print(f"[EMAIL] Trying Gmail SMTP (fallback 2): {smtp_server}:{smtp_port}...")
         try:
             port = int(smtp_port)
-            print(f"[SMTP LOG] Connecting to {smtp_server}:{port}...")
-
             if port == 465:
-                print("[SMTP LOG] Using SSL (SMTP_SSL)...")
                 server = smtplib.SMTP_SSL(smtp_server, port, timeout=30)
             else:
-                print("[SMTP LOG] Using TLS (SMTP + starttls)...")
                 server = smtplib.SMTP(smtp_server, port, timeout=30)
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
-
-            print("[SMTP LOG] Logging in...")
             server.login(smtp_username, smtp_password)
-            print("[SMTP LOG] Login successful.")
-
             msg = MIMEMultipart('alternative')
             msg['From']    = f"Campus Nexus <{smtp_username}>"
             msg['To']      = to_email
@@ -261,30 +333,17 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
             msg.attach(MIMEText(body, 'plain'))
             if html_body:
                 msg.attach(MIMEText(html_body, 'html'))
-
-            print("[SMTP LOG] Sending message...")
             server.send_message(msg)
             server.quit()
-            print(f"[SMTP LOG] SUCCESS: Email sent to {to_email}")
+            print(f"[EMAIL] SUCCESS via Gmail SMTP → {to_email}")
             return
         except Exception as e:
-            print(f"[SMTP LOG] ERROR: {type(e).__name__}: {e}")
-            print("[SMTP LOG] Falling back to Resend API...")
-    else:
-        print("[SMTP LOG] WARNING: SMTP credentials not set — skipping SMTP.")
+            print(f"[EMAIL] Gmail SMTP ERROR: {type(e).__name__}: {e}")
 
-    # 2. FALLBACK: Resend API
-    if os.getenv("RESEND_API_KEY"):
-        print("[EMAIL] Attempting Resend API as fallback...")
-        success = send_email_via_resend(to_email, subject, body, html_body)
-        if success:
-            print("[EMAIL] Email sent via Resend API (fallback).")
-            return
-        print("[EMAIL] Resend also failed.")
-
-    # 3. Last resort: print to console log
+    # 4. Last resort — print to logs
     print("=" * 50)
     print(f"MOCK EMAIL TO: {to_email}")
     print(f"SUBJECT: {subject}")
     print(f"BODY: {body}")
     print("=" * 50)
+
