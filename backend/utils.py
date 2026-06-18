@@ -149,7 +149,8 @@ def send_email_via_resend(to_email: str, subject: str, body_text: str, html_body
     url = "https://api.resend.com/emails"
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "CampusNexus/1.0"
     }
     
     from_address = os.getenv("RESEND_FROM", "Campus Nexus <onboarding@resend.dev>")
