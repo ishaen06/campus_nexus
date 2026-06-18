@@ -3,6 +3,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+import json
+import urllib.request
+import urllib.error
 
 def generate_otp() -> str:
     return str(random.randint(100000, 999999))
@@ -134,8 +137,57 @@ def get_otp_html_template(otp: str) -> str:
 </body>
 </html>"""
 
+def send_email_via_resend(to_email: str, subject: str, body_text: str, html_body: str = None) -> bool:
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
+        print("[RESEND API LOG] WARNING: RESEND_API_KEY is not set.")
+        return False
+        
+    print("[RESEND API LOG] Initializing email dispatch via Resend REST API...")
+    print(f"[RESEND API LOG] Recipient: {to_email}")
+    
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    from_address = os.getenv("RESEND_FROM", "Campus Nexus <onboarding@resend.dev>")
+    payload = {
+        "from": from_address,
+        "to": [to_email],
+        "subject": subject,
+        "text": body_text,
+    }
+    if html_body:
+        payload["html"] = html_body
+        
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        print("[RESEND API LOG] Posting request to Resend HTTPS endpoint...")
+        with urllib.request.urlopen(req) as response:
+            res_body = response.read().decode("utf-8")
+            print(f"[RESEND API LOG] SUCCESS: Email sent successfully. Response: {res_body}")
+            return True
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        print(f"[RESEND API LOG] HTTP ERROR {e.code}: {e.reason} | Details: {error_body}")
+        return False
+    except Exception as e:
+        print(f"[RESEND API LOG] ERROR: Failed to make HTTP request: {e}")
+        return False
+
 def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     load_env()
+    
+    # 1. Try Resend REST API first
+    if os.getenv("RESEND_API_KEY"):
+        success = send_email_via_resend(to_email, subject, body, html_body)
+        if success:
+            return
+
+    # 2. Fallback to direct SMTP
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port = os.getenv("SMTP_PORT", "587")
     smtp_username = os.getenv("SMTP_USERNAME", "")
@@ -189,7 +241,7 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
         print("[SMTP LOG] WARNING: SMTP_USERNAME or SMTP_PASSWORD is not set.")
         print("[SMTP LOG] Fallback: printing mock email instead.")
 
-    # Fallback mock print
+    # 3. Fallback mock print
     print("=" * 50)
     print(f"MOCK EMAIL SENT TO: {to_email}")
     print(f"SUBJECT: {subject}")
