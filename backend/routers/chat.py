@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, BackgroundTasks
 from typing import List, Dict
 from datetime import datetime
 
@@ -676,7 +676,7 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
 
 # Request Mentor Approval
 @router.post("/groups/{group_id}/submit-approval")
-def submit_mentor_approval(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     group = db.group_chats.find_one({"id": group_id})
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
@@ -753,7 +753,7 @@ Thank you,
 EL Platform Team
 """
     
-    send_email(group.get("mentor_email"), subject, body)
+    background_tasks.add_task(send_email, group.get("mentor_email"), subject, body)
     
     return {"message": "Approval request sent to mentor successfully."}
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -10,7 +10,7 @@ from utils import generate_otp, send_email, get_otp_html_template
 router = APIRouter()
 
 @router.post("/register", response_model=UserResponse)
-def register(user_in: UserCreate, db = Depends(get_mongo_db)):
+def register(user_in: UserCreate, background_tasks: BackgroundTasks, db = Depends(get_mongo_db)):
     email_lower = user_in.email.lower().strip()
     if user_in.is_mentor:
         if not email_lower.endswith("@gmail.com"):
@@ -71,8 +71,9 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
     }
     db.otp_codes.insert_one(otp_record)
     
-    # Send email
-    send_email(
+    # Send email in background
+    background_tasks.add_task(
+        send_email,
         to_email=email_lower,
         subject="Verify your Campus Nexus Account",
         body=f"Your OTP for Campus Nexus is: {otp}. It expires in 10 minutes.",
@@ -157,7 +158,7 @@ class ResendOTPRequest(BaseModel):
     email: EmailStr
 
 @router.post("/resend-otp")
-def resend_otp(payload: ResendOTPRequest, db = Depends(get_mongo_db)):
+def resend_otp(payload: ResendOTPRequest, background_tasks: BackgroundTasks, db = Depends(get_mongo_db)):
     email_lower = payload.email.lower().strip()
     user = db.users.find_one({"email": email_lower})
     if not user:
@@ -178,7 +179,8 @@ def resend_otp(payload: ResendOTPRequest, db = Depends(get_mongo_db)):
     }
     db.otp_codes.insert_one(otp_record)
     
-    send_email(
+    background_tasks.add_task(
+        send_email,
         to_email=email_lower,
         subject="Verify your Campus Nexus Account",
         body=f"Your new OTP for Campus Nexus is: {otp}. It expires in 10 minutes.",
