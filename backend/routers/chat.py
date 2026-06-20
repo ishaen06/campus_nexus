@@ -653,9 +653,9 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
             raise HTTPException(status_code=400, detail="Mentor email must end with @gmail.com")
         
         # Only check the 25-team limit if assigning a NEW mentor
-        if group.get("mentor_email") != details.mentor_email:
+        if group.get("mentor_email") != email_lower:
             active_count = db.group_chats.count_documents({
-                "mentor_email": details.mentor_email,
+                "mentor_email": email_lower,
                 "mentor_status": {"$in": ["PENDING", "APPROVED"]}
             })
             if active_count >= 25:
@@ -663,7 +663,7 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
                     status_code=400,
                     detail="This mentor has already reached the maximum limit of 25 teams."
                 )
-        update_fields["mentor_email"] = details.mentor_email
+        update_fields["mentor_email"] = email_lower
         
     # Reset status if topic/mentor changes
     update_fields["mentor_status"] = "NOT_SUBMITTED"

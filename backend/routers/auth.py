@@ -26,7 +26,7 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
             )
         
     # Check if user exists
-    user_by_email = db.users.find_one({"email": user_in.email})
+    user_by_email = db.users.find_one({"email": email_lower})
     if user_by_email:
         raise HTTPException(status_code=400, detail="Email already registered")
     
@@ -41,7 +41,7 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
     new_user = {
         "id": new_user_id,
         "usn": user_in.usn,
-        "email": user_in.email,
+        "email": email_lower,
         "full_name": user_in.full_name,
         "branch": user_in.branch,
         "year_of_study": user_in.year_of_study,
@@ -64,7 +64,7 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
     expires_at = datetime.utcnow() + timedelta(minutes=10)
     
     otp_record = {
-        "email": new_user["email"],
+        "email": email_lower,
         "otp": otp,
         "expires_at": expires_at,
         "created_at": datetime.utcnow()
@@ -73,7 +73,7 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
     
     # Send email
     send_email(
-        to_email=new_user["email"],
+        to_email=email_lower,
         subject="Verify your Campus Nexus Account",
         body=f"Your OTP for Campus Nexus is: {otp}. It expires in 10 minutes.",
         html_body=get_otp_html_template(otp)
@@ -86,12 +86,14 @@ def register(user_in: UserCreate, db = Depends(get_mongo_db)):
 
 @router.post("/verify-otp", response_model=Token)
 def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
+    email_lower = otp_data.email.lower().strip()
+    
     # Master OTP bypass for development/testing
     if otp_data.otp == "123456":
-        user = db.users.find_one({"email": otp_data.email})
+        user = db.users.find_one({"email": email_lower})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        db.users.update_one({"email": otp_data.email}, {"$set": {"is_verified": True}})
+        db.users.update_one({"email": email_lower}, {"$set": {"is_verified": True}})
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user["email"], "id": user["id"]}, expires_delta=access_token_expires
@@ -100,7 +102,7 @@ def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
 
     import pymongo
     otp_record = db.otp_codes.find_one(
-        {"email": otp_data.email, "otp": otp_data.otp},
+        {"email": email_lower, "otp": otp_data.otp},
         sort=[("created_at", pymongo.DESCENDING)]
     )
     
@@ -110,11 +112,11 @@ def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
     if otp_record["expires_at"] < datetime.utcnow():
         raise HTTPException(status_code=400, detail="OTP has expired")
         
-    user = db.users.find_one({"email": otp_data.email})
+    user = db.users.find_one({"email": email_lower})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    db.users.update_one({"email": otp_data.email}, {"$set": {"is_verified": True}})
+    db.users.update_one({"email": email_lower}, {"$set": {"is_verified": True}})
     db.otp_codes.delete_one({"_id": otp_record["_id"]})  # Clean up OTP after use
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -128,7 +130,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(get_mongo_db)):
     # form_data.username will be used as email
-    user = db.users.find_one({"email": form_data.username})
+    email_lower = form_data.username.lower().strip()
+    user = db.users.find_one({"email": email_lower})
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

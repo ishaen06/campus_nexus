@@ -358,33 +358,33 @@ body.dark main .glass-panel:not(.fixed):not(.absolute):not([role="dialog"]):hove
 
 /* Swipe Cards on Discovery page - Premium Glassmorphism */
 main .discover-swipe-card {
-  background: rgba(255, 255, 255, 0.45) !important;
-  backdrop-filter: blur(25px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
-  box-shadow: 0 6px 0 0 rgba(203, 213, 225, 0.5), 0 30px 60px -12px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 6px 0 0 #cbd5e1, 0 30px 60px -12px rgba(0, 0, 0, 0.1) !important;
   border-radius: 24px !important;
   transition: all 0.25s ease;
 }
 
 body.dark main .discover-swipe-card {
-  background: rgba(26, 26, 32, 0.45) !important;
-  backdrop-filter: blur(25px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 6px 0 0 rgba(18, 18, 22, 0.5), 0 40px 80px -15px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+  background: #1e1e24 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #2e2e36 !important;
+  box-shadow: 0 6px 0 0 #121214, 0 40px 80px -15px rgba(0, 0, 0, 0.5) !important;
   border-radius: 24px !important;
 }
 
-/* Glassy bottom section override for swiping cards */
+/* Glassy bottom section override for swiping cards - now solid */
 main .discover-swipe-card div[class*="bg-white/5"] {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background-color: #fafafa !important;
+  border-top: 1px solid #cbd5e1 !important;
 }
 
 body.dark main .discover-swipe-card div[class*="bg-white/5"] {
-  background-color: rgba(0, 0, 0, 0.15) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background-color: #16161a !important;
+  border-top: 1px solid #2e2e36 !important;
 }
 
 /* Discover Team Cards and Empty States (Immune to flattened glass-panel overrides) */
