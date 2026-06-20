@@ -8,6 +8,7 @@ export default function VerifyOTP() {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,11 +50,14 @@ export default function VerifyOTP() {
     }
     setError('');
     setResendStatus('');
+    setResendLoading(true);
     try {
       await api.post('/auth/resend-otp', { email });
       setResendStatus('A new OTP has been sent successfully!');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to resend OTP.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -144,9 +148,21 @@ export default function VerifyOTP() {
             <button
               type="button"
               onClick={handleResend}
-              className="text-indigo-600 hover:text-indigo-800 text-xs font-bold transition-colors cursor-pointer bg-transparent border-none outline-none"
+              disabled={resendLoading}
+              className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 text-xs font-bold transition-colors cursor-pointer bg-transparent border-none outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Didn't receive the code? Resend OTP
+              {resendLoading && (
+                <svg
+                  className="w-3.5 h-3.5 animate-spin text-indigo-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              )}
+              {resendLoading ? 'Sending...' : "Didn't receive the code? Resend OTP"}
             </button>
           </div>
         </form>
