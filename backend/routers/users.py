@@ -42,17 +42,38 @@ def get_me(current_user = Depends(get_current_user)):
 @router.put("/me/profile", response_model=UserResponse)
 def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     update_data = {}
-    if profile_data.full_name is not None:
-        update_data["full_name"] = profile_data.full_name
-        
-    if current_user.get("is_mentor", False):
+    
+    # Determine role (either currently in DB or being set now)
+    is_mentor = current_user.get("is_mentor")
+    
+    # If role is not set yet in DB, allow setting it once
+    if is_mentor is None:
+        if profile_data.is_mentor is not None:
+            is_mentor = profile_data.is_mentor
+            update_data["is_mentor"] = is_mentor
+            
+    if is_mentor is True:
+        if profile_data.department is not None:
+            dep_clean = profile_data.department.strip()
+            if not dep_clean:
+                raise HTTPException(status_code=400, detail="Department cannot be empty")
+            update_data["department"] = dep_clean
+            
+        if profile_data.post is not None:
+            post_clean = profile_data.post.strip()
+            if not post_clean:
+                raise HTTPException(status_code=400, detail="Post/Designation cannot be empty")
+            update_data["post"] = post_clean
+            
+        # Ensure student fields are cleared
         update_data["usn"] = None
         update_data["branch"] = None
         update_data["year_of_study"] = None
         update_data["cycle"] = None
         update_data["interests"] = None
         update_data["goals"] = None
-    else:
+        
+    elif is_mentor is False:
         if profile_data.usn is not None:
             usn_clean = profile_data.usn.strip().lower()
             if usn_clean:
@@ -71,6 +92,7 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
                 update_data["usn"] = profile_data.usn.upper()
             else:
                 update_data["usn"] = None
+                
         if profile_data.branch is not None:
             update_data["branch"] = profile_data.branch
         if profile_data.year_of_study is not None:
@@ -81,6 +103,11 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
             update_data["goals"] = profile_data.goals
         if profile_data.cycle is not None:
             update_data["cycle"] = profile_data.cycle
+            
+        # Ensure mentor fields are cleared
+        update_data["department"] = None
+        update_data["post"] = None
+
     if profile_data.bio is not None:
         update_data["bio"] = profile_data.bio
     if profile_data.avatar_config is not None:

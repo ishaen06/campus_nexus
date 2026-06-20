@@ -11,6 +11,8 @@ class UserCreate(BaseModel):
     branch: Optional[str] = None
     year_of_study: Optional[int] = None
     is_mentor: Optional[bool] = False
+    department: Optional[str] = None
+    post: Optional[str] = None
 
 class OTPVerify(BaseModel):
     email: EmailStr
@@ -28,9 +30,11 @@ class UserResponse(BaseModel):
     goals: Optional[List[str]] = None
     avatar_config: Optional[dict] = None
     is_admin: bool
-    is_mentor: bool = False
+    is_mentor: Optional[bool] = None
     is_banned: bool
     cycle: Optional[str] = None
+    department: Optional[str] = None
+    post: Optional[str] = None
     is_online: bool = False
     
     class Config:
@@ -48,7 +52,13 @@ class ProfileUpdate(BaseModel):
     interests: Optional[List[str]] = None
     goals: Optional[List[str]] = None
     avatar_config: Optional[dict] = None
+    is_mentor: Optional[bool] = None
     cycle: Optional[str] = None
+    department: Optional[str] = None
+    post: Optional[str] = None
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
 
 class Token(BaseModel):
     access_token: str

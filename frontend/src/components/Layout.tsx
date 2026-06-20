@@ -58,9 +58,19 @@ export default function Layout() {
         setCurrentUser(res.data);
         setIsAdmin(res.data.is_admin);
         setIsMentor(res.data.is_mentor);
+        
+        const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
+          || (res.data.is_mentor === false && (!res.data.usn || !res.data.bio))
+          || (res.data.is_mentor === true && (!res.data.department || !res.data.post || !res.data.bio));
+          
+        if (needsSetup && location.pathname !== '/profile-setup') {
+          navigate('/profile-setup');
+        }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        navigate('/login');
+      });
+  }, [location.pathname, navigate]);
 
   const getStudentSub = (user: any) => {
     if (!user) return '';
@@ -196,7 +206,7 @@ export default function Layout() {
                     {currentUser?.full_name || 'Loading...'}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-                    {currentUser?.is_mentor ? 'Mentor' : getStudentSub(currentUser)}
+                    {currentUser?.is_mentor ? `${currentUser.post || 'Mentor'} (${currentUser.department || 'N/A'})` : getStudentSub(currentUser)}
                   </p>
                 </div>
               </div>

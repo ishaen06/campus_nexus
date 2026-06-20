@@ -16,6 +16,8 @@ interface ProfilePreviewModalProps {
     avatar_config?: any | null;
     is_mentor?: boolean | null;
     usn?: string | null;
+    department?: string | null;
+    post?: string | null;
   } | null;
 }
 
@@ -69,7 +71,7 @@ export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePr
               <div className="mb-6">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{user.full_name}</h2>
                 <p className="text-[#1e3a8a] dark:text-indigo-400 font-bold text-sm uppercase tracking-wider mt-1">
-                  {user.is_mentor ? 'Engineering Mentor' : `${user.branch || 'N/A'} • Year ${user.year_of_study || 'N/A'} ${user.usn ? `• ${user.usn}` : ''}`}
+                  {user.is_mentor ? `${user.post || 'Engineering Mentor'} • Department of ${user.department || 'N/A'}` : `${user.branch || 'N/A'} • Year ${user.year_of_study || 'N/A'} ${user.usn ? `• ${user.usn}` : ''}`}
                 </p>
               </div>
 

@@ -19,6 +19,8 @@ interface ConnectionItem {
     interests?: string[] | null;
     goals?: string[] | null;
     avatar_config?: any | null;
+    department?: string | null;
+    post?: string | null;
   };
 }
 
@@ -548,7 +550,7 @@ export default function MyTeam() {
                               <p className="text-sm font-bold text-slate-900 dark:text-white">{conn.other_user.full_name}</p>
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
                                 {conn.other_user.is_mentor 
-                                  ? 'Mentor' 
+                                  ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
                                   : `${conn.other_user.branch || 'N/A'} • Year ${conn.other_user.year_of_study || 'N/A'}`
                                 }
                               </p>

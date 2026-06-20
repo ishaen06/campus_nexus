@@ -22,6 +22,8 @@ interface ConnectionItem {
     goals?: string[] | null;
     avatar_config?: any | null;
     is_online?: boolean;
+    department?: string | null;
+    post?: string | null;
   };
 }
 
@@ -127,7 +129,7 @@ export default function Connections() {
                         <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{conn.other_user.full_name}</h3>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                           {conn.other_user.is_mentor 
-                            ? 'Engineering Mentor' 
+                            ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
                             : `${conn.other_user.branch || 'CSE'} • Year ${conn.other_user.year_of_study || 1}`
                           }
                         </p>
@@ -199,7 +201,7 @@ export default function Connections() {
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                           {conn.other_user.is_mentor 
-                            ? 'Engineering Mentor' 
+                            ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
                             : `${conn.other_user.branch || 'CSE'} • Year ${conn.other_user.year_of_study || 1}`
                           }
                         </p>

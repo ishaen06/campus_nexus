@@ -34,6 +34,8 @@ export default function ProfileEdit() {
   const [activeCategory, setActiveCategory] = useState('Smileys');
   const [emojiSearch, setEmojiSearch] = useState('');
   const [isMentor, setIsMentor] = useState(false);
+  const [department, setDepartment] = useState('');
+  const [post, setPost] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1000, y: -1000, active: false });
@@ -218,6 +220,8 @@ export default function ProfileEdit() {
       setYear(res.data.year_of_study ? res.data.year_of_study.toString() : '');
       setBio(res.data.bio || '');
       setCycle(res.data.cycle || '');
+      setDepartment(res.data.department || '');
+      setPost(res.data.post || '');
       setInterests(res.data.interests || []);
       setGoals(res.data.goals || []);
       if (res.data.avatar_config) {
@@ -241,7 +245,13 @@ export default function ProfileEdit() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    if (!isMentor) {
+    if (isMentor) {
+      if (!department.trim() || !post.trim()) {
+        alert('Please fill out your department and post/designation.');
+        setSaving(false);
+        return;
+      }
+    } else {
       const cleanUsn = usn.trim().toLowerCase();
       const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
       if (!pattern.test(cleanUsn)) {
@@ -257,6 +267,8 @@ export default function ProfileEdit() {
         branch: isMentor ? null : branch,
         year_of_study: isMentor ? null : (parseInt(year) || null),
         cycle: isMentor ? null : cycle,
+        department: isMentor ? department : null,
+        post: isMentor ? post : null,
         bio, 
         interests: isMentor ? null : interests, 
         goals: isMentor ? null : goals,
@@ -343,7 +355,7 @@ export default function ProfileEdit() {
               
               <form onSubmit={handleSave} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className={isMentor ? "col-span-2" : ""}>
+                  <div className="col-span-2">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Name</label>
                     <input
                       required
@@ -352,6 +364,30 @@ export default function ProfileEdit() {
                       value={fullName} onChange={e => setFullName(e.target.value)}
                     />
                   </div>
+                  {isMentor && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Department</label>
+                        <input
+                          required
+                          type="text"
+                          placeholder="e.g. Computer Science & Engineering"
+                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-medium shadow-sm"
+                          value={department} onChange={e => setDepartment(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Post / Designation</label>
+                        <input
+                          required
+                          type="text"
+                          placeholder="e.g. Assistant Professor"
+                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-medium shadow-sm"
+                          value={post} onChange={e => setPost(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
                   {!isMentor && (
                     <>
                       <div>

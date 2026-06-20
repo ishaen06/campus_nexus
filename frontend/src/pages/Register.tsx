@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, BookOpen, Lock, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
 import api from '../api';
 import Logo from '../components/Logo';
 
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
 export default function Register() {
   const [form, setForm] = useState({
     full_name: '',
     email: '',
     cycle: '',
-    password: ''
+    password: '',
+    department: '',
+    post: ''
   });
   const [isMentor, setIsMentor] = useState(false);
   const [error, setError] = useState('');
@@ -22,6 +30,58 @@ export default function Register() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState('');
 
+  useEffect(() => {
+    const initializeGoogle = () => {
+      if (window.google && !showOTP) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "704467972044-i21uqk5gq78c52i62sh7459ebrmq547n.apps.googleusercontent.com",
+          callback: handleGoogleCredentialResponse,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById("google-signup-btn"),
+          { theme: "outline", size: "large", width: "100%", shape: "pill" }
+        );
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (window.google) {
+        initializeGoogle();
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [showOTP]);
+
+  const handleGoogleCredentialResponse = async (response: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/google', {
+        credential: response.credential
+      });
+      localStorage.setItem('token', res.data.access_token);
+      
+      const meRes = await api.get('/users/me');
+      if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
+        navigate('/profile-setup');
+      } else if (meRes.data.is_mentor) {
+        navigate('/mentor-dashboard');
+      } else {
+        if (meRes.data.usn && meRes.data.bio) {
+          navigate('/discovery');
+        } else {
+          navigate('/profile-setup');
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Google Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -30,6 +90,10 @@ export default function Register() {
     if (isMentor) {
       if (!emailLower.endsWith('@gmail.com')) {
         setError('Only Gmail addresses (@gmail.com) are allowed for mentors');
+        return;
+      }
+      if (!form.department.trim() || !form.post.trim()) {
+        setError('Please fill out your department and post/designation');
         return;
       }
     } else {
@@ -48,7 +112,9 @@ export default function Register() {
       await api.post('/auth/register', {
         ...form,
         is_mentor: isMentor,
-        cycle: isMentor ? 'P' : form.cycle
+        cycle: isMentor ? 'P' : form.cycle,
+        department: isMentor ? form.department : null,
+        post: isMentor ? form.post : null
       });
       setShowOTP(true);
     } catch (err: any) {
@@ -176,7 +242,7 @@ export default function Register() {
                   />
                 </div>
 
-                <div className="relative">
+                 <div className="relative">
                   <Mail className="absolute left-4 top-3.5 text-gray-400 w-5 h-5" />
                   <input
                     type="email" required 
@@ -187,6 +253,27 @@ export default function Register() {
                     value={form.email} onChange={e => setForm({...form, email: e.target.value})}
                   />
                 </div>
+
+                {isMentor && (
+                  <>
+                    <div className="relative">
+                      <BookOpen className="absolute left-4 top-3.5 text-gray-400 w-5 h-5 pointer-events-none z-10" />
+                      <input
+                        type="text" required placeholder="Department (e.g. CSE, ISE, ECE)"
+                        className="w-full pl-12 pr-4 py-3 glass-input rounded-2xl outline-none font-medium shadow-sm"
+                        value={form.department} onChange={e => setForm({...form, department: e.target.value})}
+                      />
+                    </div>
+                    <div className="relative">
+                      <User className="absolute left-4 top-3.5 text-gray-400 w-5 h-5 pointer-events-none z-10" />
+                      <input
+                        type="text" required placeholder="Post/Designation (e.g. Assistant Professor)"
+                        className="w-full pl-12 pr-4 py-3 glass-input rounded-2xl outline-none font-medium shadow-sm"
+                        value={form.post} onChange={e => setForm({...form, post: e.target.value})}
+                      />
+                    </div>
+                  </>
+                )}
 
                 {!isMentor && (
                   <div className="relative">
@@ -224,6 +311,16 @@ export default function Register() {
                   {loading ? 'Registering...' : 'Register'}
                   {!loading && <ArrowRight className="absolute right-4 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </motion.button>
+              </div>
+
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-slate-200/20"></div>
+                <span className="flex-shrink mx-4 text-[10px] text-gray-500 font-bold uppercase tracking-wider">Or continue with</span>
+                <div className="flex-grow border-t border-slate-200/20"></div>
+              </div>
+
+              <div className="flex justify-center w-full min-h-[44px]">
+                <div id="google-signup-btn" className="w-full"></div>
               </div>
 
               <div className="text-center text-sm font-semibold">

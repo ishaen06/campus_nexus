@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Search, X } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import type { AvatarConfig } from '../components/Avatar';
+import Logo from '../components/Logo';
 import { EMOJI_CATEGORIES, searchEmojis } from '../utils/emojis';
 
 const INTERESTS_LIST = [
@@ -21,29 +22,64 @@ const GOALS_LIST = [
 
 export default function ProfileSetup() {
   const [fullName, setFullName] = useState('');
-  const [isMentor, setIsMentor] = useState(false);
+  const [isMentor, setIsMentor] = useState<boolean | null>(null);
+  const [roleSelected, setRoleSelected] = useState(false);
+  const [usn, setUsn] = useState('');
+  const [branch, setBranch] = useState('');
+  const [cycle, setCycle] = useState('P');
+  const [department, setDepartment] = useState('');
+  const [post, setPost] = useState('');
+  const [bio, setBio] = useState('');
+  const [interests, setInterests] = useState<string[]>([]);
+  const [goals, setGoals] = useState<string[]>([]);
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>({ emoji: '👨‍💻', bg: 0 });
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('Smileys');
   const [emojiSearch, setEmojiSearch] = useState('');
+  const [showSkip, setShowSkip] = useState(false);
 
   useEffect(() => {
     api.get('/users/me').then(res => {
       setFullName(res.data.full_name || '');
-      setIsMentor(res.data.is_mentor || false);
-      if (res.data.is_mentor) {
-        navigate('/mentor-dashboard');
-      } else if (res.data.bio) {
-        navigate('/discovery');
+      const userIsMentor = res.data.is_mentor;
+      
+      if (userIsMentor !== null && userIsMentor !== undefined) {
+        setIsMentor(userIsMentor);
+        setRoleSelected(true);
+        if (userIsMentor) {
+          if (res.data.department && res.data.post && res.data.bio) {
+            navigate('/mentor-dashboard');
+          }
+        } else {
+          if (res.data.usn && res.data.bio) {
+            navigate('/discovery');
+          }
+        }
+      } else {
+        setIsMentor(null);
+        setRoleSelected(false);
+      }
+      
+      const isComplete = userIsMentor === true 
+        ? (res.data.department && res.data.post && res.data.bio)
+        : (userIsMentor === false && res.data.usn && res.data.bio);
+      setShowSkip(!!isComplete);
+      
+      setUsn(res.data.usn || '');
+      setBranch(res.data.branch || '');
+      setCycle(res.data.cycle || 'P');
+      setDepartment(res.data.department || '');
+      setPost(res.data.post || '');
+      setBio(res.data.bio || '');
+      setInterests(res.data.interests || []);
+      setGoals(res.data.goals || []);
+      if (res.data.avatar_config) {
+        setAvatarConfig(res.data.avatar_config);
       }
     }).catch(() => {
       navigate('/login');
     });
   }, [navigate]);
-
-  const [bio, setBio] = useState('');
-  const [interests, setInterests] = useState<string[]>([]);
-  const [goals, setGoals] = useState<string[]>([]);
 
   const toggleSelection = (item: string, list: string[], setList: any) => {
     if (list.includes(item)) {
@@ -55,16 +91,90 @@ export default function ProfileSetup() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMentor === null) {
+      alert('Please select your role first.');
+      return;
+    }
+    
+    if (isMentor) {
+      if (!department.trim() || !post.trim()) {
+        alert('Please fill out your department and post/designation.');
+        return;
+      }
+    } else {
+      if (!usn.trim() || !branch.trim()) {
+        alert('Please fill out your USN and Branch.');
+        return;
+      }
+      const cleanUsn = usn.trim().toLowerCase();
+      const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/i;
+      if (!pattern.test(cleanUsn)) {
+        alert("USN must start with '1rv' or '1rz', have 2-digit year, 2 to 3 letter branch, and end with a 3-digit number (e.g. 1RV22CS001)");
+        return;
+      }
+    }
+
     try {
       await api.put('/users/me/profile', {
-        bio, interests, goals, avatar_config: avatarConfig
+        is_mentor: isMentor,
+        bio,
+        interests: isMentor ? [] : interests,
+        goals: isMentor ? [] : goals,
+        avatar_config: avatarConfig,
+        usn: isMentor ? null : usn.toUpperCase(),
+        branch: isMentor ? null : branch,
+        cycle: isMentor ? 'P' : cycle,
+        department: isMentor ? department : null,
+        post: isMentor ? post : null
       });
       navigate(isMentor ? '/mentor-dashboard' : '/discovery');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to save profile');
+      alert(err.response?.data?.detail || 'Failed to save profile');
     }
   };
+
+  if (!roleSelected) {
+    return (
+      <div className="min-h-screen pt-20 px-4 md:px-0 flex items-center justify-center bg-transparent">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full glass-panel p-8 text-center"
+        >
+          <div className="flex justify-center">
+            <Logo size={90} showText={true} />
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-6">Welcome to Campus Nexus!</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-2 text-xs font-bold uppercase tracking-wider">Please select your role to continue</p>
+          
+          <div className="flex flex-col gap-4 mt-8">
+            <button
+              onClick={() => {
+                setIsMentor(false);
+                setRoleSelected(true);
+              }}
+              className="py-5 px-6 rounded-2xl border-2 border-indigo-500/20 hover:border-indigo-500 bg-white/5 hover:bg-indigo-500/5 transition-all text-left group cursor-pointer"
+            >
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-400">I am a Student</h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Connect with peers, create teams, and work on academic projects.</p>
+            </button>
+            
+            <button
+              onClick={() => {
+                setIsMentor(true);
+                setRoleSelected(true);
+              }}
+              className="py-5 px-6 rounded-2xl border-2 border-emerald-500/20 hover:border-emerald-500 bg-white/5 hover:bg-emerald-500/5 transition-all text-left group cursor-pointer"
+            >
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-400">I am a Mentor</h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Supervise academic teams, evaluate projects, and review topics.</p>
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pt-20 px-4 md:px-0">
@@ -74,8 +184,8 @@ export default function ProfileSetup() {
         className="max-w-2xl mx-auto glass-panel p-8"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Complete Profile</h1>
-          <p className="text-gray-500 mt-2">Let others know who you are beyond your resume.</p>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Complete Profile</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-2">Let others know who you are beyond your resume.</p>
         </div>
         
         <form onSubmit={handleSave} className="space-y-8">
@@ -155,8 +265,8 @@ export default function ProfileSetup() {
                         title={cat.name}
                         className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg transition-all border cursor-pointer ${
                           activeCategory === cat.name
-                            ? 'bg-indigo-650/20 dark:bg-indigo-600/30 border-indigo-505 text-indigo-700 dark:text-slate-100 shadow'
-                            : 'bg-slate-100 dark:bg-slate-800 border-slate-250 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400'
+                            ? 'bg-indigo-650/20 dark:bg-indigo-600/30 border-indigo-500 text-indigo-755 dark:text-slate-100 shadow'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         <span>{cat.icon}</span>
@@ -219,65 +329,123 @@ export default function ProfileSetup() {
             </div>
           </div>
 
+          {/* Onboarding fields depending on role */}
+          {isMentor ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-left">Department</label>
+                <input
+                  type="text" required placeholder="Department (e.g. CSE, ISE, ECE)"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 shadow-inner"
+                  value={department} onChange={e => setDepartment(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-left">Post / Designation</label>
+                <input
+                  type="text" required placeholder="Designation (e.g. Assistant Professor)"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 shadow-inner"
+                  value={post} onChange={e => setPost(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-left">USN</label>
+                <input
+                  type="text" required placeholder="USN (e.g. 1RV22CS001)"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 shadow-inner"
+                  value={usn} onChange={e => setUsn(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-left">Branch</label>
+                <input
+                  type="text" required placeholder="Branch (e.g. CSE, ISE, ECE)"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-xs text-slate-900 dark:text-slate-100 shadow-inner"
+                  value={branch} onChange={e => setBranch(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-left">Academic Cycle</label>
+                <select
+                  required
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-semibold text-xs text-slate-900 dark:text-slate-100 shadow-inner cursor-pointer"
+                  value={cycle} onChange={e => setCycle(e.target.value)}
+                >
+                  <option value="P">Physics (P-Cycle)</option>
+                  <option value="C">Chemistry (C-Cycle)</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Short Bio</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 text-left">Short Bio</label>
             <textarea
               required
               rows={3}
-              className="w-full px-4 py-3 glass-input rounded-2xl outline-none resize-none"
+              className="w-full px-4 py-3 glass-input rounded-2xl outline-none resize-none text-slate-900 dark:text-white"
               placeholder="Tell us a little bit about yourself..."
               value={bio} onChange={e => setBio(e.target.value)}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Interests</label>
-            <div className="flex flex-wrap gap-2">
-              {INTERESTS_LIST.map(interest => (
-                <button
-                  key={interest}
-                  type="button"
-                  onClick={() => toggleSelection(interest, interests, setInterests)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
-                    interests.includes(interest) 
-                    ? 'bg-indigo-600/80 backdrop-blur text-white border border-indigo-400' 
-                    : 'bg-white/30 text-gray-600 border border-white/20 hover:bg-white/50 backdrop-blur'
-                  }`}
-                >
-                  {interest}
-                </button>
-              ))}
-            </div>
-          </div>
+          {!isMentor && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 text-left">Interests</label>
+                <div className="flex flex-wrap gap-2">
+                  {INTERESTS_LIST.map(interest => (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => toggleSelection(interest, interests, setInterests)}
+                      className={`px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
+                        interests.includes(interest) 
+                        ? 'bg-indigo-600/80 backdrop-blur text-white border border-indigo-400' 
+                        : 'bg-white/30 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-white/20 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700 backdrop-blur'
+                      }`}
+                    >
+                      {interest}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Goals</label>
-            <div className="flex flex-wrap gap-2">
-              {GOALS_LIST.map(goal => (
-                <button
-                  key={goal}
-                  type="button"
-                  onClick={() => toggleSelection(goal, goals, setGoals)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
-                    goals.includes(goal) 
-                    ? 'bg-green-600/80 backdrop-blur text-white border border-green-400' 
-                    : 'bg-white/30 text-gray-600 border border-white/20 hover:bg-white/50 backdrop-blur'
-                  }`}
-                >
-                  {goal}
-                </button>
-              ))}
-            </div>
-          </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 text-left">Goals</label>
+                <div className="flex flex-wrap gap-2">
+                  {GOALS_LIST.map(goal => (
+                    <button
+                      key={goal}
+                      type="button"
+                      onClick={() => toggleSelection(goal, goals, setGoals)}
+                      className={`px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
+                        goals.includes(goal) 
+                        ? 'bg-green-600/80 backdrop-blur text-white border border-green-400' 
+                        : 'bg-white/30 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-white/20 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700 backdrop-blur'
+                      }`}
+                    >
+                      {goal}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <button 
-              type="button"
-              onClick={() => navigate(isMentor ? '/mentor-dashboard' : '/discovery')}
-              className="flex-1 bg-white/10 text-gray-700 dark:text-gray-300 border border-white/20 hover:bg-white/25 font-black py-4 px-4 rounded-2xl transition-all cursor-pointer text-center text-sm"
-            >
-              Skip Setup
-            </button>
+            {showSkip && (
+              <button 
+                type="button"
+                onClick={() => navigate(isMentor ? '/mentor-dashboard' : '/discovery')}
+                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-black py-4 px-4 rounded-2xl transition-all cursor-pointer text-center text-sm"
+              >
+                Skip Setup
+              </button>
+            )}
             <motion.button 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

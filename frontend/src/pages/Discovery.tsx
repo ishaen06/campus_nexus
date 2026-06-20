@@ -16,6 +16,9 @@ interface UserProfile {
   goals: string[];
   avatar_config?: any;
   is_online?: boolean;
+  is_mentor?: boolean;
+  department?: string;
+  post?: string;
 }
 
 interface GroupItem {
@@ -406,7 +409,10 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tight leading-none">{user.full_name}</h2>
               <p className="text-[15px] font-semibold text-indigo-600 mt-1 uppercase tracking-wide">
-                {user.branch} • Year {user.year_of_study}
+                {user.is_mentor 
+                  ? `${user.post || 'Mentor'} • Department of ${user.department || 'N/A'}`
+                  : `${user.branch || 'N/A'} • Year ${user.year_of_study || 'N/A'}`
+                }
               </p>
             </div>
           </div>

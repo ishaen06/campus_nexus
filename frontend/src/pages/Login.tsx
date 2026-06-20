@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 import api from '../api';
 import Logo from '../components/Logo';
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +17,58 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const initializeGoogle = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "704467972044-i21uqk5gq78c52i62sh7459ebrmq547n.apps.googleusercontent.com",
+          callback: handleGoogleCredentialResponse,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById("google-signin-btn"),
+          { theme: "outline", size: "large", width: "100%", shape: "pill" }
+        );
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (window.google) {
+        initializeGoogle();
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleGoogleCredentialResponse = async (response: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/google', {
+        credential: response.credential
+      });
+      localStorage.setItem('token', res.data.access_token);
+      
+      const meRes = await api.get('/users/me');
+      if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
+        navigate('/profile-setup');
+      } else if (meRes.data.is_mentor) {
+        navigate('/mentor-dashboard');
+      } else {
+        if (meRes.data.usn && meRes.data.bio) {
+          navigate('/discovery');
+        } else {
+          navigate('/profile-setup');
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Google Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +172,16 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
               {!loading && <ArrowRight className="absolute right-4 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
             </motion.button>
+          </div>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-slate-200/20"></div>
+            <span className="flex-shrink mx-4 text-[10px] text-gray-500 font-bold uppercase tracking-wider">Or continue with</span>
+            <div className="flex-grow border-t border-slate-200/20"></div>
+          </div>
+
+          <div className="flex justify-center w-full min-h-[44px]">
+            <div id="google-signin-btn" className="w-full"></div>
           </div>
           
           <div className="text-center text-sm font-semibold">

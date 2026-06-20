@@ -37,6 +37,8 @@ class MongoUser:
         self.is_mentor = data.get("is_mentor", False)
         self.is_banned = data.get("is_banned", False)
         self.cycle = data.get("cycle")
+        self.department = data.get("department")
+        self.post = data.get("post")
         self.bio = data.get("bio", "")
         self.interests = data.get("interests", [])
         self.goals = data.get("goals", [])
