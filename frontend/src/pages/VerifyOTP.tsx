@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 import api from '../api';
 
 export default function VerifyOTP() {
@@ -69,6 +69,18 @@ export default function VerifyOTP() {
         transition={{ type: "spring", stiffness: 100, damping: 15 }}
         className="max-w-md w-full space-y-8 glass-panel p-10 relative z-10"
       >
+        {/* Back Button */}
+        <motion.button
+          whileHover={{ x: -3 }}
+          whileTap={{ scale: 0.95 }}
+          type="button"
+          onClick={() => navigate('/register')}
+          className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer bg-transparent border-none outline-none"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Register
+        </motion.button>
+
         <div className="text-center">
           <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-white/20 mb-4">
             <ShieldCheck className="text-white w-7 h-7" strokeWidth={2} />
