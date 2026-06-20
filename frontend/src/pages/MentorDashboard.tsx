@@ -181,9 +181,11 @@ export default function MentorDashboard() {
                 {/* Team Info */}
                 <div className="flex justify-between items-start gap-4">
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{team.name}</h3>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight capitalize">
+                      Topic: {team.project_topic || 'Not Specified'}
+                    </h3>
                     <p className="text-xs text-indigo-400 font-semibold mt-1">
-                      Topic: <span className="text-slate-600 dark:text-slate-200">{team.project_topic || 'Not Specified'}</span>
+                      Team: <span className="text-slate-600 dark:text-slate-200">{team.name}</span>
                     </p>
                   </div>
                   <span className="text-[10px] font-black px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full uppercase tracking-wider">
@@ -221,12 +223,12 @@ export default function MentorDashboard() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex md:flex-col justify-end items-center gap-3.5 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 shrink-0 min-w-[12rem]">
+              <div className="flex md:flex-col justify-center items-center gap-2.5 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 shrink-0">
                 <button
                   type="button"
                   onClick={() => triggerRejectModal(team.id)}
                   disabled={submittingAction}
-                  className="flex-1 md:w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
+                  className="flex-1 md:flex-none w-full md:w-36 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
                 >
                   <XCircle size={14} /> Disapprove
                 </button>
@@ -234,7 +236,7 @@ export default function MentorDashboard() {
                   type="button"
                   onClick={() => handleApproveTeam(team.id)}
                   disabled={submittingAction}
-                  className="flex-1 md:w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
+                  className="flex-1 md:flex-none w-full md:w-36 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
                 >
                   <CheckCircle2 size={14} /> Approve
                 </button>

@@ -113,11 +113,11 @@ export default function MyTeams() {
             >
               {/* Left section: Team Name and Project Topic */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight group-hover:text-indigo-400 transition-colors">
-                  {team.name}
+                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight group-hover:text-indigo-400 transition-colors capitalize">
+                  Topic: {team.project_topic || 'Not Specified'}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1 truncate">
-                  Topic: <span className="text-slate-600 dark:text-slate-200">{team.project_topic || 'Not Specified'}</span>
+                  Team: <span className="text-slate-600 dark:text-slate-200">{team.name}</span>
                 </p>
               </div>
 

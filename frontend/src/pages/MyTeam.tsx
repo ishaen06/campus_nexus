@@ -186,7 +186,6 @@ export default function MyTeam() {
                   {/* Left: General info and project topic */}
                   <div className="md:col-span-2 space-y-6">
                     <div className="glass-panel p-6 flex flex-col justify-between relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
                       
                       <div className="flex justify-between items-start mb-6">
                         <div>
