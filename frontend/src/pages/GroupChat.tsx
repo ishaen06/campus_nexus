@@ -225,7 +225,10 @@ export default function GroupChat() {
             <ArrowLeft size={20} />
           </button>
           
-          <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 text-left p-0 focus:outline-none"
+          >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white border border-white/20">
               <Users size={20} />
             </div>
@@ -243,7 +246,7 @@ export default function GroupChat() {
                 </span>
               )}
             </div>
-          </div>
+          </button>
         </div>
 
         {groupDetails && (
@@ -445,6 +448,22 @@ export default function GroupChat() {
               <div className="space-y-3 mb-6 text-left">
                 <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Current Members ({totalSize}/5)</label>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 no-scrollbar">
+                  {groupDetails?.mentor_name && groupDetails?.mentor_status === 'APPROVED' && (
+                    <div className="flex items-center justify-between p-2.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950/30 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-indigo-600/10 flex items-center justify-center">
+                          <Users size={16} className="text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{groupDetails.mentor_name}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{groupDetails.mentor_email}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-850 text-indigo-750 dark:text-indigo-350 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        Mentor
+                      </span>
+                    </div>
+                  )}
                   {teamMembers.map((uid) => {
                     const name = getUserName(uid);
                     const branch = getBranchOfUser(uid);

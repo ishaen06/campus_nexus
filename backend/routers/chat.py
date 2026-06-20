@@ -62,7 +62,7 @@ def get_user_from_token(token: str, db):
         email: str = payload.get("sub")
         if email is None:
             return None
-        return db.users.find_one({"email": email})
+        return db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
     except JWTError:
         return None
 
@@ -339,7 +339,7 @@ def get_group_details(group_id: int, current_user = Depends(get_current_user), d
     is_member = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
     is_approved_mentor = (
         current_user.get("is_mentor") and
-        group.get("mentor_email") == current_user["email"] and
+        (group.get("mentor_email") or "").lower().strip() == (current_user.get("email") or "").lower().strip() and
         group.get("mentor_status") == "APPROVED"
     )
     if not is_member and not is_approved_mentor:
@@ -434,7 +434,7 @@ def get_group_messages(group_id: int, current_user = Depends(get_current_user), 
     is_member = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
     is_approved_mentor = (
         current_user.get("is_mentor") and
-        group.get("mentor_email") == current_user["email"] and
+        (group.get("mentor_email") or "").lower().strip() == (current_user.get("email") or "").lower().strip() and
         group.get("mentor_status") == "APPROVED"
     )
     if not is_member and not is_approved_mentor:
@@ -1088,7 +1088,7 @@ async def websocket_group_chat(websocket: WebSocket, group_id: int, token: str =
     is_member = db.group_members.find_one({"group_id": group_id, "user_id": user["id"]})
     is_approved_mentor = (
         user.get("is_mentor") and
-        group.get("mentor_email") == user["email"] and
+        (group.get("mentor_email") or "").lower().strip() == (user.get("email") or "").lower().strip() and
         group.get("mentor_status") == "APPROVED"
     )
     if not is_member and not is_approved_mentor:

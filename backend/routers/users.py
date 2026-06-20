@@ -20,7 +20,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_mongo
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid auth credentials")
         
-    user = db.users.find_one({"email": email})
+    user = db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     if user.get("is_banned", False):
