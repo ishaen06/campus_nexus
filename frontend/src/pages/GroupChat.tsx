@@ -42,11 +42,8 @@ export default function GroupChat() {
     api.get('/users/me').then(res => setUserId(res.data.id)).catch(() => navigate('/login'));
     
     // 2. Get Group Info
-    api.get('/chat/groups').then(res => {
-      const g = res.data.find((item: any) => item.id === parseInt(groupId || ''));
-      if (g) {
-        setGroupDetails(g);
-      }
+    api.get(`/chat/groups/${groupId}`).then(res => {
+      setGroupDetails(res.data);
     }).catch(console.error);
 
     // 3. Fetch Message History

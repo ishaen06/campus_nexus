@@ -116,15 +116,6 @@ export default function TeamDetails() {
     }
   };
 
-  const handleChatWithAdmin = async (adminId: number) => {
-    try {
-      const res = await api.post('/connections/admin-chat', { receiver_id: adminId });
-      const connectionId = res.data.id;
-      navigate(`/chat/${connectionId}`);
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to initialize chat session');
-    }
-  };
 
   if (loading) {
     return (
@@ -162,10 +153,10 @@ export default function TeamDetails() {
           
           <button
             type="button"
-            onClick={() => handleChatWithAdmin(team.created_by)}
+            onClick={() => navigate(`/chat/group/${team.id}`)}
             className="bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer w-full sm:w-auto justify-center"
           >
-            <MessageSquare size={14} /> Chat with Admin
+            <MessageSquare size={14} /> Team Group Chat
           </button>
         </div>
 

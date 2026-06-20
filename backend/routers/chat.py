@@ -330,6 +330,23 @@ def get_public_group_chats(db = Depends(get_mongo_db)):
             results.append(resp)
     return results
 
+@router.get("/groups/{group_id}", response_model=GroupChatResponse)
+def get_group_details(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    is_member = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
+    is_approved_mentor = (
+        current_user.get("is_mentor") and
+        group.get("mentor_email") == current_user["email"] and
+        group.get("mentor_status") == "APPROVED"
+    )
+    if not is_member and not is_approved_mentor:
+        raise HTTPException(status_code=403, detail="Not authorized to view this group")
+        
+    return build_group_response(group, db)
+
 @router.put("/groups/{group_id}", response_model=GroupChatResponse)
 def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     # Find group
@@ -409,10 +426,19 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
 
 @router.get("/groups/{group_id}/messages", response_model=List[GroupMessageResponse])
 def get_group_messages(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    # Verify user is member
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    # Verify user is member or approved mentor
     is_member = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
-    if not is_member:
-        raise HTTPException(status_code=403, detail="Not a member of this group")
+    is_approved_mentor = (
+        current_user.get("is_mentor") and
+        group.get("mentor_email") == current_user["email"] and
+        group.get("mentor_status") == "APPROVED"
+    )
+    if not is_member and not is_approved_mentor:
+        raise HTTPException(status_code=403, detail="Not authorized to access this group chat")
         
     messages = list(db.group_messages.find({"group_id": group_id}).sort("created_at", 1))
     
@@ -1053,9 +1079,19 @@ async def websocket_group_chat(websocket: WebSocket, group_id: int, token: str =
         await websocket.close(code=1008)
         return
         
-    # Verify user is a member of this group
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        await websocket.close(code=1008)
+        return
+
+    # Verify user is member or approved mentor
     is_member = db.group_members.find_one({"group_id": group_id, "user_id": user["id"]})
-    if not is_member:
+    is_approved_mentor = (
+        user.get("is_mentor") and
+        group.get("mentor_email") == user["email"] and
+        group.get("mentor_status") == "APPROVED"
+    )
+    if not is_member and not is_approved_mentor:
         await websocket.close(code=1008)
         return
 
