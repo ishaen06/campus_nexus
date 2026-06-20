@@ -375,7 +375,7 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
       animate={{ scaleX: 1 - index * 0.045, scaleY: 1, y: index * 22 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <div className="discover-swipe-card w-full h-full overflow-hidden flex flex-col cursor-grab active:cursor-grabbing relative">
+      <div className="discover-swipe-card w-full h-full overflow-hidden flex flex-col cursor-grab active:cursor-grabbing relative bg-white dark:bg-[#1e1e24]">
         
         {/* Like Overlay */}
         <motion.div style={{ opacity: likeOpacity }} className="absolute top-10 left-6 z-20 pointer-events-none transform -rotate-12 border-4 border-green-500 rounded-xl px-4 py-1">
@@ -388,7 +388,7 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
         </motion.div>
 
         {/* Profile Image / Header Area */}
-        <div className="h-2/5 bg-gradient-to-br from-[#1e3a8a]/80 to-[#0f172a]/90 relative flex items-center justify-center p-6">
+        <div className="h-2/5 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] relative flex items-center justify-center p-6">
            {mutualBadge && (
              <div className="absolute top-4 left-4 bg-white/20 dark:bg-black/40 text-white backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-extrabold border border-white/20 shadow-sm z-20 whitespace-nowrap">
                ✨ {mutualBadge}
@@ -404,7 +404,7 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
            </div>
         </div>
         
-        <div className="flex-1 p-6 flex flex-col relative bg-white/5 dark:bg-black/10 border-t border-white/15">
+        <div className="discover-swipe-card-body flex-1 p-6 flex flex-col relative bg-slate-50 dark:bg-[#16161a] border-t border-slate-200 dark:border-slate-850">
           <div className="mb-2 flex justify-between items-start">
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tight leading-none">{user.full_name}</h2>

@@ -357,7 +357,7 @@ body.dark main .glass-panel:not(.fixed):not(.absolute):not([role="dialog"]):hove
 }
 
 /* Swipe Cards on Discovery page - Premium Glassmorphism */
-main .discover-swipe-card {
+.discover-swipe-card {
   background: #ffffff !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -367,7 +367,7 @@ main .discover-swipe-card {
   transition: all 0.25s ease;
 }
 
-body.dark main .discover-swipe-card {
+body.dark .discover-swipe-card {
   background: #1e1e24 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -377,12 +377,12 @@ body.dark main .discover-swipe-card {
 }
 
 /* Glassy bottom section override for swiping cards - now solid */
-main .discover-swipe-card div[class*="bg-white/5"] {
+.discover-swipe-card-body {
   background-color: #fafafa !important;
   border-top: 1px solid #cbd5e1 !important;
 }
 
-body.dark main .discover-swipe-card div[class*="bg-white/5"] {
+body.dark .discover-swipe-card-body {
   background-color: #16161a !important;
   border-top: 1px solid #2e2e36 !important;
 }
