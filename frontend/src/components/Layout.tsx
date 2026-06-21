@@ -113,7 +113,7 @@ export default function Layout() {
       ]
     : [
         { name: 'Discovery', path: '/discovery', icon: Compass },
-        { name: 'Connections', path: '/connections', icon: MessageSquare },
+        { name: 'Chats', path: '/connections', icon: MessageSquare },
         { name: 'My Team', path: '/my-team', icon: Users },
         { name: 'Project Dashboard', path: '/project-dashboard', icon: FolderGit },
         { name: 'Profile', path: '/profile/edit', icon: UserIcon },

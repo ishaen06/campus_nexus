@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserCheck, Search } from 'lucide-react';
+import { UserCheck, Search, Users } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 
@@ -29,6 +29,8 @@ interface ConnectionItem {
 
 export default function Connections() {
   const [connections, setConnections] = useState<ConnectionItem[]>([]);
+  const [groupChats, setGroupChats] = useState<any[]>([]);
+  const [isMentor, setIsMentor] = useState(false);
   const [search, setSearch] = useState('');
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
@@ -40,8 +42,21 @@ export default function Connections() {
     try {
       const connRes = await api.get('/connections/');
       setConnections(connRes.data);
+      
+      const meRes = await api.get('/users/me');
+      const isMentorUser = meRes.data.is_mentor;
+      setIsMentor(isMentorUser);
+      
+      if (isMentorUser) {
+        const groupsRes = await api.get('/chat/groups/mentor/teams');
+        const approved = groupsRes.data.filter((t: any) => t.mentor_status === 'APPROVED');
+        setGroupChats(approved);
+      } else {
+        const groupsRes = await api.get('/chat/groups');
+        setGroupChats(groupsRes.data);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching connections and groups:", err);
     }
   };
 
@@ -75,6 +90,12 @@ export default function Connections() {
     c.other_user.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Filter group chats by search query
+  const filteredGroups = groupChats.filter(g => 
+    g.name.toLowerCase().includes(search.toLowerCase()) ||
+    (g.project_topic && g.project_topic.toLowerCase().includes(search.toLowerCase()))
+  );
+
   return (
     <div className="min-h-screen bg-transparent py-12 px-4 md:px-8 relative">
       <div className="max-w-5xl mx-auto">
@@ -82,11 +103,11 @@ export default function Connections() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-              Your Network
+            <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+              {isMentor ? "Chats & Teams" : "Your Network"}
             </h1>
             <p className="text-gray-500 font-medium mt-1">
-              Manage connections and launch direct messages
+              {isMentor ? "Manage direct messages and group workspaces" : "Manage connections and launch direct messages"}
             </p>
           </div>
           
@@ -147,6 +168,51 @@ export default function Connections() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Group Chats Section */}
+        {filteredGroups.length > 0 && (
+          <div className="text-left mb-10">
+            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-4">Group Chats ({filteredGroups.length})</h2>
+            <div className="flex flex-col divide-y divide-slate-200/60 dark:divide-slate-800/80">
+              {filteredGroups.map((group, idx) => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  key={`group-${group.id}`} 
+                  onClick={() => navigate(`/chat/group/${group.id}`)}
+                  className="py-5 px-3 cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-900/30 transition-all flex items-center justify-between group relative rounded-xl"
+                >
+                  <div className="flex items-center gap-5 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-650 border border-white/10 flex items-center justify-center text-white hover:scale-105 transition-transform shadow-sm">
+                        <Users size={22} className="text-white" />
+                      </div>
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base group-hover:text-indigo-600 dark:group-hover:text-white transition-colors">{group.name}</h3>
+                        <span className="bg-indigo-500/10 text-indigo-500 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                          Group Chat
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
+                        Topic: {group.project_topic || 'Not Specified'} • {group.members?.length || 0} Members
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 pl-4 shrink-0 text-right">
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                      Open group workspace
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Chats Section */}
         <div className="text-left">

@@ -21,6 +21,7 @@ export default function GroupChat() {
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [input, setInput] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
+  const [isMentor, setIsMentor] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<number, string>>({});
   const [groupDetails, setGroupDetails] = useState<any>(null);
@@ -39,7 +40,10 @@ export default function GroupChat() {
 
   useEffect(() => {
     // 1. Get current user ID
-    api.get('/users/me').then(res => setUserId(res.data.id)).catch(() => navigate('/login'));
+    api.get('/users/me').then(res => {
+      setUserId(res.data.id);
+      setIsMentor(res.data.is_mentor);
+    }).catch(() => navigate('/login'));
     
     // 2. Get Group Info
     api.get(`/chat/groups/${groupId}`).then(res => {
@@ -221,7 +225,7 @@ export default function GroupChat() {
       {/* Glass Header */}
       <div className="absolute top-0 w-full glass-panel border-b border-white/20 border-x-0 border-t-0 rounded-none px-6 py-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/connections')} className="p-2 bg-white/80 rounded-full text-gray-500 hover:text-gray-900 transition-colors shadow-sm cursor-pointer">
+          <button onClick={() => navigate(-1)} className="p-2 bg-white/80 rounded-full text-gray-500 hover:text-gray-900 transition-colors shadow-sm cursor-pointer">
             <ArrowLeft size={20} />
           </button>
           
@@ -613,43 +617,45 @@ export default function GroupChat() {
               </div>
 
               {/* Destructive Actions */}
-              <div className="pt-4 mt-2 border-t border-white/10 flex flex-col gap-2">
-                {groupDetails?.created_by === userId ? (
-                  <button
-                    onClick={async () => {
-                      if (confirm("Are you sure you want to disband this team? All chat history and memberships will be deleted.")) {
+              {!isMentor && (
+                <div className="pt-4 mt-2 border-t border-white/10 flex flex-col gap-2">
+                  {groupDetails?.created_by === userId ? (
+                    <button
+                      onClick={async () => {
+                        if (confirm("Are you sure you want to disband this team? All chat history and memberships will be deleted.")) {
+                          try {
+                            await api.delete(`/chat/groups/${groupId}/disband`);
+                            setShowSettings(false);
+                            navigate('/connections');
+                          } catch (err: any) {
+                            alert(err.response?.data?.detail || "Failed to disband team.");
+                          }
+                        }
+                      }}
+                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
+                    >
+                      Disband Team
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        const reason = prompt("Enter a reason for leaving the team (optional):");
+                        if (reason === null) return; // cancelled
                         try {
-                          await api.delete(`/chat/groups/${groupId}/disband`);
+                          await api.post(`/chat/groups/${groupId}/leave`, { reason });
                           setShowSettings(false);
                           navigate('/connections');
                         } catch (err: any) {
-                          alert(err.response?.data?.detail || "Failed to disband team.");
+                          alert(err.response?.data?.detail || "Failed to leave team.");
                         }
-                      }
-                    }}
-                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
-                  >
-                    Disband Team
-                  </button>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      const reason = prompt("Enter a reason for leaving the team (optional):");
-                      if (reason === null) return; // cancelled
-                      try {
-                        await api.post(`/chat/groups/${groupId}/leave`, { reason });
-                        setShowSettings(false);
-                        navigate('/connections');
-                      } catch (err: any) {
-                        alert(err.response?.data?.detail || "Failed to leave team.");
-                      }
-                    }}
-                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
-                  >
-                    Leave Team
-                  </button>
-                )}
-              </div>
+                      }}
+                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
+                    >
+                      Leave Team
+                    </button>
+                  )}
+                </div>
+              )}
             </motion.div>
           </div>
         )}
