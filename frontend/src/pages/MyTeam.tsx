@@ -177,7 +177,7 @@ export default function MyTeam() {
             (() => {
               const team = groups[0];
               const isAdmin = team.created_by === currentUser?.id;
-              const members = team.members || [];
+              const members = (team.members || []).filter((m: any) => !m.is_mentor);
               const pCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'P').length;
               const cCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'C').length;
               const isSizeValid = members.length >= 4 && members.length <= 5;

@@ -199,13 +199,14 @@ def get_messages(connection_id: int, current_user = Depends(get_current_user), d
     return messages
 
 def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
-    size = len(member_users)
+    student_users = [u for u in member_users if not u.get("is_mentor")]
+    size = len(student_users)
     if size < 4 or size > 5:
         return False, f"Team must contain 4 to 5 members (currently has {size})"
     
     p_count = 0
     c_count = 0
-    for u in member_users:
+    for u in student_users:
         cycle = (u.get("cycle") or "").strip().upper()
         if cycle == "P":
             p_count += 1
@@ -405,6 +406,14 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
                     detail=f"{name_str} already in another team. A person can join only 1 team at a time."
                 )
             
+        # Find mentor users in the DB to check if they are currently members of this group
+        mentor_users = list(db.users.find({"is_mentor": True}))
+        mentor_ids = [m["id"] for m in mentor_users]
+        existing_mentor_memberships = list(db.group_members.find({
+            "group_id": group_id,
+            "user_id": {"$in": mentor_ids}
+        }))
+        
         # Delete old members
         db.group_members.delete_many({"group_id": group_id})
         
@@ -415,6 +424,15 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
                 "id": new_member_id,
                 "group_id": group_id,
                 "user_id": u["id"]
+            })
+            
+        # Re-add mentor memberships
+        for mm in existing_mentor_memberships:
+            new_member_id = get_next_sequence_value("group_members")
+            db.group_members.insert_one({
+                "id": new_member_id,
+                "group_id": group_id,
+                "user_id": mm["user_id"]
             })
                 
     if update_fields:
@@ -695,6 +713,11 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
     update_fields["mentor_status"] = "NOT_SUBMITTED"
     update_fields["mentor_token"] = None
     
+    # Remove any mentor user from this group's members since status is reset to NOT_SUBMITTED
+    mentor_users = list(db.users.find({"is_mentor": True}))
+    mentor_ids = [m["id"] for m in mentor_users]
+    db.group_members.delete_many({"group_id": group_id, "user_id": {"$in": mentor_ids}})
+    
     db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
     
     updated_group = db.group_chats.find_one({"id": group_id})
@@ -732,10 +755,11 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
     member_ids = [m["user_id"] for m in member_records]
     members = list(db.users.find({"id": {"$in": member_ids}})) if member_ids else []
     
-    # Validate criteria before submitting
-    p_count = len([m for m in members if (m.get("cycle") or '').upper() == 'P'])
-    c_count = len([m for m in members if (m.get("cycle") or '').upper() == 'C'])
-    size = len(members)
+    # Validate criteria before submitting (filter out mentors)
+    students = [m for m in members if not m.get("is_mentor")]
+    p_count = len([m for m in students if (m.get("cycle") or '').upper() == 'P'])
+    c_count = len([m for m in students if (m.get("cycle") or '').upper() == 'C'])
+    size = len(students)
     
     if size < 4 or size > 5:
         raise HTTPException(status_code=400, detail=f"Cannot submit. Team must contain 4 to 5 members (currently has {size})")
@@ -802,6 +826,19 @@ def mentor_approve_team(group_id: int, token: str, db = Depends(get_mongo_db)):
     group["mentor_status"] = "APPROVED"
     group["mentor_token"] = None
     group["is_public"] = False
+    
+    # Add mentor to group members
+    if group.get("mentor_email"):
+        mentor_user = db.users.find_one({"email": {"$regex": f"^{group['mentor_email']}$", "$options": "i"}})
+        if mentor_user:
+            is_already_member = db.group_members.find_one({"group_id": group_id, "user_id": mentor_user["id"]})
+            if not is_already_member:
+                new_member_id = get_next_sequence_value("group_members")
+                db.group_members.insert_one({
+                    "id": new_member_id,
+                    "group_id": group_id,
+                    "user_id": mentor_user["id"]
+                })
     
     # Sync approved details to teacher's excel folder
     sync_approved_team_to_csv(group, db)
@@ -1037,10 +1074,27 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
         group_copy = dict(group)
         group_copy.update(update_fields)
         sync_approved_team_to_csv(group_copy, db)
+        
+        # Add mentor to group members
+        mentor_user = db.users.find_one({"email": {"$regex": f"^{group['mentor_email']}$", "$options": "i"}})
+        if mentor_user:
+            is_already_member = db.group_members.find_one({"group_id": group_id, "user_id": mentor_user["id"]})
+            if not is_already_member:
+                new_member_id = get_next_sequence_value("group_members")
+                db.group_members.insert_one({
+                    "id": new_member_id,
+                    "group_id": group_id,
+                    "user_id": mentor_user["id"]
+                })
     elif action == "REJECT":
         update_fields["mentor_status"] = "REJECTED"
         update_fields["mentor_token"] = None
         update_fields["mentor_rejection_reason"] = payload.rejection_reason
+        
+        # Remove mentor from group members
+        mentor_user = db.users.find_one({"email": {"$regex": f"^{group['mentor_email']}$", "$options": "i"}})
+        if mentor_user:
+            db.group_members.delete_many({"group_id": group_id, "user_id": mentor_user["id"]})
     else:
         raise HTTPException(status_code=400, detail="Invalid action. Use APPROVE or REJECT.")
         

@@ -195,15 +195,23 @@ export default function GroupChat() {
     return null;
   };
 
-  const totalSize = teamMembers.length;
-  const pCount = teamMembers.filter(uid => getCycleOfUser(uid) === 'P').length;
-  const cCount = teamMembers.filter(uid => getCycleOfUser(uid) === 'C').length;
+  const studentsInTeam = teamMembers.filter(uid => {
+    const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
+    return memberObj ? !memberObj.is_mentor : true;
+  });
+  const totalSize = studentsInTeam.length;
+  const pCount = studentsInTeam.filter(uid => getCycleOfUser(uid) === 'P').length;
+  const cCount = studentsInTeam.filter(uid => getCycleOfUser(uid) === 'C').length;
   const isSizeValid = totalSize >= 4 && totalSize <= 5;
   const isBalanceValid = pCount >= 2 && cCount >= 2;
 
   const handleSaveSettings = async () => {
     try {
-      const filteredMembers = teamMembers.filter(id => id !== userId);
+      const filteredMembers = teamMembers.filter(id => {
+        if (id === userId) return false;
+        const memberObj = groupDetails?.members?.find((m: any) => m.id === id);
+        return memberObj ? !memberObj.is_mentor : true;
+      });
       const res = await api.put(`/chat/groups/${groupId}`, {
         name: teamName,
         is_public: teamIsPublic,
@@ -469,6 +477,8 @@ export default function GroupChat() {
                     </div>
                   )}
                   {teamMembers.map((uid) => {
+                    const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
+                    if (memberObj?.is_mentor) return null;
                     const name = getUserName(uid);
                     const branch = getBranchOfUser(uid);
                     const cycle = getCycleOfUser(uid);

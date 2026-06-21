@@ -242,7 +242,7 @@ export default function Discovery() {
                   ) : (
                     <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                       {visiblePublicTeams.map((team, idx) => {
-                        const members = team.members || [];
+                        const members = (team.members || []).filter((m: any) => !m.is_mentor);
                         const pCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'P').length;
                         const cCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'C').length;
                         

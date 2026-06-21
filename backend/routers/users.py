@@ -177,6 +177,8 @@ def get_discovery(
                 p_count = 0
                 c_count = 0
                 for mu in member_users:
+                    if mu.get("is_mentor"):
+                        continue
                     cycle = (mu.get("cycle") or "").strip().upper()
                     if cycle == "P":
                         p_count += 1
