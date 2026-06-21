@@ -244,8 +244,8 @@ export default function GroupChat() {
           </button>
           
           <button 
-            onClick={() => groupDetails && setShowSettings(true)}
-            className={`flex items-center gap-3 bg-transparent border-0 text-left p-0 focus:outline-none ${groupDetails ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 text-left p-0 focus:outline-none"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white border border-white/20">
               <Users size={20} />
