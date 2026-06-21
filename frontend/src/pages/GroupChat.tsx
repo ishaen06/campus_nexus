@@ -482,6 +482,10 @@ export default function GroupChat() {
                     </span>
                   </div>
                 </div>
+
+                <div className="pt-2 border-t border-slate-200/50 dark:border-slate-800/80 text-[10px] text-slate-400 dark:text-slate-500 italic">
+                  * These rules are only enforced when submitting the team to a mentor for project approval.
+                </div>
               </div>
 
               {/* Current Members List */}

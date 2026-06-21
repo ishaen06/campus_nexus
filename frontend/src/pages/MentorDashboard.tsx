@@ -35,6 +35,8 @@ export default function MentorDashboard() {
   const [teams, setTeams] = useState<TeamItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [acceptedCount, setAcceptedCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   
   // Rejection Modal states
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -45,8 +47,10 @@ export default function MentorDashboard() {
   const fetchPendingTeams = async () => {
     try {
       const res = await api.get('/chat/groups/mentor/teams');
-      // Only keep pending approvals
+      const approved = res.data.filter((t: any) => t.mentor_status === 'APPROVED');
       const pending = res.data.filter((t: any) => t.mentor_status === 'PENDING');
+      setAcceptedCount(approved.length);
+      setPendingCount(pending.length);
       setTeams(pending);
     } catch (err) {
       console.error("Error fetching pending groups:", err);
@@ -129,6 +133,39 @@ export default function MentorDashboard() {
           <FolderGit className="text-indigo-600 w-9 h-9" /> Pending Confirmations
         </h1>
         <p className="text-gray-500 font-medium mt-1">Review student team registrations and topic choices awaiting confirmation</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
+        <div className="glass-panel p-4 flex items-center justify-between border border-emerald-500/10 hover:border-emerald-500/20 transition-all">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Groups Accepted</span>
+            <span className="text-2xl font-black text-emerald-500 mt-1 block">{acceptedCount}</span>
+          </div>
+          <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
+            <CheckCircle2 size={24} />
+          </div>
+        </div>
+
+        <div className="glass-panel p-4 flex items-center justify-between border border-amber-500/10 hover:border-amber-500/20 transition-all">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Groups Pending</span>
+            <span className="text-2xl font-black text-amber-500 mt-1 block">{pendingCount}</span>
+          </div>
+          <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
+            <AlertCircle size={24} />
+          </div>
+        </div>
+
+        <div className="glass-panel p-4 flex items-center justify-between border border-indigo-500/10 hover:border-indigo-500/20 transition-all">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Available Slots</span>
+            <span className="text-2xl font-black text-indigo-500 mt-1 block">{Math.max(0, 25 - acceptedCount)}</span>
+          </div>
+          <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
+            <FolderGit size={24} />
+          </div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

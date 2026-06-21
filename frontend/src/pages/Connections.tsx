@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserCheck, Search, Users } from 'lucide-react';
+import { UserCheck, Search, Users, Plus, X, Sparkles } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 
@@ -35,6 +35,11 @@ export default function Connections() {
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Group creation states
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
   const navigate = useNavigate();
 
@@ -82,6 +87,34 @@ export default function Connections() {
     setIsPreviewOpen(true);
   };
 
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupName.trim() || selectedMembers.length === 0) return;
+    try {
+      await api.post('/chat/groups', {
+        name: groupName,
+        member_ids: selectedMembers,
+        is_public: false,
+        project_topic: ''
+      });
+      setShowCreateGroup(false);
+      setGroupName('');
+      setSelectedMembers([]);
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.detail || "Failed to create group.");
+    }
+  };
+
+  const toggleMemberSelection = (userId: number) => {
+    if (selectedMembers.includes(userId)) {
+      setSelectedMembers(prev => prev.filter(id => id !== userId));
+    } else {
+      setSelectedMembers(prev => [...prev, userId]);
+    }
+  };
+
   const pending = connections.filter(c => c.status === 'PENDING');
   
   // Filter matched peers by search query
@@ -112,6 +145,14 @@ export default function Connections() {
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
+            {!isMentor && (
+              <button
+                onClick={() => setShowCreateGroup(true)}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-full text-xs transition-all shadow-md cursor-pointer uppercase tracking-wider whitespace-nowrap"
+              >
+                <Plus size={14} /> Create Group
+              </button>
+            )}
             <div className="relative w-full md:w-72">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input 
@@ -292,6 +333,107 @@ export default function Connections() {
           )}
         </div>
       </div>
+
+      {/* Group Creation Modal */}
+      <AnimatePresence>
+        {showCreateGroup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateGroup(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 relative z-10 shadow-2xl text-left"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <Users className="text-indigo-600 dark:text-indigo-400" /> Create Group Chat
+                </h3>
+                <button 
+                  onClick={() => setShowCreateGroup(false)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white shadow-sm transition-all cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateGroup} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Group Name</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="e.g. Study Group, Coding Session"
+                    value={groupName}
+                    onChange={e => setGroupName(e.target.value)}
+                    className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Members</label>
+                  {connections.filter(c => c.status === 'ACCEPTED' && !c.other_user.is_mentor).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic">No connections available to create a group. Go connect with peers first!</p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto space-y-2.5 pr-2 no-scrollbar">
+                      {connections.filter(c => c.status === 'ACCEPTED' && !c.other_user.is_mentor).map(conn => (
+                        <div 
+                          key={conn.other_user.id} 
+                          onClick={() => toggleMemberSelection(conn.other_user.id)}
+                          className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                            selectedMembers.includes(conn.other_user.id)
+                            ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={36} />
+                            <div className="text-left">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">{conn.other_user.full_name}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
+                                {conn.other_user.branch || 'N/A'} • Year {conn.other_user.year_of_study || 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                            selectedMembers.includes(conn.other_user.id)
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800'
+                          }`}>
+                            {selectedMembers.includes(conn.other_user.id) && <Sparkles size={10} />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/30 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/60 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  ℹ️ This is an unofficial group chat for connecting and studying. It has no size limits or academic cycle rules.
+                </div>
+
+                <motion.button 
+                  whileHover={{ scale: (groupName.trim() && selectedMembers.length > 0) ? 1.02 : 1 }}
+                  whileTap={{ scale: (groupName.trim() && selectedMembers.length > 0) ? 0.98 : 1 }}
+                  type="submit" 
+                  disabled={!groupName.trim() || selectedMembers.length === 0}
+                  className="w-full bg-indigo-600 text-white font-black py-4 px-4 rounded-2xl shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Create Group Chat
+                </motion.button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Profile Detail Preview Modal */}
       <ProfilePreviewModal 

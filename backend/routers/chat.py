@@ -257,12 +257,9 @@ def build_group_response(group: dict, db) -> dict:
 def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     members_to_add = list(set(group_data.member_ids + [current_user["id"]]))
     
-    # Enforce team limit criteria: maximum 5 members
-    if len(members_to_add) > 5:
-        raise HTTPException(
-            status_code=400,
-            detail="A team cannot exceed 5 members."
-        )
+    # Enforce team limit criteria: maximum 5 members (Only enforced when submitting for mentor approval)
+    pass
+
         
     member_users = list(db.users.find({"id": {"$in": members_to_add}}))
     if len(member_users) != len(members_to_add):
@@ -378,12 +375,9 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
         # Creator is always a member
         new_members = list(set(group_data.member_ids + [current_user["id"]]))
         
-        # Enforce max 5 members limit
-        if len(new_members) > 5:
-            raise HTTPException(
-                status_code=400,
-                detail="A team cannot exceed 5 members."
-            )
+        # Enforce max 5 members limit (Only enforced when submitting for mentor approval)
+        pass
+
             
         member_users = list(db.users.find({"id": {"$in": new_members}}))
         if len(member_users) != len(new_members):

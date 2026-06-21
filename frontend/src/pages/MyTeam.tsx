@@ -593,13 +593,14 @@ export default function MyTeam() {
                     : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400'
                 }`}>
                   <p>{validation.text}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 italic mt-1.5">* Enforced only when submitting the team to a mentor for project approval.</p>
                 </div>
 
                 <motion.button 
-                  whileHover={{ scale: (groupName.trim() && selectedMembers.length <= 4) ? 1.02 : 1 }}
-                  whileTap={{ scale: (groupName.trim() && selectedMembers.length <= 4) ? 0.98 : 1 }}
+                  whileHover={{ scale: groupName.trim() ? 1.02 : 1 }}
+                  whileTap={{ scale: groupName.trim() ? 0.98 : 1 }}
                   type="submit" 
-                  disabled={!groupName.trim() || selectedMembers.length > 4}
+                  disabled={!groupName.trim()}
                   className="w-full bg-indigo-600 text-white font-black py-4 px-4 rounded-2xl shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Create Group Chat
