@@ -35,6 +35,7 @@ export default function GroupChat() {
   const [teamMembers, setTeamMembers] = useState<number[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
   const [projectTopic, setProjectTopic] = useState('');
+  const [apiError, setApiError] = useState<string | null>(null);
   
   const ws = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -50,7 +51,10 @@ export default function GroupChat() {
     // 2. Get Group Info
     api.get(`/chat/groups/${groupId}`).then(res => {
       setGroupDetails(res.data);
-    }).catch(console.error);
+    }).catch(err => {
+      console.error(err);
+      setApiError(err.response?.data?.detail || err.message || "Failed to load group details");
+    });
 
     // 3. Fetch Message History
     api.get(`/chat/groups/${groupId}/messages`).then(res => {
@@ -240,8 +244,8 @@ export default function GroupChat() {
           </button>
           
           <button 
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 text-left p-0 focus:outline-none"
+            onClick={() => groupDetails && setShowSettings(true)}
+            className={`flex items-center gap-3 bg-transparent border-0 text-left p-0 focus:outline-none ${groupDetails ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white border border-white/20">
               <Users size={20} />
@@ -377,6 +381,28 @@ export default function GroupChat() {
                 </button>
               </div>
 
+              {!groupDetails ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  {apiError ? (
+                    <>
+                      <AlertTriangle className="text-rose-500 mb-3" size={32} />
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{apiError}</p>
+                      <button 
+                        onClick={() => navigate('/connections')} 
+                        className="mt-4 bg-indigo-650 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer uppercase tracking-wider"
+                      >
+                        Back to Chats
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
+                      <p className="text-xs font-semibold text-slate-500">Loading team details...</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
               {/* Team Name Input */}
               <div className="space-y-2 mb-6">
                 <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block text-left">Team Name</label>
@@ -462,7 +488,7 @@ export default function GroupChat() {
               <div className="space-y-3 mb-6 text-left">
                 <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Current Members ({totalSize}/5)</label>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 no-scrollbar">
-                  {groupDetails?.mentor_name && groupDetails?.mentor_status === 'APPROVED' && (
+                  {groupDetails?.mentor_name && (
                     <div className="flex items-center justify-between p-2.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950/30 rounded-xl">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-indigo-600/10 flex items-center justify-center">
@@ -473,8 +499,14 @@ export default function GroupChat() {
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{groupDetails.mentor_email}</span>
                         </div>
                       </div>
-                      <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-850 text-indigo-750 dark:text-indigo-350 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                        Mentor
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                        groupDetails.mentor_status === 'APPROVED'
+                          ? 'bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-850 text-indigo-750 dark:text-indigo-350'
+                          : groupDetails.mentor_status === 'PENDING'
+                            ? 'bg-amber-100 dark:bg-amber-900/50 border border-amber-200 dark:border-amber-850 text-amber-750 dark:text-amber-350'
+                            : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                      }`}>
+                        {groupDetails.mentor_status === 'APPROVED' ? 'Mentor' : `Mentor (${groupDetails.mentor_status})`}
                       </span>
                     </div>
                   )}
@@ -667,6 +699,8 @@ export default function GroupChat() {
                     </button>
                   )}
                 </div>
+              )}
+                </>
               )}
             </motion.div>
           </div>
