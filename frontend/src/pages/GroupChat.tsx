@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api, { getWsURL } from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, ArrowLeft, AlertTriangle, Users, Settings, X, Sparkles, UserMinus, UserPlus, Check } from 'lucide-react';
@@ -18,6 +18,8 @@ interface GroupMessage {
 export default function GroupChat() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialGroupName = location.state?.groupName || 'Group Chat';
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [input, setInput] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -246,7 +248,7 @@ export default function GroupChat() {
             </div>
             <div className="flex flex-col">
               <h2 className="text-[15px] font-bold text-gray-950 tracking-tight leading-none">
-                {groupDetails ? groupDetails.name : 'Group Chat'}
+                {groupDetails ? groupDetails.name : initialGroupName}
               </h2>
               {getTypersText() ? (
                 <span className="text-[11px] font-semibold text-blue-500 animate-pulse mt-1">

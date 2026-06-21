@@ -1040,7 +1040,7 @@ def delete_project_file(group_id: int, file_id: str, background_tasks: Backgroun
 def get_mentor_teams(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     if not current_user.get("is_mentor", False):
         raise HTTPException(status_code=403, detail="Only mentors can access this endpoint")
-    groups = list(db.group_chats.find({"mentor_email": current_user["email"]}))
+    groups = list(db.group_chats.find({"mentor_email": {"$regex": f"^{current_user['email']}$", "$options": "i"}}))
     return [populate_group_response(g, db) for g in groups]
 
 @router.post("/groups/{group_id}/mentor-action", response_model=GroupChatResponse)
@@ -1050,7 +1050,7 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
     group = db.group_chats.find_one({"id": group_id})
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    if group.get("mentor_email") != current_user["email"]:
+    if (group.get("mentor_email") or "").lower().strip() != (current_user.get("email") or "").lower().strip():
         raise HTTPException(status_code=403, detail="You are not the assigned mentor for this team")
     
     action = payload.action.upper()

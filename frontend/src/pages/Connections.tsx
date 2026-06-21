@@ -180,7 +180,7 @@ export default function Connections() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   key={`group-${group.id}`} 
-                  onClick={() => navigate(`/chat/group/${group.id}`)}
+                  onClick={() => navigate(`/chat/group/${group.id}`, { state: { groupName: group.name } })}
                   className="py-5 px-3 cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-900/30 transition-all flex items-center justify-between group relative rounded-xl"
                 >
                   <div className="flex items-center gap-5 min-w-0 flex-1">

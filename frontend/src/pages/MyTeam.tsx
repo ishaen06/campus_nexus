@@ -316,7 +316,7 @@ export default function MyTeam() {
                       {/* CTA / Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-3 items-center">
                         <button
-                          onClick={() => navigate(`/chat/group/${team.id}`)}
+                          onClick={() => navigate(`/chat/group/${team.id}`, { state: { groupName: team.name } })}
                           className="flex-1 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
                         >
                           <Users size={15} />

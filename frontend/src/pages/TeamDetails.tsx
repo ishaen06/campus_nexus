@@ -153,7 +153,7 @@ export default function TeamDetails() {
           
           <button
             type="button"
-            onClick={() => navigate(`/chat/group/${team.id}`)}
+            onClick={() => navigate(`/chat/group/${team.id}`, { state: { groupName: team.name } })}
             className="bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer w-full sm:w-auto justify-center"
           >
             <MessageSquare size={14} /> Team Group Chat
