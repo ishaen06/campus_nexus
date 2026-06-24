@@ -33,6 +33,7 @@ interface GroupItem {
   criteria_met: boolean;
   validation_error?: string | null;
   project_topic?: string | null;
+  project_sub_topic?: string | null;
   allow_member_leave?: boolean;
   mentor_status?: string;
   department?: string;
@@ -59,6 +60,7 @@ export default function Discovery() {
   // Filters state
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [subTopicFilter, setSubTopicFilter] = useState<string>('all');
 
   // Dynamically extract unique branches from users and teams
   const getUniqueBranches = () => {
@@ -169,6 +171,11 @@ export default function Discovery() {
       const uBranch = (user.branch || '').toUpperCase().trim();
       if (uBranch !== branchFilter.toUpperCase().trim()) return false;
     }
+    if (subTopicFilter !== 'all') {
+      const matchesInterest = (user.interests || []).some((i: string) => i.toLowerCase().includes(subTopicFilter.toLowerCase()));
+      const matchesGoal = (user.goals || []).some((g: string) => g.toLowerCase().includes(subTopicFilter.toLowerCase()));
+      if (!matchesInterest && !matchesGoal) return false;
+    }
     return true;
   });
 
@@ -233,11 +240,30 @@ export default function Discovery() {
           </select>
         </div>
 
-        {(cycleFilter !== 'all' || branchFilter !== 'all') && (
+        <div className="flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Sub-Topic:</label>
+          <select
+            value={subTopicFilter}
+            onChange={(e) => setSubTopicFilter(e.target.value)}
+            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer max-w-[150px] truncate"
+          >
+            <option value="all">All Sub-Topics</option>
+            <option value="Agriculture, Livestock & Rural Development">Agriculture, Livestock & Rural Development</option>
+            <option value="Education, Skilling & Student-Centric Solutions">Education, Skilling & Student-Centric Solutions</option>
+            <option value="Health, Wellness & Traditional Medicine">Health, Wellness & Traditional Medicine</option>
+            <option value="Urban Development, Mobility & Smart Cities">Urban Development, Mobility & Smart Cities</option>
+            <option value="Sustainability & Environment">Sustainability & Environment</option>
+            <option value="Emerging Technology, Innovation & Industry 4.0">Emerging Technology, Innovation & Industry 4.0</option>
+            <option value="Ocean, Marine & Aerospace Technologies">Ocean, Marine & Aerospace Technologies</option>
+          </select>
+        </div>
+
+        {(cycleFilter !== 'all' || branchFilter !== 'all' || subTopicFilter !== 'all') && (
           <button
             onClick={() => {
               setCycleFilter('all');
               setBranchFilter('all');
+              setSubTopicFilter('all');
             }}
             className="px-2 py-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer bg-transparent border-none outline-none"
           >
@@ -325,6 +351,12 @@ export default function Discovery() {
                   const hasBranchMember = (team.members || []).some((m: any) => (m.branch || '').toUpperCase().trim() === branchFilter.toUpperCase().trim());
                   if (!hasBranchMember) return false;
                 }
+
+                // Sub-topic filter
+                if (subTopicFilter !== 'all') {
+                  const tSub = (team.project_sub_topic || '').toLowerCase().trim();
+                  if (tSub !== subTopicFilter.toLowerCase().trim()) return false;
+                }
                 
                 return true;
               });
@@ -357,11 +389,21 @@ export default function Discovery() {
                           >
                             <div>
                               <div className="flex justify-between items-start mb-4">
-                                <div>
-                                  <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 truncate max-w-[180px]">{team.name}</h3>
+                                <div className="min-w-0 flex-1 pr-2">
+                                  <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 truncate w-full">{team.name}</h3>
                                   <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block mt-0.5">
                                     Admin ID: {team.created_by}
                                   </span>
+                                  {team.project_topic && (
+                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 block truncate mt-1.5" title={team.project_topic}>
+                                      Topic: {team.project_topic}
+                                    </span>
+                                  )}
+                                  {team.project_sub_topic && (
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-tight font-medium" title={team.project_sub_topic}>
+                                      Theme: {team.project_sub_topic}
+                                    </span>
+                                  )}
                                 </div>
                                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border ${
                                   team.criteria_met 
