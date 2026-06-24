@@ -19,6 +19,7 @@ interface UserProfile {
   is_mentor?: boolean;
   department?: string;
   post?: string;
+  cycle?: string;
 }
 
 interface GroupItem {
@@ -34,6 +35,9 @@ interface GroupItem {
   project_topic?: string | null;
   allow_member_leave?: boolean;
   mentor_status?: string;
+  department?: string;
+  post?: string;
+  cycle?: string;
 }
 
 export default function Discovery() {
@@ -51,6 +55,25 @@ export default function Discovery() {
   const [publicTeams, setPublicTeams] = useState<GroupItem[]>([]);
   const [previewUser, setPreviewUser] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Filters state
+  const [cycleFilter, setCycleFilter] = useState<string>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+
+  // Dynamically extract unique branches from users and teams
+  const getUniqueBranches = () => {
+    const branches = new Set<string>();
+    users.forEach(u => {
+      if (u.branch) branches.add(u.branch.trim().toUpperCase());
+    });
+    publicTeams.forEach(t => {
+      (t.members || []).forEach((m: any) => {
+        if (m.branch) branches.add(m.branch.trim().toUpperCase());
+      });
+    });
+    return Array.from(branches).sort();
+  };
+  const uniqueBranches = getUniqueBranches();
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -127,6 +150,18 @@ export default function Discovery() {
     setIsPreviewOpen(true);
   };
 
+  const filteredUsers = users.filter(user => {
+    if (cycleFilter !== 'all') {
+      const uCycle = (user.cycle || '').toUpperCase();
+      if (uCycle !== cycleFilter.toUpperCase()) return false;
+    }
+    if (branchFilter !== 'all') {
+      const uBranch = (user.branch || '').toUpperCase().trim();
+      if (uBranch !== branchFilter.toUpperCase().trim()) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16">
       {/* Navigation Tabs */}
@@ -159,6 +194,48 @@ export default function Discovery() {
         </button>
       </div>
 
+      {/* Filter Bar */}
+      <div className="flex flex-wrap gap-4 mb-8 items-center justify-center w-full max-w-sm md:max-w-4xl mx-auto p-4 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200/40 dark:border-slate-800/50 shadow-sm">
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cycle:</label>
+          <select
+            value={cycleFilter}
+            onChange={(e) => setCycleFilter(e.target.value)}
+            className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+          >
+            <option value="all">All Cycles</option>
+            <option value="P">Physics (P-Cycle)</option>
+            <option value="C">Chemistry (C-Cycle)</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Branch:</label>
+          <select
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+            className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+          >
+            <option value="all">All Branches</option>
+            {uniqueBranches.map(br => (
+              <option key={br} value={br}>{br}</option>
+            ))}
+          </select>
+        </div>
+
+        {(cycleFilter !== 'all' || branchFilter !== 'all') && (
+          <button
+            onClick={() => {
+              setCycleFilter('all');
+              setBranchFilter('all');
+            }}
+            className="px-3 py-1.5 text-xs font-bold text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer bg-transparent border-none outline-none"
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
       <AnimatePresence mode="wait">
         {activeTab === 'people' ? (
           <motion.div
@@ -174,7 +251,7 @@ export default function Discovery() {
                 <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mb-4"></div>
                 <p className="text-gray-500 font-medium tracking-wide">Finding amazing people...</p>
               </div>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -183,8 +260,8 @@ export default function Discovery() {
                 <div className="w-20 h-20 bg-gray-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 shadow-inner">
                   <span className="text-4xl">🏜️</span>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">You're all caught up!</h3>
-                <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">No new profiles found. Try checking back later or adjusting your filters.</p>
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No profiles found</h3>
+                <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">No profiles match your cycle or branch filters. Try clearing filters or checking back later.</p>
                 <button 
                   onClick={fetchUsers}
                   className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 rounded-full text-indigo-600 dark:text-indigo-400 font-semibold shadow-[0_4px_14px_0_rgba(99,102,241,0.15)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
@@ -195,7 +272,7 @@ export default function Discovery() {
               </motion.div>
             ) : (
               <AnimatePresence>
-                {users.map((user, index) => {
+                {filteredUsers.map((user, index) => {
                   const sameBranch = me && me.branch === user.branch;
                   const sharedInterests = me && me.interests ? me.interests.filter((i: string) => user.interests?.includes(i)).length : 0;
                   const mutualBadge = sameBranch ? "Same Branch" : (sharedInterests > 0 ? `${sharedInterests} Shared Interests` : null);
@@ -224,9 +301,23 @@ export default function Discovery() {
             className="w-full max-w-6xl mx-auto space-y-6 text-left"
           >
             {(() => {
-              const visiblePublicTeams = publicTeams.filter(team => 
-                !me || !team.member_ids.includes(me.id)
-              );
+              const visiblePublicTeams = publicTeams.filter(team => {
+                if (me && team.member_ids.includes(me.id)) return false;
+                
+                // Cycle filter
+                if (cycleFilter !== 'all') {
+                  const hasCycleMember = (team.members || []).some((m: any) => (m.cycle || '').toUpperCase() === cycleFilter.toUpperCase());
+                  if (!hasCycleMember) return false;
+                }
+                
+                // Branch filter
+                if (branchFilter !== 'all') {
+                  const hasBranchMember = (team.members || []).some((m: any) => (m.branch || '').toUpperCase().trim() === branchFilter.toUpperCase().trim());
+                  if (!hasBranchMember) return false;
+                }
+                
+                return true;
+              });
 
               return (
                 <>
