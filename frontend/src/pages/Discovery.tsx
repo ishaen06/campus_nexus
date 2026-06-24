@@ -88,7 +88,6 @@ export default function Discovery() {
   // Filters state
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
-  const [subTopicFilter, setSubTopicFilter] = useState<string>('all');
 
   // Static branch options used instead of dynamic extraction
 
@@ -185,11 +184,6 @@ export default function Discovery() {
     if (branchFilter !== 'all') {
       if (!matchBranch(user.branch, branchFilter)) return false;
     }
-    if (subTopicFilter !== 'all') {
-      const matchesInterest = (user.interests || []).some((i: string) => i.toLowerCase().includes(subTopicFilter.toLowerCase()));
-      const matchesGoal = (user.goals || []).some((g: string) => g.toLowerCase().includes(subTopicFilter.toLowerCase()));
-      if (!matchesInterest && !matchesGoal) return false;
-    }
     return true;
   });
 
@@ -226,60 +220,41 @@ export default function Discovery() {
       </div>
 
       {/* Filter Bar */}
-      <div className="md:absolute md:top-8 md:right-8 flex flex-row flex-wrap gap-2.5 items-center justify-center p-2 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-slate-200/40 dark:border-slate-800/50 shadow-sm text-xs mb-8 md:mb-0 z-40">
-        <div className="flex items-center gap-1.5">
+      <div className="md:absolute md:top-8 md:right-8 flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/30 dark:bg-slate-900/35 backdrop-blur-xl rounded-full border border-slate-200/30 dark:border-slate-800/40 shadow-[0_8px_30px_rgb(0,0,0,0.02)] text-xs mb-8 md:mb-0 z-40">
+        <div className="flex items-center gap-1.5 bg-white/60 dark:bg-slate-950/40 px-3 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Cycle:</label>
           <select
             value={cycleFilter}
             onChange={(e) => setCycleFilter(e.target.value)}
-            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+            className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0"
           >
-            <option value="all">All Cycles</option>
-            <option value="P">Physics</option>
-            <option value="C">Chemistry</option>
+            <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Cycles</option>
+            <option value="P" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Physics</option>
+            <option value="C" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Chemistry</option>
           </select>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 bg-white/60 dark:bg-slate-950/40 px-3 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Branch:</label>
           <select
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
-            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer max-w-[150px] truncate"
+            className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0 max-w-[130px] truncate"
           >
-            <option value="all">All Branches</option>
+            <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Branches</option>
             {BRANCH_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">{opt.label}</option>
             ))}
           </select>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Sub-Topic:</label>
-          <select
-            value={subTopicFilter}
-            onChange={(e) => setSubTopicFilter(e.target.value)}
-            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer max-w-[150px] truncate"
-          >
-            <option value="all">All Sub-Topics</option>
-            <option value="Agriculture, Livestock & Rural Development">Agriculture, Livestock & Rural Development</option>
-            <option value="Education, Skilling & Student-Centric Solutions">Education, Skilling & Student-Centric Solutions</option>
-            <option value="Health, Wellness & Traditional Medicine">Health, Wellness & Traditional Medicine</option>
-            <option value="Urban Development, Mobility & Smart Cities">Urban Development, Mobility & Smart Cities</option>
-            <option value="Sustainability & Environment">Sustainability & Environment</option>
-            <option value="Emerging Technology, Innovation & Industry 4.0">Emerging Technology, Innovation & Industry 4.0</option>
-            <option value="Ocean, Marine & Aerospace Technologies">Ocean, Marine & Aerospace Technologies</option>
-          </select>
-        </div>
-
-        {(cycleFilter !== 'all' || branchFilter !== 'all' || subTopicFilter !== 'all') && (
+        {(cycleFilter !== 'all' || branchFilter !== 'all') && (
           <button
             onClick={() => {
               setCycleFilter('all');
               setBranchFilter('all');
-              setSubTopicFilter('all');
             }}
-            className="px-2 py-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer bg-transparent border-none outline-none"
+            className="px-3 py-1.5 text-[10px] font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-350 transition-colors cursor-pointer bg-white/60 dark:bg-slate-950/40 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-900"
           >
             Clear
           </button>
@@ -364,12 +339,6 @@ export default function Discovery() {
                 if (branchFilter !== 'all') {
                   const hasBranchMember = (team.members || []).some((m: any) => matchBranch(m.branch, branchFilter));
                   if (!hasBranchMember) return false;
-                }
-
-                // Sub-topic filter
-                if (subTopicFilter !== 'all') {
-                  const tSub = (team.project_sub_topic || '').toLowerCase().trim();
-                  if (tSub !== subTopicFilter.toLowerCase().trim()) return false;
                 }
                 
                 return true;
