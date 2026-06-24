@@ -34,7 +34,7 @@ export default function Register() {
     const initializeGoogle = () => {
       if (window.google && !showOTP) {
         window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "704467972044-i21uqk5gq78c52i62sh7459ebrmq547n.apps.googleusercontent.com",
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "917861196656-ir7d9pgojdukvfi8i5lufu3fdia1ljdj.apps.googleusercontent.com",
           callback: handleGoogleCredentialResponse,
         });
         window.google.accounts.id.renderButton(
