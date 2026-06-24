@@ -28,7 +28,7 @@ def send_email_via_brevo(to_email: str, subject: str, body_text: str, html_body:
         print("[BREVO] WARNING: BREVO_API_KEY not set.")
         return False
 
-    sender_email = os.getenv("BREVO_SENDER_EMAIL", "ishaen06@gmail.com")
+    sender_email = os.getenv("BREVO_SENDER_EMAIL", "nexus26@gmail.com")
     sender_name  = os.getenv("BREVO_SENDER_NAME", "Campus Nexus")
 
     key_preview = api_key[:8] + "..." if len(api_key) > 8 else "***"
