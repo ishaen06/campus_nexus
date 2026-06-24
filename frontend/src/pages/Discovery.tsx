@@ -122,9 +122,16 @@ export default function Discovery() {
   const handleSwipeLeft = async (userId: number) => {
     try {
       await api.post(`/users/${userId}/dismiss`);
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      // Recycle the user to the bottom of the stack
+      setUsers(prev => {
+        const index = prev.findIndex(u => u.id === userId);
+        if (index === -1) return prev;
+        const newUsers = [...prev];
+        const [swipedUser] = newUsers.splice(index, 1);
+        return [...newUsers, swipedUser];
+      });
     } catch (err: any) {
-      alert("Failed to dismiss user.");
+      console.error("Failed to dismiss user", err);
     }
   };
 

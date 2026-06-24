@@ -151,12 +151,14 @@ def get_discovery(
         blocked_list.append(b["blocker_id"])
         blocked_list.append(b["blocked_id"])
 
-    # Filter out dismissed users
-    dismissed = list(db.dismissed_users.find({"user_id": current_user["id"]}))
-    dismissed_list = [d["dismissed_id"] for d in dismissed]
+    # Filter out users who are already in a mentor-approved group
+    approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
+    approved_group_ids = [g["id"] for g in approved_groups]
+    approved_members = list(db.group_members.find({"group_id": {"$in": approved_group_ids}}))
+    approved_member_ids = [m["user_id"] for m in approved_members]
 
-    # Combine all exclusions
-    exclude_ids = list(set([current_user["id"]] + connected_list + blocked_list + dismissed_list))
+    # Combine all exclusions (do NOT exclude dismissed_list so rejected students can reappear)
+    exclude_ids = list(set([current_user["id"]] + connected_list + blocked_list + approved_member_ids))
 
     # Base query
     query_filter = {
