@@ -35,6 +35,7 @@ interface GroupItem {
   criteria_met: boolean;
   validation_error?: string | null;
   project_topic?: string | null;
+  project_sub_topic?: string | null;
   allow_member_leave?: boolean;
   mentor_status?: string;
 }
@@ -50,6 +51,7 @@ export default function MyTeam() {
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [isPublic, setIsPublic] = useState(false);
   const [projectTopic, setProjectTopic] = useState('');
+  const [projectSubTopic, setProjectSubTopic] = useState('');
 
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
@@ -124,13 +126,15 @@ export default function MyTeam() {
         name: groupName,
         member_ids: selectedMembers,
         is_public: isPublic,
-        project_topic: projectTopic
+        project_topic: projectTopic,
+        project_sub_topic: projectSubTopic
       });
       setShowCreateGroup(false);
       setGroupName('');
       setSelectedMembers([]);
       setIsPublic(false);
       setProjectTopic('');
+      setProjectSubTopic('');
       fetchData();
     } catch (err: any) {
       console.error(err);
@@ -231,13 +235,24 @@ export default function MyTeam() {
 
                       {/* Project Topic Details */}
                       <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/60 rounded-xl p-5 mb-6 text-left">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Project Topic</span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Project Details</span>
                         <div className="flex items-center gap-3">
-                          <FolderGit className="text-indigo-600 dark:text-indigo-400 w-5 h-5 shrink-0" />
-                          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                            {team.project_topic ? team.project_topic : "No topic entered yet"}
-                          </p>
+                          <FolderGit className="text-indigo-600 dark:text-indigo-400 w-5.5 h-5.5 shrink-0" />
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Topic Name</span>
+                            <p className="text-base font-bold text-slate-800 dark:text-slate-100 capitalize">
+                              {team.project_topic ? team.project_topic : "No topic entered yet"}
+                            </p>
+                          </div>
                         </div>
+                        {team.project_sub_topic && (
+                          <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center gap-3">
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Sub-Topic:</span>
+                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                              {team.project_sub_topic}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Admin Settings Panel */}
@@ -526,6 +541,24 @@ export default function MyTeam() {
                     onChange={e => setProjectTopic(e.target.value)}
                     className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Sub-Topic</label>
+                  <select
+                    value={projectSubTopic}
+                    onChange={e => setProjectSubTopic(e.target.value)}
+                    className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold bg-white dark:bg-slate-900"
+                  >
+                    <option value="">-- Select a Sub-Topic --</option>
+                    <option value="Agriculture, Livestock & Rural Development">Agriculture, Livestock & Rural Development</option>
+                    <option value="Education, Skilling & Student-Centric Solutions">Education, Skilling & Student-Centric Solutions</option>
+                    <option value="Health, Wellness & Traditional Medicine">Health, Wellness & Traditional Medicine</option>
+                    <option value="Urban Development, Mobility & Smart Cities">Urban Development, Mobility & Smart Cities</option>
+                    <option value="Sustainability & Environment">Sustainability & Environment</option>
+                    <option value="Emerging Technology, Innovation & Industry 4.0">Emerging Technology, Innovation & Industry 4.0</option>
+                    <option value="Ocean, Marine & Aerospace Technologies">Ocean, Marine & Aerospace Technologies</option>
+                  </select>
                 </div>
 
                 <div>
