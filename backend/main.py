@@ -58,33 +58,74 @@ def debug_email_config():
 @app.get("/api/debug/test-email")
 def test_email_send(to: str = "ishaen.vihaan@gmail.com"):
     """
-    Sends a real test email using the unified send_email utility and returns status.
-    Usage: /api/debug/test-email?to=yourtest@gmail.com
+    Diagnostic endpoint to test and compare multiple email methods (SMTP 587, SMTPS 465, Brevo).
     """
-    from utils import load_env, send_email
+    import smtplib
+    import traceback
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from utils import load_env, send_email_via_brevo
     load_env()
 
-    result = {
+    results = {
         "to": to,
-        "BREVO_API_KEY_set": bool(os.getenv("BREVO_API_KEY")),
-        "RESEND_API_KEY_set": bool(os.getenv("RESEND_API_KEY")),
-        "SMTP_USERNAME_set": bool(os.getenv("SMTP_USERNAME")),
-        "success": False,
-        "error": None,
+        "smtp_587": {"success": False, "error": None},
+        "smtp_465": {"success": False, "error": None},
+        "brevo": {"success": False, "error": None},
     }
 
+    # 1. Test Brevo
     try:
-        send_email(
-            to_email=to,
-            subject="CampusNexus - Production Email Dispatch Test",
-            body="This is a test email sent from the CampusNexus backend using the unified priority dispatcher.",
-            html_body="<h2>CampusNexus</h2><p>This is a test email sent from the CampusNexus backend using the <b>unified priority dispatcher</b>.</p>"
-        )
-        result["success"] = True
+        if send_email_via_brevo(to, "CampusNexus - Brevo Test", "Test via Brevo"):
+            results["brevo"]["success"] = True
+        else:
+            results["brevo"]["error"] = "Brevo helper returned False"
     except Exception as e:
-        import traceback
-        result["error"] = str(e)
-        result["traceback"] = traceback.format_exc()
+        results["brevo"]["error"] = f"{type(e).__name__}: {e}"
 
-    return result
+    # SMTP credentials
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_user   = os.getenv("SMTP_USERNAME", "")
+    smtp_pass   = os.getenv("SMTP_PASSWORD", "")
+
+    # 2. Test SMTP 587
+    if smtp_user and smtp_pass:
+        try:
+            server = smtplib.SMTP(smtp_server, 587, timeout=10)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_pass)
+            
+            msg = MIMEMultipart('alternative')
+            msg['From'] = f"Campus Nexus <{smtp_user}>"
+            msg['To'] = to
+            msg['Subject'] = "CampusNexus - SMTP 587 Test"
+            msg.attach(MIMEText("Test via SMTP 587", 'plain'))
+            server.send_message(msg)
+            server.quit()
+            results["smtp_587"]["success"] = True
+        except Exception as e:
+            results["smtp_587"]["error"] = f"{type(e).__name__}: {e}"
+
+        # 3. Test SMTP 465 (SSL)
+        try:
+            server = smtplib.SMTP_SSL(smtp_server, 465, timeout=10)
+            server.login(smtp_user, smtp_pass)
+            
+            msg = MIMEMultipart('alternative')
+            msg['From'] = f"Campus Nexus <{smtp_user}>"
+            msg['To'] = to
+            msg['Subject'] = "CampusNexus - SMTP 465 Test"
+            msg.attach(MIMEText("Test via SMTP 465", 'plain'))
+            server.send_message(msg)
+            server.quit()
+            results["smtp_465"]["success"] = True
+        except Exception as e:
+            results["smtp_465"]["error"] = f"{type(e).__name__}: {e}"
+    else:
+        results["smtp_587"]["error"] = "No SMTP credentials set"
+        results["smtp_465"]["error"] = "No SMTP credentials set"
+
+    return results
 
