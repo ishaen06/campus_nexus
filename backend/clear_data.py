@@ -7,7 +7,6 @@ print(f"Connecting to database: {db_path}")
 tables_to_clear = [
     "connections",
     "messages",
-    "otp_codes",
     "communities",
     "community_members",
     "events",

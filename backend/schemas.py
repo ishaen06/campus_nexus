@@ -2,21 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    full_name: str
-    password: str
-    cycle: Optional[str] = "P" # "P" or "C"
-    usn: Optional[str] = None
-    branch: Optional[str] = None
-    year_of_study: Optional[int] = None
-    is_mentor: Optional[bool] = False
-    department: Optional[str] = None
-    post: Optional[str] = None
-
-class OTPVerify(BaseModel):
-    email: EmailStr
-    otp: str
+# UserCreate and OTPVerify models removed
 
 class UserResponse(BaseModel):
     id: int

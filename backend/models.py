@@ -30,14 +30,7 @@ class User(Base):
         from security import is_user_online
         return is_user_online(self.id)
     
-class OTPCode(Base):
-    __tablename__ = "otp_codes"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, index=True, nullable=False)
-    otp = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime, nullable=False)
+# OTPCode model removed
 
 class ConnectionStatus(str, enum.Enum):
     PENDING = "PENDING"

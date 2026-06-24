@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import VerifyOTP from './pages/VerifyOTP';
 import ProfileSetup from './pages/ProfileSetup';
 import ProfileEdit from './pages/ProfileEdit';
 import Discovery from './pages/Discovery';
@@ -31,8 +29,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify-otp" element={<VerifyOTP />} />
+        <Route path="/register" element={<Navigate to="/login" replace />} />
         
         {/* Protected Routes wrapped in Layout */}
         <Route element={<Layout />}>
