@@ -67,6 +67,10 @@ class Token(BaseModel):
 class ConnectionBase(BaseModel):
     receiver_id: int
 
+class MentorChatRequest(BaseModel):
+    email: EmailStr
+
+
 class ConnectionResponse(BaseModel):
     id: int
     sender_id: int

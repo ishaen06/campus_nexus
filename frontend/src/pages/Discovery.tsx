@@ -170,7 +170,7 @@ export default function Discovery() {
   });
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16">
+    <div className="relative flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16 w-full max-w-7xl mx-auto">
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-100 dark:border-slate-800/80 mb-8 justify-center w-full max-w-sm md:max-w-4xl mx-auto">
         <button
@@ -202,26 +202,26 @@ export default function Discovery() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap gap-4 mb-8 items-center justify-center w-full max-w-sm md:max-w-4xl mx-auto p-4 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200/40 dark:border-slate-800/50 shadow-sm">
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cycle:</label>
+      <div className="md:absolute md:top-8 md:right-8 flex flex-row flex-wrap gap-2.5 items-center justify-center p-2 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-slate-200/40 dark:border-slate-800/50 shadow-sm text-xs mb-8 md:mb-0 z-40">
+        <div className="flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Cycle:</label>
           <select
             value={cycleFilter}
             onChange={(e) => setCycleFilter(e.target.value)}
-            className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
           >
             <option value="all">All Cycles</option>
-            <option value="P">Physics (P-Cycle)</option>
-            <option value="C">Chemistry (C-Cycle)</option>
+            <option value="P">Physics</option>
+            <option value="C">Chemistry</option>
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Branch:</label>
+        <div className="flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Branch:</label>
           <select
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
-            className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
           >
             <option value="all">All Branches</option>
             {uniqueBranches.map(br => (
@@ -236,9 +236,9 @@ export default function Discovery() {
               setCycleFilter('all');
               setBranchFilter('all');
             }}
-            className="px-3 py-1.5 text-xs font-bold text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer bg-transparent border-none outline-none"
+            className="px-2 py-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer bg-transparent border-none outline-none"
           >
-            Clear Filters
+            Clear
           </button>
         )}
       </div>

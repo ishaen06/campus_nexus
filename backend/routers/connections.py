@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 
 from database_mongo import get_mongo_db, get_next_sequence_value, MongoUser
-from schemas import ConnectionResponse, ConnectionBase
+from schemas import ConnectionResponse, ConnectionBase, MentorChatRequest
 from routers.users import get_current_user
 from ai_service import generate_icebreaker
 
@@ -91,6 +91,41 @@ def init_admin_chat(conn_data: ConnectionBase, current_user = Depends(get_curren
         "id": new_conn_id,
         "sender_id": current_user["id"],
         "receiver_id": conn_data.receiver_id,
+        "status": "ACCEPTED",
+        "created_at": datetime.utcnow()
+    }
+    db.connections.insert_one(new_conn)
+    new_conn.pop("_id", None)
+    return new_conn
+
+@router.post("/mentor-chat", response_model=ConnectionResponse)
+def init_mentor_chat(conn_data: MentorChatRequest, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    if conn_data.email == current_user["email"]:
+        raise HTTPException(status_code=400, detail="Cannot connect with yourself")
+        
+    mentor = db.users.find_one({"email": conn_data.email})
+    if not mentor:
+        raise HTTPException(status_code=404, detail="Mentor not registered on the platform")
+        
+    existing_conn = db.connections.find_one({
+        "$or": [
+            {"sender_id": current_user["id"], "receiver_id": mentor["id"]},
+            {"sender_id": mentor["id"], "receiver_id": current_user["id"]}
+        ]
+    })
+    
+    if existing_conn:
+        if existing_conn["status"] != "ACCEPTED":
+            db.connections.update_one({"id": existing_conn["id"]}, {"$set": {"status": "ACCEPTED"}})
+        updated_conn = db.connections.find_one({"id": existing_conn["id"]})
+        updated_conn.pop("_id", None)
+        return updated_conn
+        
+    new_conn_id = get_next_sequence_value("connections")
+    new_conn = {
+        "id": new_conn_id,
+        "sender_id": current_user["id"],
+        "receiver_id": mentor["id"],
         "status": "ACCEPTED",
         "created_at": datetime.utcnow()
     }

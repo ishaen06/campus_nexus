@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { FolderGit, Sparkles, X, UploadCloud, FileText } from 'lucide-react';
+import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface GroupItem {
@@ -90,6 +90,16 @@ export default function ProjectDashboard() {
       fetchData();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to request mentor approval');
+    }
+  };
+
+  const handleChatWithMentor = async (mentorEmail: string) => {
+    try {
+      const res = await api.post('/connections/mentor-chat', { email: mentorEmail });
+      const connectionId = res.data.connection_id || res.data.id;
+      navigate(`/chat/${connectionId}`);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Could not start chat with mentor');
     }
   };
 
@@ -324,6 +334,15 @@ export default function ProjectDashboard() {
                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 block truncate">{team.mentor_email}</span>
                           </div>
                         </div>
+                        {team.mentor_email && (
+                          <button
+                            type="button"
+                            onClick={() => handleChatWithMentor(team.mentor_email!)}
+                            className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition-all cursor-pointer uppercase tracking-wider shadow-sm hover:shadow"
+                          >
+                            <MessageSquare size={14} /> Chat with Mentor
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <form onSubmit={handleUpdateProjectDetails} className="space-y-4 text-left">
