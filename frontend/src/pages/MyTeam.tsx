@@ -90,8 +90,8 @@ export default function MyTeam() {
     }).filter(Boolean)];
     
     const size = allMembers.length;
-    if (size < 4 || size > 5) {
-      return { met: false, text: `Team must contain 4 to 5 members (currently has ${size})` };
+    if (size < 3 || size > 5) {
+      return { met: false, text: `Team must contain 3 to 5 members (currently has ${size})` };
     }
     
     let pCount = 0;
@@ -101,6 +101,10 @@ export default function MyTeam() {
       if (cycleUpper === 'P') pCount++;
       else if (cycleUpper === 'C') cCount++;
       else return { met: false, text: `Member '${m.full_name}' has not selected a cycle` };
+    }
+    
+    if (size === 3) {
+      return { met: true, text: "Informal Group criteria fulfilled! Ready to form." };
     }
     
     if (size === 4) {
@@ -184,8 +188,8 @@ export default function MyTeam() {
               const members = (team.members || []).filter((m: any) => !m.is_mentor);
               const pCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'P').length;
               const cCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'C').length;
-              const isSizeValid = members.length >= 4 && members.length <= 5;
-              const isBalanceValid = pCount >= 2 && cCount >= 2;
+              const isSizeValid = members.length >= 3 && members.length <= 5;
+              const isBalanceValid = members.length === 3 || (pCount >= 2 && cCount >= 2);
 
               return (
                 <div className="grid gap-6 md:grid-cols-3">
@@ -214,7 +218,7 @@ export default function MyTeam() {
                                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
                                 : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
                             }`}
-                            title={`Members count: 4 to 5 required (Currently has ${members.length})`}
+                            title={`Members count: 3 to 5 required (Currently has ${members.length})`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${isSizeValid ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                             <span>{members.length}/5 Members</span>
@@ -293,37 +297,7 @@ export default function MyTeam() {
                               </label>
                             </div>
 
-                            {/* Toggle for Allow Members to Leave */}
-                            {team.mentor_status === 'APPROVED' && (
-                              <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/10 rounded-xl border border-slate-100 dark:border-slate-800/60 transition-all hover:bg-slate-50 dark:hover:bg-slate-900/20">
-                                <div className="pr-4">
-                                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                    <span>🔓 Allow Members to Leave</span>
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5 leading-relaxed">
-                                    Let team members leave the group chat after mentor approval has locked it
-                                  </span>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                                  <input 
-                                    type="checkbox" 
-                                    checked={team.allow_member_leave || false} 
-                                    onChange={async (e) => {
-                                      try {
-                                        const res = await api.put(`/chat/groups/${team.id}/toggle-leave?allow=${e.target.checked}`);
-                                        const updated = groups.map(g => g.id === team.id ? { ...g, allow_member_leave: res.data.allow_member_leave } : g);
-                                        setGroups(updated);
-                                      } catch (err) {
-                                        console.error("Failed to toggle leave status:", err);
-                                        alert("Failed to update leaving permissions.");
-                                      }
-                                    }}
-                                    className="sr-only peer" 
-                                  />
-                                  <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2.5px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                                </label>
-                              </div>
-                            )}
+
                           </div>
                         </div>
                       )}
@@ -355,10 +329,10 @@ export default function MyTeam() {
                             Disband Team
                           </button>
                         ) : (
-                          team.mentor_status === 'APPROVED' && !team.allow_member_leave ? (
+                          team.mentor_status === 'APPROVED' ? (
                             <button
                               disabled
-                              title="Leaving the team is locked after mentor approval unless allowed by the admin"
+                              title="Leaving the team is locked after mentor approval"
                               className="px-3.5 py-2.5 rounded-xl text-[10px] font-semibold uppercase bg-slate-100 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700/20 cursor-not-allowed flex items-center gap-1.5 shrink-0"
                             >
                               <Lock size={12} /> Leave Locked

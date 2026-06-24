@@ -201,8 +201,8 @@ def get_messages(connection_id: int, current_user = Depends(get_current_user), d
 def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     student_users = [u for u in member_users if not u.get("is_mentor")]
     size = len(student_users)
-    if size < 4 or size > 5:
-        return False, f"Team must contain 4 to 5 members (currently has {size})"
+    if size < 3 or size > 5:
+        return False, f"Team must contain 3 to 5 members (currently has {size})"
     
     p_count = 0
     c_count = 0
@@ -495,9 +495,9 @@ async def leave_group_chat(group_id: int, leave_data: GroupLeaveRequest, current
     if group["created_by"] == current_user["id"]:
         raise HTTPException(status_code=400, detail="Team admin cannot leave the team. Use disband instead.")
         
-    # Block leaving after mentor approval unless explicitly allowed by the team admin
-    if group.get("mentor_status") == "APPROVED" and not group.get("allow_member_leave", False):
-        raise HTTPException(status_code=400, detail="Leaving the team is locked after mentor approval unless allowed by the admin.")
+    # Block leaving after mentor approval
+    if group.get("mentor_status") == "APPROVED":
+        raise HTTPException(status_code=400, detail="Leaving the team is locked after mentor approval.")
         
     membership = db.group_members.find_one({
         "group_id": group_id, 
@@ -768,8 +768,8 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
     c_count = len([m for m in students if (m.get("cycle") or '').upper() == 'C'])
     size = len(students)
     
-    if size < 4 or size > 5:
-        raise HTTPException(status_code=400, detail=f"Cannot submit. Team must contain 4 to 5 members (currently has {size})")
+    if size < 3 or size > 5:
+        raise HTTPException(status_code=400, detail=f"Cannot submit. Team must contain 3 to 5 members (currently has {size})")
     elif size == 4 and (p_count != 2 or c_count != 2):
         raise HTTPException(status_code=400, detail=f"Cannot submit. Cycle balance failed (Found {p_count} P, {c_count} C)")
     elif size == 5 and not ((p_count == 3 and c_count == 2) or (p_count == 2 and c_count == 3)):

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api, { getWsURL } from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, ArrowLeft, AlertTriangle, Users, Settings, X, Sparkles, UserMinus, UserPlus, Check } from 'lucide-react';
+import { Send, ArrowLeft, AlertTriangle, Users, Settings, X, Sparkles, UserMinus, UserPlus, Check, Lock } from 'lucide-react';
 import Avatar from '../components/Avatar';
 
 interface GroupMessage {
@@ -685,22 +685,32 @@ export default function GroupChat() {
                       Disband Team
                     </button>
                   ) : (
-                    <button
-                      onClick={async () => {
-                        const reason = prompt("Enter a reason for leaving the team (optional):");
-                        if (reason === null) return; // cancelled
-                        try {
-                          await api.post(`/chat/groups/${groupId}/leave`, { reason });
-                          setShowSettings(false);
-                          navigate('/connections');
-                        } catch (err: any) {
-                          alert(err.response?.data?.detail || "Failed to leave team.");
-                        }
-                      }}
-                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
-                    >
-                      Leave Team
-                    </button>
+                    groupDetails?.mentor_status === 'APPROVED' ? (
+                      <button
+                        disabled
+                        title="Leaving the team is locked after mentor approval"
+                        className="w-full bg-slate-100 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700/20 font-bold text-xs py-3 rounded-xl cursor-not-allowed text-center uppercase tracking-wider flex items-center justify-center gap-1.5"
+                      >
+                        <Lock size={12} /> Leave Locked
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const reason = prompt("Enter a reason for leaving the team (optional):");
+                          if (reason === null) return; // cancelled
+                          try {
+                            await api.post(`/chat/groups/${groupId}/leave`, { reason });
+                            setShowSettings(false);
+                            navigate('/connections');
+                          } catch (err: any) {
+                            alert(err.response?.data?.detail || "Failed to leave team.");
+                          }
+                        }}
+                        className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
+                      >
+                        Leave Team
+                      </button>
+                    )
                   )}
                 </div>
               )}
