@@ -253,6 +253,10 @@ def build_group_response(group: dict, db) -> dict:
         "allow_member_leave": bool(group.get("allow_member_leave", False))
     }
 
+# Helper to populate group members for GroupChatResponse
+def populate_group_response(group: dict, db) -> dict:
+    return build_group_response(group, db)
+
 @router.post("/groups", response_model=GroupChatResponse)
 def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     members_to_add = list(set(group_data.member_ids + [current_user["id"]]))
@@ -327,6 +331,13 @@ def get_public_group_chats(db = Depends(get_mongo_db)):
         if len(resp["member_ids"]) < 5:
             results.append(resp)
     return results
+
+@router.get("/groups/mentor/teams", response_model=List[GroupChatResponse])
+def get_mentor_teams(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    if not current_user.get("is_mentor", False):
+        raise HTTPException(status_code=403, detail="Only mentors can access this endpoint")
+    groups = list(db.group_chats.find({"mentor_email": {"$regex": f"^{current_user['email']}$", "$options": "i"}}))
+    return [populate_group_response(g, db) for g in groups]
 
 @router.get("/groups/{group_id}", response_model=GroupChatResponse)
 def get_group_details(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -544,10 +555,6 @@ async def disband_group_chat(group_id: int, current_user = Depends(get_current_u
     db.group_chats.delete_one({"id": group_id})
     
     return {"message": "Team disbanded successfully"}
-
-# Helper to populate group members for GroupChatResponse
-def populate_group_response(group: dict, db) -> dict:
-    return build_group_response(group, db)
 
 @router.put("/groups/{group_id}/toggle-leave", response_model=GroupChatResponse)
 def toggle_group_leave(group_id: int, allow: bool = Query(...), current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -1029,13 +1036,6 @@ def delete_project_file(group_id: int, file_id: str, background_tasks: Backgroun
     )
     
     return current_files
-
-@router.get("/groups/mentor/teams", response_model=List[GroupChatResponse])
-def get_mentor_teams(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    if not current_user.get("is_mentor", False):
-        raise HTTPException(status_code=403, detail="Only mentors can access this endpoint")
-    groups = list(db.group_chats.find({"mentor_email": {"$regex": f"^{current_user['email']}$", "$options": "i"}}))
-    return [populate_group_response(g, db) for g in groups]
 
 @router.post("/groups/{group_id}/mentor-action", response_model=GroupChatResponse)
 def mentor_action(group_id: int, payload: MentorActionRequest, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):

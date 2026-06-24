@@ -28,7 +28,7 @@ def send_email_via_brevo(to_email: str, subject: str, body_text: str, html_body:
         print("[BREVO] WARNING: BREVO_API_KEY not set.")
         return False
 
-    sender_email = os.getenv("BREVO_SENDER_EMAIL", "nexus2026.otp@gmail.com")
+    sender_email = os.getenv("BREVO_SENDER_EMAIL", "ishaen06@gmail.com")
     sender_name  = os.getenv("BREVO_SENDER_NAME", "Campus Nexus")
 
     key_preview = api_key[:8] + "..." if len(api_key) > 8 else "***"
@@ -73,20 +73,6 @@ def send_email_via_brevo(to_email: str, subject: str, body_text: str, html_body:
         print(f"[BREVO] ERROR: {type(e).__name__}: {e}")
         return False
 
-
-def generate_otp() -> str:
-    return str(random.randint(100000, 999999))
-
-def load_env():
-    env_path = os.path.join(os.path.dirname(__file__), ".env")
-    if os.path.exists(env_path):
-        with open(env_path, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, val = line.split("=", 1)
-                    val = val.strip().strip("'\"")
-                    os.environ[key.strip()] = val
 
 def get_otp_html_template(otp: str) -> str:
     return f"""<!DOCTYPE html>
