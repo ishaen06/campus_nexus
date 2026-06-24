@@ -454,6 +454,12 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
   // Only allow top card to be dragged
   const isTop = index === 0;
 
+  useEffect(() => {
+    if (!isTop) {
+      x.set(0);
+    }
+  }, [isTop, x]);
+
   return (
     <motion.div
       className="absolute w-full h-[550px] origin-bottom"
