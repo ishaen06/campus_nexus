@@ -41,6 +41,34 @@ interface GroupItem {
   cycle?: string;
 }
 
+const BRANCH_OPTIONS = [
+  { value: 'ASE', code: 'AS', label: 'Aerospace Eng (AS)' },
+  { value: 'AI_ML', code: 'AI & ML', label: 'Artificial Intelligence (AI & ML)' },
+  { value: 'BT', code: 'BT', label: 'Biotechnology (BT)' },
+  { value: 'CH', code: 'CH', label: 'Chemical Eng (CH)' },
+  { value: 'CV', code: 'CV', label: 'Civil Eng (CV)' },
+  { value: 'CSE', code: 'CSE', label: 'Computer Science (CSE)' },
+  { value: 'CSE_CY', code: 'CSE-CY', label: 'Cyber Security (CSE-CY)' },
+  { value: 'CSE_DS', code: 'CSE-DS', label: 'Data Science (CSE-DS)' },
+  { value: 'EEE', code: 'EEE', label: 'Electrical & Electronics (EEE)' },
+  { value: 'ECE', code: 'ECE', label: 'Electronics & Comm (ECE)' },
+  { value: 'ETE', code: 'ETE', label: 'Electronics & Telecom (ETE)' },
+  { value: 'IEM', code: 'IEM', label: 'Industrial Eng & Mgmt (IEM)' },
+  { value: 'ME', code: 'ME', label: 'Mechanical Eng (ME)' }
+];
+
+const matchBranch = (userBranch: string | null | undefined, filterVal: string) => {
+  if (!userBranch || filterVal === 'all') return true;
+  const uBranch = userBranch.toUpperCase().trim();
+  const option = BRANCH_OPTIONS.find(o => o.value === filterVal);
+  if (!option) return uBranch === filterVal.toUpperCase().trim();
+  
+  return uBranch === option.value.toUpperCase() || 
+         uBranch === option.code.toUpperCase() ||
+         uBranch.includes(option.code.toUpperCase()) ||
+         uBranch.includes(option.value.toUpperCase());
+};
+
 export default function Discovery() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,20 +90,7 @@ export default function Discovery() {
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [subTopicFilter, setSubTopicFilter] = useState<string>('all');
 
-  // Dynamically extract unique branches from users and teams
-  const getUniqueBranches = () => {
-    const branches = new Set<string>();
-    users.forEach(u => {
-      if (u.branch) branches.add(u.branch.trim().toUpperCase());
-    });
-    publicTeams.forEach(t => {
-      (t.members || []).forEach((m: any) => {
-        if (m.branch) branches.add(m.branch.trim().toUpperCase());
-      });
-    });
-    return Array.from(branches).sort();
-  };
-  const uniqueBranches = getUniqueBranches();
+  // Static branch options used instead of dynamic extraction
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -168,8 +183,7 @@ export default function Discovery() {
       if (uCycle !== cycleFilter.toUpperCase()) return false;
     }
     if (branchFilter !== 'all') {
-      const uBranch = (user.branch || '').toUpperCase().trim();
-      if (uBranch !== branchFilter.toUpperCase().trim()) return false;
+      if (!matchBranch(user.branch, branchFilter)) return false;
     }
     if (subTopicFilter !== 'all') {
       const matchesInterest = (user.interests || []).some((i: string) => i.toLowerCase().includes(subTopicFilter.toLowerCase()));
@@ -231,11 +245,11 @@ export default function Discovery() {
           <select
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
-            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+            className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer max-w-[150px] truncate"
           >
             <option value="all">All Branches</option>
-            {uniqueBranches.map(br => (
-              <option key={br} value={br}>{br}</option>
+            {BRANCH_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </div>
@@ -348,7 +362,7 @@ export default function Discovery() {
                 
                 // Branch filter
                 if (branchFilter !== 'all') {
-                  const hasBranchMember = (team.members || []).some((m: any) => (m.branch || '').toUpperCase().trim() === branchFilter.toUpperCase().trim());
+                  const hasBranchMember = (team.members || []).some((m: any) => matchBranch(m.branch, branchFilter));
                   if (!hasBranchMember) return false;
                 }
 
