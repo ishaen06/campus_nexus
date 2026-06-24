@@ -33,13 +33,17 @@ export default function Register() {
   useEffect(() => {
     const initializeGoogle = () => {
       if (window.google && !showOTP) {
+        const btnContainer = document.getElementById("google-signup-btn");
+        const parentWidth = btnContainer ? btnContainer.clientWidth : 368;
+        const clampedWidth = Math.max(200, Math.min(400, parentWidth));
+
         window.google.accounts.id.initialize({
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "917861196656-ir7d9pgojdukvfi8i5lufu3fdia1ljdj.apps.googleusercontent.com",
           callback: handleGoogleCredentialResponse,
         });
         window.google.accounts.id.renderButton(
-          document.getElementById("google-signup-btn"),
-          { theme: "outline", size: "large", width: "100%", shape: "pill" }
+          btnContainer,
+          { theme: "outline", size: "large", width: clampedWidth, shape: "rectangular" }
         );
       }
     };
