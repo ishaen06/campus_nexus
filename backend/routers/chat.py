@@ -238,6 +238,7 @@ def build_group_response(group: dict, db) -> dict:
         "created_at": group.get("created_at"),
         "is_public": bool(group.get("is_public", False)),
         "project_topic": group.get("project_topic"),
+        "project_sub_topic": group.get("project_sub_topic"),
         "member_ids": member_ids,
         "members": member_users,
         "criteria_met": criteria_met,
@@ -291,6 +292,7 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
         "created_by": current_user["id"],
         "is_public": group_data.is_public,
         "project_topic": group_data.project_topic,
+        "project_sub_topic": group_data.project_sub_topic,
         "created_at": datetime.utcnow(),
         "mentor_status": "NOT_SUBMITTED",
         "phase1_marks": 0,
@@ -380,6 +382,8 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
     # Update project topic if provided
     if group_data.project_topic is not None:
         update_fields["project_topic"] = group_data.project_topic
+    if group_data.project_sub_topic is not None:
+        update_fields["project_sub_topic"] = group_data.project_sub_topic
         
     # Update members if provided
     if group_data.member_ids is not None:
@@ -621,7 +625,7 @@ def sync_approved_team_to_csv(group: dict, db):
     os.makedirs(file_dir, exist_ok=True)
     
     headers = [
-        "Team ID", "Team Name", "Project Topic", "Mentor Name", "Mentor Email", "Approved At",
+        "Team ID", "Team Name", "Project Topic", "Project Sub-Topic", "Mentor Name", "Mentor Email", "Approved At",
         "Member 1 Name", "Member 1 Email", "Member 1 USN", "Member 1 Cycle",
         "Member 2 Name", "Member 2 Email", "Member 2 USN", "Member 2 Cycle",
         "Member 3 Name", "Member 3 Email", "Member 3 USN", "Member 3 Cycle",
@@ -645,7 +649,7 @@ def sync_approved_team_to_csv(group: dict, db):
             
     approved_at_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     row_data = [
-        str(group["id"]), group["name"], group.get("project_topic") or "", 
+        str(group["id"]), group["name"], group.get("project_topic") or "", group.get("project_sub_topic") or "",
         group.get("mentor_name") or "", group.get("mentor_email") or "", approved_at_str
     ] + member_cols
     
@@ -690,6 +694,8 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
     # Update fields
     if details.project_topic is not None:
         update_fields["project_topic"] = details.project_topic
+    if details.project_sub_topic is not None:
+        update_fields["project_sub_topic"] = details.project_sub_topic
     if details.mentor_name is not None:
         update_fields["mentor_name"] = details.mentor_name
     if details.mentor_email is not None:
@@ -736,8 +742,8 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
     if not is_member:
         raise HTTPException(status_code=403, detail="You are not a member of this team")
         
-    if not group.get("project_topic") or not group.get("mentor_name") or not group.get("mentor_email"):
-        raise HTTPException(status_code=400, detail="Project topic, mentor name, and mentor email must be provided first.")
+    if not group.get("project_topic") or not group.get("project_sub_topic") or not group.get("mentor_name") or not group.get("mentor_email"):
+        raise HTTPException(status_code=400, detail="Project topic, project sub-topic, mentor name, and mentor email must be provided first.")
         
     # Check 25-team limit for the mentor before submitting
     active_count = db.group_chats.count_documents({
@@ -790,6 +796,7 @@ A student group has requested your approval for their engineering project team.
 Team Details:
 - Team Name: {group['name']}
 - Project Topic: {group.get('project_topic')}
+- Project Sub-Topic: {group.get('project_sub_topic')}
 
 Team Members:
 {members_list_str}
@@ -858,7 +865,7 @@ def mentor_approve_team(group_id: int, token: str, db = Depends(get_mongo_db)):
         <body>
             <div class="card">
                 <h1>✓ Approval Confirmed!</h1>
-                <p>You have approved the team <strong>"{group['name']}"</strong> with project topic <strong>"{group.get('project_topic')}"</strong>.</p>
+                <p>You have approved the team <strong>"{group['name']}"</strong> with project topic <strong>"{group.get('project_topic')}"</strong> ({group.get('project_sub_topic') or 'No Sub-topic'}).</p>
                 <p>The approved team data has been successfully compiled and sent to the teachers' database.</p>
             </div>
         </body>

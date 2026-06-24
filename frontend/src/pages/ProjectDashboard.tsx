@@ -15,6 +15,7 @@ interface GroupItem {
   criteria_met: boolean;
   validation_error?: string | null;
   project_topic?: string | null;
+  project_sub_topic?: string | null;
   mentor_name?: string | null;
   mentor_email?: string | null;
   mentor_status?: string;
@@ -31,6 +32,7 @@ export default function ProjectDashboard() {
 
   // Project Dashboard States
   const [topicInput, setTopicInput] = useState('');
+  const [subTopicInput, setSubTopicInput] = useState('');
   const [mentorNameInput, setMentorNameInput] = useState('');
   const [mentorEmailInput, setMentorEmailInput] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -60,6 +62,7 @@ export default function ProjectDashboard() {
     if (groups.length > 0) {
       const team = groups[0];
       setTopicInput(team.project_topic || '');
+      setSubTopicInput(team.project_sub_topic || '');
       setMentorNameInput(team.mentor_name || '');
       setMentorEmailInput(team.mentor_email || '');
     }
@@ -70,6 +73,7 @@ export default function ProjectDashboard() {
     try {
       const res = await api.put(`/chat/groups/${groups[0].id}/project-details`, {
         project_topic: topicInput,
+        project_sub_topic: subTopicInput,
         mentor_name: mentorNameInput,
         mentor_email: mentorEmailInput
       });
@@ -326,6 +330,10 @@ export default function ProjectDashboard() {
                             <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block capitalize">{team.project_topic}</span>
                           </div>
                           <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                            <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Project Sub-Topic</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block capitalize">{team.project_sub_topic || 'Not Assigned'}</span>
+                          </div>
+                          <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
                             <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Assigned Mentor</span>
                             <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block">{team.mentor_name}</span>
                           </div>
@@ -357,6 +365,26 @@ export default function ProjectDashboard() {
                             value={topicInput}
                             onChange={e => setTopicInput(e.target.value)}
                           />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Project Sub-Topic</label>
+                          <select
+                            required
+                            disabled={team.mentor_status === 'APPROVED'}
+                            className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75"
+                            value={subTopicInput}
+                            onChange={e => setSubTopicInput(e.target.value)}
+                          >
+                            <option value="" disabled>-- Select a Sub-Topic --</option>
+                            <option value="Agriculture, Livestock & Rural Development">Agriculture, Livestock & Rural Development</option>
+                            <option value="Education, Skilling & Student-Centric Solutions">Education, Skilling & Student-Centric Solutions</option>
+                            <option value="Health, Wellness & Traditional Medicine">Health, Wellness & Traditional Medicine</option>
+                            <option value="Urban Development, Mobility & Smart Cities">Urban Development, Mobility & Smart Cities</option>
+                            <option value="Sustainability & Environment">Sustainability & Environment</option>
+                            <option value="Emerging Technology, Innovation & Industry 4.0">Emerging Technology, Innovation & Industry 4.0</option>
+                            <option value="Ocean, Marine & Aerospace Technologies">Ocean, Marine & Aerospace Technologies</option>
+                          </select>
                         </div>
 
                         <div>

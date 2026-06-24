@@ -126,12 +126,14 @@ class GroupChatCreate(BaseModel):
     member_ids: List[int]
     is_public: Optional[bool] = False
     project_topic: Optional[str] = None
+    project_sub_topic: Optional[str] = None
 
 class GroupChatUpdate(BaseModel):
     name: Optional[str] = None
     member_ids: Optional[List[int]] = None
     is_public: Optional[bool] = None
     project_topic: Optional[str] = None
+    project_sub_topic: Optional[str] = None
     mentor_name: Optional[str] = None
     mentor_email: Optional[str] = None
     allow_member_leave: Optional[bool] = None
@@ -144,6 +146,7 @@ class GroupChatResponse(BaseModel):
     member_ids: List[int] = []
     is_public: bool = False
     project_topic: Optional[str] = None
+    project_sub_topic: Optional[str] = None
     members: Optional[List[UserResponse]] = []
     criteria_met: bool = False
     validation_error: Optional[str] = None
