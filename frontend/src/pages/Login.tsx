@@ -132,10 +132,6 @@ export default function Login() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-6 mt-4">
             <div className="relative flex items-center justify-center w-24 h-24 mb-6">
-              {/* Outer Orbit Rings */}
-              <div className="absolute inset-0 border-2 border-dashed border-indigo-500/20 rounded-full animate-[spin_8s_linear_infinite]"></div>
-              <div className="absolute inset-2 border border-dashed border-purple-500/30 rounded-full animate-[spin_12s_linear_infinite_reverse]"></div>
-              
               {/* Orbiting Google Colors Dots */}
               <div className="google-orbit-container">
                 <div className="google-orbit-dot"></div>
