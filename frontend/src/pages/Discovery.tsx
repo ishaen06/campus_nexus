@@ -111,25 +111,28 @@ export default function Discovery() {
   }, [location.state]);
 
   const handleSwipeRight = async (userId: number) => {
+    // Optimistic UI update
+    setUsers(prev => prev.filter(u => u.id !== userId));
     try {
       await api.post('/connections/', { receiver_id: userId });
-      setUsers(prev => prev.filter(u => u.id !== userId));
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to send request");
+      fetchUsers(); // Re-fetch on failure to sync state
     }
   };
 
   const handleSwipeLeft = async (userId: number) => {
+    // Optimistic UI update: Recycle the user to the bottom of the stack instantly
+    setUsers(prev => {
+      const index = prev.findIndex(u => u.id === userId);
+      if (index === -1) return prev;
+      const newUsers = [...prev];
+      const [swipedUser] = newUsers.splice(index, 1);
+      return [...newUsers, swipedUser];
+    });
+
     try {
       await api.post(`/users/${userId}/dismiss`);
-      // Recycle the user to the bottom of the stack
-      setUsers(prev => {
-        const index = prev.findIndex(u => u.id === userId);
-        if (index === -1) return prev;
-        const newUsers = [...prev];
-        const [swipedUser] = newUsers.splice(index, 1);
-        return [...newUsers, swipedUser];
-      });
     } catch (err: any) {
       console.error("Failed to dismiss user", err);
     }
@@ -279,7 +282,7 @@ export default function Discovery() {
               </motion.div>
             ) : (
               <AnimatePresence>
-                {filteredUsers.map((user, index) => {
+                {filteredUsers.slice(0, 3).map((user, index) => {
                   const sameBranch = me && me.branch === user.branch;
                   const sharedInterests = me && me.interests ? me.interests.filter((i: string) => user.interests?.includes(i)).length : 0;
                   const mutualBadge = sameBranch ? "Same Branch" : (sharedInterests > 0 ? `${sharedInterests} Shared Interests` : null);
