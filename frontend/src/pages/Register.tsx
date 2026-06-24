@@ -109,14 +109,25 @@ export default function Register() {
     
     setLoading(true);
     try {
-      await api.post('/auth/register', {
+      const res = await api.post('/auth/register', {
         ...form,
         is_mentor: isMentor,
         cycle: isMentor ? 'P' : form.cycle,
         department: isMentor ? form.department : null,
         post: isMentor ? form.post : null
       });
-      setShowOTP(true);
+      localStorage.setItem('token', res.data.access_token);
+      
+      const meRes = await api.get('/users/me');
+      if (meRes.data.is_mentor) {
+        navigate('/mentor-dashboard');
+      } else {
+        if (meRes.data.bio) {
+          navigate('/discovery');
+        } else {
+          navigate('/profile-setup');
+        }
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Registration failed. Try again.');
     } finally {

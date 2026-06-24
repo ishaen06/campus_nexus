@@ -278,14 +278,30 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     print(f"[EMAIL] BREVO_API_KEY  : {bool(os.getenv('BREVO_API_KEY'))}")
     print(f"[EMAIL] RESEND_API_KEY : {bool(os.getenv('RESEND_API_KEY'))}")
 
-    # 1. PRIMARY: Gmail SMTP (most reliable with App Password)
+    # 1. PRIMARY: Brevo HTTPS API (recommended, works on all clouds)
+    if os.getenv("BREVO_API_KEY"):
+        print("[EMAIL] Trying Brevo API (primary)...")
+        if send_email_via_brevo(to_email, subject, body, html_body):
+            print("[EMAIL] SUCCESS via Brevo.")
+            return
+        print("[EMAIL] Brevo failed, trying Resend...")
+
+    # 2. SECONDARY: Resend HTTPS API
+    if os.getenv("RESEND_API_KEY"):
+        print("[EMAIL] Trying Resend API (secondary)...")
+        if send_email_via_resend(to_email, subject, body, html_body):
+            print("[EMAIL] SUCCESS via Resend.")
+            return
+        print("[EMAIL] Resend also failed, trying SMTP...")
+
+    # 3. FALLBACK: Gmail SMTP (may be blocked on Render/Heroku outbound port 587)
     smtp_server   = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port     = os.getenv("SMTP_PORT", "587")
     smtp_username = os.getenv("SMTP_USERNAME", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
 
     if smtp_username and smtp_password:
-        print(f"[EMAIL] Trying Gmail SMTP (primary): {smtp_server}:{smtp_port}...")
+        print(f"[EMAIL] Trying Gmail SMTP (fallback): {smtp_server}:{smtp_port}...")
         try:
             port = int(smtp_port)
             if port == 465:
@@ -309,22 +325,6 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None):
             return
         except Exception as e:
             print(f"[EMAIL] Gmail SMTP ERROR: {type(e).__name__}: {e}")
-
-    # 2. FALLBACK: Brevo HTTPS API
-    if os.getenv("BREVO_API_KEY"):
-        print("[EMAIL] Trying Brevo API (fallback 1)...")
-        if send_email_via_brevo(to_email, subject, body, html_body):
-            print("[EMAIL] SUCCESS via Brevo.")
-            return
-        print("[EMAIL] Brevo failed, trying Resend...")
-
-    # 3. FALLBACK: Resend HTTPS API
-    if os.getenv("RESEND_API_KEY"):
-        print("[EMAIL] Trying Resend API (fallback 2)...")
-        if send_email_via_resend(to_email, subject, body, html_body):
-            print("[EMAIL] SUCCESS via Resend.")
-            return
-        print("[EMAIL] Resend also failed.")
 
     # 4. Last resort - print to logs
     print("=" * 50)

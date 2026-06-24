@@ -12,7 +12,7 @@ import os
 
 router = APIRouter()
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=Token)
 def register(user_in: UserCreate, background_tasks: BackgroundTasks, db = Depends(get_mongo_db)):
     email_lower = user_in.email.lower().strip()
     if user_in.is_mentor:
@@ -58,7 +58,7 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db = Depend
         "is_mentor": user_in.is_mentor,
         "department": user_in.department if user_in.is_mentor else None,
         "post": user_in.post if user_in.is_mentor else None,
-        "is_verified": False,
+        "is_verified": True,  # Directly verified upon registration
         "is_admin": False,
         "is_banned": False,
         "bio": "",
@@ -69,7 +69,7 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db = Depend
     
     db.users.insert_one(new_user)
     
-    # Generate and send OTP
+    # Generate and send OTP (still sent so they receive it in their inbox)
     otp = generate_otp()
     expires_at = datetime.utcnow() + timedelta(minutes=10)
     
@@ -90,10 +90,12 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db = Depend
         html_body=get_otp_html_template(otp)
     )
     
-    # Clean output dictionary for serialization
-    user_out = dict(new_user)
-    user_out.pop("_id", None)
-    return user_out
+    # Generate session access token to log the user in immediately
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": new_user["email"], "id": new_user["id"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/verify-otp", response_model=Token)
 def verify_otp(otp_data: OTPVerify, db = Depends(get_mongo_db)):
