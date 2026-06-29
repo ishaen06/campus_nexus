@@ -251,7 +251,17 @@ def build_group_response(group: dict, db) -> dict:
         "phase2_marks": group.get("phase2_marks") or 0,
         "phase3_marks": group.get("phase3_marks") or 0,
         "project_files": group.get("project_files") or [],
-        "allow_member_leave": bool(group.get("allow_member_leave", False))
+        "allow_member_leave": bool(group.get("allow_member_leave", False)),
+        "chief_mentor_name": group.get("chief_mentor_name") or "DR SUBRAMANYA KN",
+        "chief_mentor_designation": group.get("chief_mentor_designation") or "PRINCIPAL",
+        "chief_mentor_department": group.get("chief_mentor_department") or "",
+        "evaluators": group.get("evaluators") or ["", "", "", ""],
+        "phase1_detail_marks": group.get("phase1_detail_marks") or {"problem_definition": 0, "objectives": 0, "methodology": 0},
+        "phase2_detail_marks": group.get("phase2_detail_marks") or {"project_execution": 0, "tools_techniques": 0, "partial_results": 0},
+        "phase3_detail_marks": group.get("phase3_detail_marks") or {"prototype_demonstration": 0, "results_discussions": 0, "report_poster_ppt": 0, "outcome_work": 0},
+        "phase1_observations": group.get("phase1_observations") or "",
+        "phase2_observations": group.get("phase2_observations") or "",
+        "phase3_observations": group.get("phase3_observations") or ""
     }
 
 # Helper to populate group members for GroupChatResponse
@@ -1114,12 +1124,40 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
         raise HTTPException(status_code=403, detail="You are not the assigned mentor for this team")
         
     update_fields = {}
-    if marks.phase1_marks is not None:
+    if marks.phase1_detail_marks is not None:
+        update_fields["phase1_detail_marks"] = marks.phase1_detail_marks
+        update_fields["phase1_marks"] = sum(int(v or 0) for v in marks.phase1_detail_marks.values())
+    elif marks.phase1_marks is not None:
         update_fields["phase1_marks"] = marks.phase1_marks
-    if marks.phase2_marks is not None:
+        
+    if marks.phase2_detail_marks is not None:
+        update_fields["phase2_detail_marks"] = marks.phase2_detail_marks
+        update_fields["phase2_marks"] = sum(int(v or 0) for v in marks.phase2_detail_marks.values())
+    elif marks.phase2_marks is not None:
         update_fields["phase2_marks"] = marks.phase2_marks
-    if marks.phase3_marks is not None:
+        
+    if marks.phase3_detail_marks is not None:
+        update_fields["phase3_detail_marks"] = marks.phase3_detail_marks
+        update_fields["phase3_marks"] = sum(int(v or 0) for v in marks.phase3_detail_marks.values())
+    elif marks.phase3_marks is not None:
         update_fields["phase3_marks"] = marks.phase3_marks
+
+    if marks.phase1_observations is not None:
+        update_fields["phase1_observations"] = marks.phase1_observations
+    if marks.phase2_observations is not None:
+        update_fields["phase2_observations"] = marks.phase2_observations
+    if marks.phase3_observations is not None:
+        update_fields["phase3_observations"] = marks.phase3_observations
+
+    if marks.chief_mentor_name is not None:
+        update_fields["chief_mentor_name"] = marks.chief_mentor_name
+    if marks.chief_mentor_designation is not None:
+        update_fields["chief_mentor_designation"] = marks.chief_mentor_designation
+    if marks.chief_mentor_department is not None:
+        update_fields["chief_mentor_department"] = marks.chief_mentor_department
+
+    if marks.evaluators is not None:
+        update_fields["evaluators"] = marks.evaluators
         
     if update_fields:
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})

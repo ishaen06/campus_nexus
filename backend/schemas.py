@@ -160,6 +160,17 @@ class GroupChatResponse(BaseModel):
     project_files: Optional[List[dict]] = []
     allow_member_leave: bool = False
     
+    chief_mentor_name: Optional[str] = "DR SUBRAMANYA KN"
+    chief_mentor_designation: Optional[str] = "PRINCIPAL"
+    chief_mentor_department: Optional[str] = ""
+    evaluators: Optional[List[str]] = []
+    phase1_detail_marks: Optional[dict] = None
+    phase2_detail_marks: Optional[dict] = None
+    phase3_detail_marks: Optional[dict] = None
+    phase1_observations: Optional[str] = None
+    phase2_observations: Optional[str] = None
+    phase3_observations: Optional[str] = None
+    
     class Config:
         from_attributes = True
 
@@ -179,6 +190,16 @@ class GroupMarksUpdate(BaseModel):
     phase1_marks: Optional[int] = None
     phase2_marks: Optional[int] = None
     phase3_marks: Optional[int] = None
+    phase1_detail_marks: Optional[dict] = None
+    phase2_detail_marks: Optional[dict] = None
+    phase3_detail_marks: Optional[dict] = None
+    phase1_observations: Optional[str] = None
+    phase2_observations: Optional[str] = None
+    phase3_observations: Optional[str] = None
+    chief_mentor_name: Optional[str] = None
+    chief_mentor_designation: Optional[str] = None
+    chief_mentor_department: Optional[str] = None
+    evaluators: Optional[List[str]] = None
 
 class MentorActionRequest(BaseModel):
     action: str  # "APPROVE" or "REJECT"

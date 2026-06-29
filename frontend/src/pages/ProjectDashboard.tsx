@@ -3,6 +3,7 @@ import api from '../api';
 import { motion } from 'framer-motion';
 import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import EvaluationFormModal from '../components/EvaluationFormModal';
 
 interface GroupItem {
   id: number;
@@ -37,6 +38,7 @@ export default function ProjectDashboard() {
   const [mentorEmailInput, setMentorEmailInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [evalModalOpen, setEvalModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -283,6 +285,49 @@ export default function ProjectDashboard() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Academic Evaluation Sheets */}
+                  <div className="glass-panel p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Experiential Learning Records</span>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Academic Evaluation Sheets</h2>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Access the fillable RV College of Engineering Experiential Learning Observation Record and Phase Evaluation books.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex flex-col gap-3 p-4 bg-slate-50/50 dark:bg-slate-950/10 border border-slate-100 dark:border-slate-800/80 rounded-2xl">
+                      <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        <span>Total Score:</span>
+                        <span className="font-extrabold text-indigo-600 dark:text-indigo-400 text-sm">
+                          {(team.phase1_marks || 0) + (team.phase2_marks || 0) + (team.phase3_marks || 0)} / 140
+                        </span>
+                      </div>
+                      <div className="h-px bg-slate-200 dark:bg-slate-800" />
+                      <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <div>
+                          <span className="block text-slate-400 mb-0.5">Phase 1</span>
+                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{team.phase1_marks || 0} / 40</span>
+                        </div>
+                        <div>
+                          <span className="block text-slate-400 mb-0.5">Phase 2</span>
+                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{team.phase2_marks || 0} / 50</span>
+                        </div>
+                        <div>
+                          <span className="block text-slate-400 mb-0.5">Phase 3</span>
+                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{team.phase3_marks || 0} / 50</span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => setEvalModalOpen(true)}
+                        className="mt-2 w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/15 cursor-pointer uppercase tracking-wider"
+                      >
+                        <FileText size={15} />
+                        Open Evaluation Book (Fillable Form)
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Right Column: Mentor Confirmation - md:col-span-1 */}
@@ -448,6 +493,12 @@ export default function ProjectDashboard() {
                   </div>
                 </div>
               </div>
+              <EvaluationFormModal
+                isOpen={evalModalOpen}
+                onClose={() => setEvalModalOpen(false)}
+                team={team}
+                isMentor={false}
+              />
             </div>
           );
         })()

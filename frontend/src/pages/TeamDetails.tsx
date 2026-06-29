@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
+import EvaluationFormModal from '../components/EvaluationFormModal';
 
 interface FileItem {
   id: string;
@@ -52,11 +53,7 @@ export default function TeamDetails() {
   const [team, setTeam] = useState<TeamItem | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Marks inputs
-  const [phase1Input, setPhase1Input] = useState('0');
-  const [phase2Input, setPhase2Input] = useState('0');
-  const [phase3Input, setPhase3Input] = useState('0');
-  const [savingMarks, setSavingMarks] = useState(false);
+  const [evalModalOpen, setEvalModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -66,9 +63,6 @@ export default function TeamDetails() {
       const found = res.data.find((t: any) => t.id === Number(teamId) && t.mentor_status === 'APPROVED');
       if (found) {
         setTeam(found);
-        setPhase1Input(found.phase1_marks?.toString() || '0');
-        setPhase2Input(found.phase2_marks?.toString() || '0');
-        setPhase3Input(found.phase3_marks?.toString() || '0');
       } else {
         alert('Team not found or you are not authorized to view this team.');
         navigate('/my-teams');
@@ -85,36 +79,7 @@ export default function TeamDetails() {
     fetchTeamDetails();
   }, [teamId]);
 
-  const handleSaveMarks = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!team) return;
 
-    setSavingMarks(true);
-    try {
-      const p1 = parseInt(phase1Input) || 0;
-      const p2 = parseInt(phase2Input) || 0;
-      const p3 = parseInt(phase3Input) || 0;
-
-      if (p1 < 0 || p1 > 150 || p2 < 0 || p2 > 150 || p3 < 0 || p3 > 150) {
-        alert("Grades must be between 0 and 150.");
-        setSavingMarks(false);
-        return;
-      }
-
-      await api.put(`/chat/groups/${team.id}/marks`, {
-        phase1_marks: p1,
-        phase2_marks: p2,
-        phase3_marks: p3
-      });
-      
-      alert('Grades saved successfully!');
-      fetchTeamDetails();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to update grades');
-    } finally {
-      setSavingMarks(false);
-    }
-  };
 
 
   if (loading) {
@@ -269,61 +234,40 @@ export default function TeamDetails() {
           )}
         </div>
 
-        {/* Phase Grading Section */}
+        {/* Phase Grading & Evaluation Book Section */}
         <div className="space-y-4 border-t border-slate-100 dark:border-slate-800/40 pt-6">
-          <div className="flex items-center gap-2">
-            <Award size={16} className="text-indigo-600" />
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phase Grades Evaluation</h3>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Award size={16} className="text-indigo-600" />
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Evaluation Book & Grades</h3>
+            </div>
+            <div className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
+              Total: {(team.phase1_marks || 0) + (team.phase2_marks || 0) + (team.phase3_marks || 0)} / 140
+            </div>
           </div>
           
-          <form onSubmit={handleSaveMarks} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="flex flex-col text-left">
-                <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 1 Marks</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="150"
-                  className="w-full glass-input px-4 py-2.5 rounded-xl outline-none text-sm font-bold text-center text-indigo-600 dark:text-indigo-400"
-                  value={phase1Input}
-                  onChange={e => setPhase1Input(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col text-left">
-                <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 2 Marks</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="150"
-                  className="w-full glass-input px-4 py-2.5 rounded-xl outline-none text-sm font-bold text-center text-indigo-600 dark:text-indigo-400"
-                  value={phase2Input}
-                  onChange={e => setPhase2Input(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col text-left">
-                <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 3 Marks</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="150"
-                  className="w-full glass-input px-4 py-2.5 rounded-xl outline-none text-sm font-bold text-center text-indigo-600 dark:text-indigo-400"
-                  value={phase3Input}
-                  onChange={e => setPhase3Input(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                disabled={savingMarks}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-75 text-white font-semibold py-3 px-8 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer uppercase tracking-wider"
-              >
-                {savingMarks ? "Saving..." : "Save Grades"}
-              </button>
-            </div>
-          </form>
+          <div className="bg-slate-50/50 dark:bg-slate-950/10 p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl flex flex-col gap-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Open the interactive fillable form mapping the official RVCE Experiential Learning Observation Record. You can grade Phase 1, Phase 2, and Phase 3 sections, enter observations, and export a print-ready PDF book for both students and mentors.
+            </p>
+            
+            <button
+              onClick={() => setEvalModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/15 cursor-pointer uppercase tracking-wider"
+            >
+              <FileText size={15} />
+              Open / Edit Evaluation Sheets (Fillable Form)
+            </button>
+          </div>
         </div>
+
+        <EvaluationFormModal
+          isOpen={evalModalOpen}
+          onClose={() => setEvalModalOpen(false)}
+          team={team}
+          isMentor={true}
+          onSaveSuccess={fetchTeamDetails}
+        />
       </motion.div>
     </div>
   );
