@@ -1120,25 +1120,25 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
     group = db.group_chats.find_one({"id": group_id})
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    if group.get("mentor_email") != current_user["email"]:
+    if (group.get("mentor_email") or "").lower().strip() != (current_user.get("email") or "").lower().strip():
         raise HTTPException(status_code=403, detail="You are not the assigned mentor for this team")
         
     update_fields = {}
     if marks.phase1_detail_marks is not None:
         update_fields["phase1_detail_marks"] = marks.phase1_detail_marks
-        update_fields["phase1_marks"] = sum(int(v or 0) for v in marks.phase1_detail_marks.values())
+        update_fields["phase1_marks"] = sum(int(float(v or 0)) for v in marks.phase1_detail_marks.values())
     elif marks.phase1_marks is not None:
         update_fields["phase1_marks"] = marks.phase1_marks
         
     if marks.phase2_detail_marks is not None:
         update_fields["phase2_detail_marks"] = marks.phase2_detail_marks
-        update_fields["phase2_marks"] = sum(int(v or 0) for v in marks.phase2_detail_marks.values())
+        update_fields["phase2_marks"] = sum(int(float(v or 0)) for v in marks.phase2_detail_marks.values())
     elif marks.phase2_marks is not None:
         update_fields["phase2_marks"] = marks.phase2_marks
         
     if marks.phase3_detail_marks is not None:
         update_fields["phase3_detail_marks"] = marks.phase3_detail_marks
-        update_fields["phase3_marks"] = sum(int(v or 0) for v in marks.phase3_detail_marks.values())
+        update_fields["phase3_marks"] = sum(int(float(v or 0)) for v in marks.phase3_detail_marks.values())
     elif marks.phase3_marks is not None:
         update_fields["phase3_marks"] = marks.phase3_marks
 
