@@ -189,6 +189,9 @@ export default function EvaluationFormModal({
         flex-direction: column;
         justify-content: flex-start;
       }
+      .page:last-child {
+        page-break-after: avoid;
+      }
       .header-logo-container {
         display: flex;
         align-items: center;
@@ -400,16 +403,7 @@ export default function EvaluationFormModal({
       </div>
     `;
 
-    // ----------------------------------------------------
-    // PAGE 2: YEAR PAGE
-    // ----------------------------------------------------
-    htmlContent += `
-      <div class="page" style="justify-content: space-between;">
-        ${logoHeader}
-        <div class="page-divider-year">2025-2026</div>
-        <div></div>
-      </div>
-    `;
+
 
     // ----------------------------------------------------
     // PAGE 3: TEAM INFO & SIGNATURES
@@ -900,14 +894,7 @@ export default function EvaluationFormModal({
       `;
     });
 
-    // ----------------------------------------------------
-    // PAGE 7: FINAL PAGE DIVIDER
-    // ----------------------------------------------------
-    htmlContent += `
-      <div class="page" style="justify-content: flex-start;">
-        ${logoHeader}
-      </div>
-    `;
+
 
     htmlContent += `
         </body>
