@@ -384,10 +384,6 @@ export default function ProjectDashboard() {
                             <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block capitalize">{team.project_theme || 'Not Assigned'}</span>
                           </div>
                           <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                            <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Project Sub-Topic</span>
-                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block capitalize">{team.project_sub_topic || 'Not Assigned'}</span>
-                          </div>
-                          <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
                             <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Assigned Mentor</span>
                             <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block">{team.mentor_name}</span>
                           </div>
@@ -440,23 +436,7 @@ export default function ProjectDashboard() {
                           </select>
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Project Sub-Topic</label>
-                          <select
-                            required
-                            disabled={team.mentor_status === 'APPROVED' || !projectThemeInput}
-                            className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-50 bg-white dark:bg-slate-900"
-                            value={subTopicInput}
-                            onChange={e => setSubTopicInput(e.target.value)}
-                          >
-                            <option value="">
-                              {projectThemeInput ? "-- Select a Sub-Topic --" : "-- Select a Theme first --"}
-                            </option>
-                            {projectThemeInput && THEME_SUBTOPICS[projectThemeInput]?.map(sub => (
-                              <option key={sub} value={sub}>{sub}</option>
-                            ))}
-                          </select>
-                        </div>
+
 
                         <div>
                           <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mentor Name</label>

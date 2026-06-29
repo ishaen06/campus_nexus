@@ -388,11 +388,6 @@ export default function Discovery() {
                                       Theme: {team.project_theme}
                                     </span>
                                   )}
-                                  {team.project_sub_topic && (
-                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-tight font-medium" title={team.project_sub_topic}>
-                                      Sub-Topic: {team.project_sub_topic}
-                                    </span>
-                                  )}
                                 </div>
                                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border ${
                                   team.criteria_met 

@@ -362,9 +362,6 @@ export default function EvaluationFormModal({
           <div class="section-label">Theme</div>
           <div class="section-val-red">${(team.project_theme || "Not Specified").toUpperCase()}</div>
           
-          <div class="section-label">Sub-Topic</div>
-          <div class="section-val-red">${(team.project_sub_topic || "Not Specified").toUpperCase()}</div>
-          
           <div class="section-label">Team Name</div>
           <div class="section-val-red">${team.name.toUpperCase()}</div>
         </div>
@@ -427,10 +424,6 @@ export default function EvaluationFormModal({
           <tr>
             <td class="col-label-blue">Theme</td>
             <td style="font-weight: bold;">${team.project_theme || "N/A"}</td>
-          </tr>
-          <tr>
-            <td class="col-label-blue">Sub-Topic</td>
-            <td style="font-weight: bold;">${team.project_sub_topic || "N/A"}</td>
           </tr>
           <tr>
             <td class="col-label-blue">Team ID</td>
@@ -551,7 +544,7 @@ export default function EvaluationFormModal({
           <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
             <tr>
               <td style="width: 18%; font-weight: bold;">Theme:</td>
-              <td colspan="3">${team.project_theme || "N/A"} &nbsp;&bull;&nbsp; ${team.project_sub_topic || "N/A"}</td>
+              <td colspan="3">${team.project_theme || "N/A"}</td>
             </tr>
             <tr>
               <td style="width: 18%; font-weight: bold;">Team Name:</td>
@@ -667,7 +660,7 @@ export default function EvaluationFormModal({
           <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
             <tr>
               <td style="width: 18%; font-weight: bold;">Theme:</td>
-              <td colspan="3">${team.project_theme || "N/A"} &nbsp;&bull;&nbsp; ${team.project_sub_topic || "N/A"}</td>
+              <td colspan="3">${team.project_theme || "N/A"}</td>
             </tr>
             <tr>
               <td style="width: 18%; font-weight: bold;">Team Name:</td>
@@ -783,7 +776,7 @@ export default function EvaluationFormModal({
           <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
             <tr>
               <td style="width: 18%; font-weight: bold;">Theme:</td>
-              <td colspan="3">${team.project_theme || "N/A"} &nbsp;&bull;&nbsp; ${team.project_sub_topic || "N/A"}</td>
+              <td colspan="3">${team.project_theme || "N/A"}</td>
             </tr>
             <tr>
               <td style="width: 18%; font-weight: bold;">Team Name:</td>
@@ -990,10 +983,6 @@ export default function EvaluationFormModal({
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Theme</span>
                     <span className="font-bold text-slate-900 dark:text-white">{team.project_theme || 'No theme selected'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Sub-Topic</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{team.project_sub_topic || 'No sub-topic selected'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Faculty Mentor</span>

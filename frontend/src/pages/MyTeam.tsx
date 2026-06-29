@@ -313,14 +313,6 @@ export default function MyTeam() {
                             </span>
                           </div>
                         )}
-                        {team.project_sub_topic && (
-                          <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-slate-800/30">
-                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Sub-Topic</span>
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                              {team.project_sub_topic}
-                            </span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Admin Settings Panel */}
@@ -600,23 +592,7 @@ export default function MyTeam() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Sub-Topic</label>
-                  <select
-                    required
-                    disabled={!projectTheme}
-                    value={projectSubTopic}
-                    onChange={e => setProjectSubTopic(e.target.value)}
-                    className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold bg-white dark:bg-slate-900 disabled:opacity-50"
-                  >
-                    <option value="">
-                      {projectTheme ? "-- Select a Sub-Topic --" : "-- Select a Theme first --"}
-                    </option>
-                    {projectTheme && THEME_SUBTOPICS[projectTheme]?.map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
-                  </select>
-                </div>
+
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Members</label>
