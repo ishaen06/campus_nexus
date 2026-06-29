@@ -93,6 +93,8 @@ export default function TeamDetails() {
 
   if (!team) return null;
 
+  const studentMembers = (team.members || []).filter((m: any) => !m.is_mentor);
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 md:px-8 pb-24">
       {/* Back Button */}
@@ -139,10 +141,10 @@ export default function TeamDetails() {
         {/* Team Members List */}
         <div className="space-y-4">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <Users size={15} className="text-indigo-400" /> Team Members ({team.members.length})
+            <Users size={15} className="text-indigo-400" /> Team Members ({studentMembers.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
-            {team.members.map((member) => {
+            {studentMembers.map((member) => {
               const isAdmin = member.id === team.created_by;
               return (
                 <div key={member.id} className="py-4.5 flex gap-4 items-center border-b border-slate-100 dark:border-slate-800/40">
