@@ -870,7 +870,7 @@ export default function EvaluationFormModal({
         </div>
 
         {/* Form Body - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left no-scrollbar">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6 text-left">
           
           {/* Cover & General Metadata */}
           {activeTab === 'info' && (
