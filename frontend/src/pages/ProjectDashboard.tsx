@@ -524,6 +524,7 @@ export default function ProjectDashboard() {
                 onClose={() => setEvalModalOpen(false)}
                 team={team}
                 isMentor={false}
+                onSaveSuccess={fetchData}
               />
             </div>
           );

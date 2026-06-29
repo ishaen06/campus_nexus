@@ -97,9 +97,12 @@ export default function EvaluationFormModal({
 
       setStudentEvals(evalsMap);
       
-      // Default select the first student
+      // Default select the first student if current selection is not valid anymore
       if (studs.length > 0) {
-        setSelectedStudentId(studs[0].id);
+        setSelectedStudentId(prevId => {
+          const stillExists = studs.some((s: any) => s.id === prevId);
+          return (prevId && stillExists) ? prevId : studs[0].id;
+        });
       }
     }
   }, [team, isOpen]);
@@ -128,7 +131,7 @@ export default function EvaluationFormModal({
       setP3Outcome(p3Detail.outcome_work ?? 0);
       setP3Obs(studEval.phase3_observations || '');
     }
-  }, [selectedStudentId]);
+  }, [selectedStudentId, studentEvals]);
 
   if (!isOpen || !team) return null;
 
