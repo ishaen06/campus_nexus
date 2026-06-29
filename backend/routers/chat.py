@@ -239,6 +239,7 @@ def build_group_response(group: dict, db) -> dict:
         "is_public": bool(group.get("is_public", False)),
         "project_topic": group.get("project_topic"),
         "project_sub_topic": group.get("project_sub_topic"),
+        "project_theme": group.get("project_theme"),
         "member_ids": member_ids,
         "members": member_users,
         "criteria_met": criteria_met,
@@ -261,7 +262,8 @@ def build_group_response(group: dict, db) -> dict:
         "phase3_detail_marks": group.get("phase3_detail_marks") or {"prototype_demonstration": 0, "results_discussions": 0, "report_poster_ppt": 0, "outcome_work": 0},
         "phase1_observations": group.get("phase1_observations") or "",
         "phase2_observations": group.get("phase2_observations") or "",
-        "phase3_observations": group.get("phase3_observations") or ""
+        "phase3_observations": group.get("phase3_observations") or "",
+        "student_evaluations": group.get("student_evaluations") or {}
     }
 
 # Helper to populate group members for GroupChatResponse
@@ -303,6 +305,7 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
         "is_public": group_data.is_public,
         "project_topic": group_data.project_topic,
         "project_sub_topic": group_data.project_sub_topic,
+        "project_theme": group_data.project_theme,
         "created_at": datetime.utcnow(),
         "mentor_status": "NOT_SUBMITTED",
         "phase1_marks": 0,
@@ -394,6 +397,8 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
         update_fields["project_topic"] = group_data.project_topic
     if group_data.project_sub_topic is not None:
         update_fields["project_sub_topic"] = group_data.project_sub_topic
+    if group_data.project_theme is not None:
+        update_fields["project_theme"] = group_data.project_theme
         
     # Update members if provided
     if group_data.member_ids is not None:
@@ -702,12 +707,28 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
     update_fields = {}
     
     # Update fields
+    primary_change = False
+    
     if details.project_topic is not None:
         update_fields["project_topic"] = details.project_topic
+        if details.project_topic != group.get("project_topic"):
+            primary_change = True
+            
     if details.project_sub_topic is not None:
         update_fields["project_sub_topic"] = details.project_sub_topic
+        if details.project_sub_topic != group.get("project_sub_topic"):
+            primary_change = True
+            
+    if details.project_theme is not None:
+        update_fields["project_theme"] = details.project_theme
+        if details.project_theme != group.get("project_theme"):
+            primary_change = True
+            
     if details.mentor_name is not None:
         update_fields["mentor_name"] = details.mentor_name
+        if details.mentor_name != group.get("mentor_name"):
+            primary_change = True
+            
     if details.mentor_email is not None:
         email_lower = details.mentor_email.lower().strip()
         if not email_lower.endswith("@gmail.com"):
@@ -715,6 +736,7 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
         
         # Only check the 25-team limit if assigning a NEW mentor
         if group.get("mentor_email") != email_lower:
+            primary_change = True
             active_count = db.group_chats.count_documents({
                 "mentor_email": email_lower,
                 "mentor_status": {"$in": ["PENDING", "APPROVED"]}
@@ -725,17 +747,28 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
                     detail="This mentor has already reached the maximum limit of 25 teams."
                 )
         update_fields["mentor_email"] = email_lower
+
+    if details.chief_mentor_name is not None:
+        update_fields["chief_mentor_name"] = details.chief_mentor_name
+    if details.chief_mentor_designation is not None:
+        update_fields["chief_mentor_designation"] = details.chief_mentor_designation
+    if details.chief_mentor_department is not None:
+        update_fields["chief_mentor_department"] = details.chief_mentor_department
+    if details.evaluators is not None:
+        update_fields["evaluators"] = details.evaluators
         
-    # Reset status if topic/mentor changes
-    update_fields["mentor_status"] = "NOT_SUBMITTED"
-    update_fields["mentor_token"] = None
+    if primary_change:
+        # Reset status if topic/mentor changes
+        update_fields["mentor_status"] = "NOT_SUBMITTED"
+        update_fields["mentor_token"] = None
+        
+        # Remove any mentor user from this group's members since status is reset to NOT_SUBMITTED
+        mentor_users = list(db.users.find({"is_mentor": True}))
+        mentor_ids = [m["id"] for m in mentor_users]
+        db.group_members.delete_many({"group_id": group_id, "user_id": {"$in": mentor_ids}})
     
-    # Remove any mentor user from this group's members since status is reset to NOT_SUBMITTED
-    mentor_users = list(db.users.find({"is_mentor": True}))
-    mentor_ids = [m["id"] for m in mentor_users]
-    db.group_members.delete_many({"group_id": group_id, "user_id": {"$in": mentor_ids}})
-    
-    db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
+    if update_fields:
+        db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
     
     updated_group = db.group_chats.find_one({"id": group_id})
     return build_group_response(updated_group, db)
@@ -1158,6 +1191,32 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
 
     if marks.evaluators is not None:
         update_fields["evaluators"] = marks.evaluators
+
+    if marks.student_evaluations is not None:
+        update_fields["student_evaluations"] = marks.student_evaluations
+        
+        # Calculate overall phase marks by taking the average of all students' total marks
+        p1_sums = []
+        p2_sums = []
+        p3_sums = []
+        for stud_id, eval_data in marks.student_evaluations.items():
+            if not eval_data:
+                continue
+            p1_det = eval_data.get("phase1_detail_marks") or {}
+            p1_sums.append(sum(int(float(v or 0)) for v in p1_det.values()))
+            
+            p2_det = eval_data.get("phase2_detail_marks") or {}
+            p2_sums.append(sum(int(float(v or 0)) for v in p2_det.values()))
+            
+            p3_det = eval_data.get("phase3_detail_marks") or {}
+            p3_sums.append(sum(int(float(v or 0)) for v in p3_det.values()))
+            
+        if p1_sums:
+            update_fields["phase1_marks"] = int(sum(p1_sums) / len(p1_sums))
+        if p2_sums:
+            update_fields["phase2_marks"] = int(sum(p2_sums) / len(p2_sums))
+        if p3_sums:
+            update_fields["phase3_marks"] = int(sum(p3_sums) / len(p3_sums))
         
     if update_fields:
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})

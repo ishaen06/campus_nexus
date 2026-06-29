@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Printer, Save, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Printer, Save, FileText, CheckCircle2, User } from 'lucide-react';
 import api from '../api';
 
 interface EvaluationFormModalProps {
@@ -21,31 +21,37 @@ export default function EvaluationFormModal({
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
-  // Form states
+  // Form states (Team-wide)
   const [chiefMentorName, setChiefMentorName] = useState('DR SUBRAMANYA KN');
   const [chiefMentorDesignation, setChiefMentorDesignation] = useState('PRINCIPAL');
   const [chiefMentorDepartment, setChiefMentorDepartment] = useState('');
   const [evaluators, setEvaluators] = useState<string[]>(['', '', '', '']);
 
-  // Phase 1 Breakdown (Max: 40)
+  // Student list
+  const studentsList = (team?.members || []).filter((m: any) => !m.is_mentor);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+
+  // Dictionary of student evaluations: { [studentId]: { phase1_detail_marks, phase1_observations, ... } }
+  const [studentEvals, setStudentEvals] = useState<Record<number, any>>({});
+
+  // Temporary editor states (bound to inputs for the selected student)
   const [p1Problem, setP1Problem] = useState(0);
   const [p1Objectives, setP1Objectives] = useState(0);
   const [p1Methodology, setP1Methodology] = useState(0);
   const [p1Obs, setP1Obs] = useState('');
 
-  // Phase 2 Breakdown (Max: 50)
   const [p2Execution, setP2Execution] = useState(0);
   const [p2Tools, setP2Tools] = useState(0);
   const [p2Results, setP2Results] = useState(0);
   const [p2Obs, setP2Obs] = useState('');
 
-  // Phase 3 Breakdown (Max: 50)
   const [p3Prototype, setP3Prototype] = useState(0);
   const [p3ResultsDisc, setP3ResultsDisc] = useState(0);
   const [p3ReportPpt, setP3ReportPpt] = useState(0);
   const [p3Outcome, setP3Outcome] = useState(0);
   const [p3Obs, setP3Obs] = useState('');
 
+  // 1. Initialize data when team changes
   useEffect(() => {
     if (team) {
       setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
@@ -53,65 +59,136 @@ export default function EvaluationFormModal({
       setChiefMentorDepartment(team.chief_mentor_department || '');
       setEvaluators(team.evaluators && team.evaluators.length ? [...team.evaluators] : ['', '', '', '']);
 
-      const p1Detail = team.phase1_detail_marks || {};
-      setP1Problem(p1Detail.problem_definition || 0);
-      setP1Objectives(p1Detail.objectives || 0);
-      setP1Methodology(p1Detail.methodology || 0);
-      setP1Obs(team.phase1_observations || '');
+      const studs = (team.members || []).filter((m: any) => !m.is_mentor);
+      const storedEvals = team.student_evaluations || {};
+      const evalsMap: Record<number, any> = {};
 
-      const p2Detail = team.phase2_detail_marks || {};
-      setP2Execution(p2Detail.project_execution || 0);
-      setP2Tools(p2Detail.tools_techniques || 0);
-      setP2Results(p2Detail.partial_results || 0);
-      setP2Obs(team.phase2_observations || '');
+      studs.forEach((stud: any) => {
+        const key = stud.id.toString();
+        // Fallback checks for string or integer keys
+        const studEval = storedEvals[key] || storedEvals[stud.id] || {};
+        
+        const p1Detail = studEval.phase1_detail_marks || {};
+        const p2Detail = studEval.phase2_detail_marks || {};
+        const p3Detail = studEval.phase3_detail_marks || {};
 
-      const p3Detail = team.phase3_detail_marks || {};
-      setP3Prototype(p3Detail.prototype_demonstration || 0);
-      setP3ResultsDisc(p3Detail.results_discussions || 0);
-      setP3ReportPpt(p3Detail.report_poster_ppt || 0);
-      setP3Outcome(p3Detail.outcome_work || 0);
-      setP3Obs(team.phase3_observations || '');
+        evalsMap[stud.id] = {
+          phase1_detail_marks: {
+            problem_definition: p1Detail.problem_definition ?? 0,
+            objectives: p1Detail.objectives ?? 0,
+            methodology: p1Detail.methodology ?? 0
+          },
+          phase1_observations: studEval.phase1_observations || '',
+          phase2_detail_marks: {
+            project_execution: p2Detail.project_execution ?? 0,
+            tools_techniques: p2Detail.tools_techniques ?? 0,
+            partial_results: p2Detail.partial_results ?? 0
+          },
+          phase2_observations: studEval.phase2_observations || '',
+          phase3_detail_marks: {
+            prototype_demonstration: p3Detail.prototype_demonstration ?? 0,
+            results_discussions: p3Detail.results_discussions ?? 0,
+            report_poster_ppt: p3Detail.report_poster_ppt ?? 0,
+            outcome_work: p3Detail.outcome_work ?? 0
+          },
+          phase3_observations: studEval.phase3_observations || ''
+        };
+      });
+
+      setStudentEvals(evalsMap);
+      
+      // Default select the first student
+      if (studs.length > 0) {
+        setSelectedStudentId(studs[0].id);
+      }
     }
   }, [team, isOpen]);
 
+  // 2. Load selected student's marks into the UI inputs when selection or map changes
+  useEffect(() => {
+    if (selectedStudentId && studentEvals[selectedStudentId]) {
+      const studEval = studentEvals[selectedStudentId];
+      
+      const p1Detail = studEval.phase1_detail_marks || {};
+      setP1Problem(p1Detail.problem_definition ?? 0);
+      setP1Objectives(p1Detail.objectives ?? 0);
+      setP1Methodology(p1Detail.methodology ?? 0);
+      setP1Obs(studEval.phase1_observations || '');
+
+      const p2Detail = studEval.phase2_detail_marks || {};
+      setP2Execution(p2Detail.project_execution ?? 0);
+      setP2Tools(p2Detail.tools_techniques ?? 0);
+      setP2Results(p2Detail.partial_results ?? 0);
+      setP2Obs(studEval.phase2_observations || '');
+
+      const p3Detail = studEval.phase3_detail_marks || {};
+      setP3Prototype(p3Detail.prototype_demonstration ?? 0);
+      setP3ResultsDisc(p3Detail.results_discussions ?? 0);
+      setP3ReportPpt(p3Detail.report_poster_ppt ?? 0);
+      setP3Outcome(p3Detail.outcome_work ?? 0);
+      setP3Obs(studEval.phase3_observations || '');
+    }
+  }, [selectedStudentId]);
+
   if (!isOpen || !team) return null;
 
+  // 3. Synchronize input changes back to the studentEvals dictionary
+  const updateStudentEvalField = (phase: 'phase1' | 'phase2' | 'phase3', field: string, value: any) => {
+    if (!selectedStudentId) return;
+
+    setStudentEvals(prev => {
+      const current = prev[selectedStudentId] ? { ...prev[selectedStudentId] } : {
+        phase1_detail_marks: { problem_definition: 0, objectives: 0, methodology: 0 },
+        phase1_observations: '',
+        phase2_detail_marks: { project_execution: 0, tools_techniques: 0, partial_results: 0 },
+        phase2_observations: '',
+        phase3_detail_marks: { prototype_demonstration: 0, results_discussions: 0, report_poster_ppt: 0, outcome_work: 0 },
+        phase3_observations: ''
+      };
+
+      if (field.endsWith('observations')) {
+        current[field] = value;
+      } else {
+        const detailKey = `${phase}_detail_marks`;
+        current[detailKey] = {
+          ...current[detailKey],
+          [field]: Number(value)
+        };
+      }
+
+      return {
+        ...prev,
+        [selectedStudentId]: current
+      };
+    });
+  };
+
   const handleSave = async () => {
-    if (!isMentor) return;
     setSaving(true);
     setSaveStatus(null);
     try {
-      await api.put(`/chat/groups/${team.id}/marks`, {
-        chief_mentor_name: chiefMentorName,
-        chief_mentor_designation: chiefMentorDesignation,
-        chief_mentor_department: chiefMentorDepartment,
-        evaluators: evaluators,
-        phase1_detail_marks: {
-          problem_definition: Number(p1Problem),
-          objectives: Number(p1Objectives),
-          methodology: Number(p1Methodology)
-        },
-        phase2_detail_marks: {
-          project_execution: Number(p2Execution),
-          tools_techniques: Number(p2Tools),
-          partial_results: Number(p2Results)
-        },
-        phase3_detail_marks: {
-          prototype_demonstration: Number(p3Prototype),
-          results_discussions: Number(p3ResultsDisc),
-          report_poster_ppt: Number(p3ReportPpt),
-          outcome_work: Number(p3Outcome)
-        },
-        phase1_observations: p1Obs,
-        phase2_observations: p2Obs,
-        phase3_observations: p3Obs
-      });
+      if (isMentor) {
+        await api.put(`/chat/groups/${team.id}/marks`, {
+          chief_mentor_name: chiefMentorName,
+          chief_mentor_designation: chiefMentorDesignation,
+          chief_mentor_department: chiefMentorDepartment,
+          evaluators: evaluators,
+          student_evaluations: studentEvals
+        });
+      } else {
+        await api.put(`/chat/groups/${team.id}/project-details`, {
+          chief_mentor_name: chiefMentorName,
+          chief_mentor_designation: chiefMentorDesignation,
+          chief_mentor_department: chiefMentorDepartment,
+          evaluators: evaluators
+        });
+      }
       setSaveStatus('success');
       if (onSaveSuccess) onSaveSuccess();
       setTimeout(() => setSaveStatus(null), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to save evaluation sheet data.');
+      alert(err.response?.data?.detail || 'Failed to save evaluation sheet data.');
     } finally {
       setSaving(false);
     }
@@ -120,8 +197,6 @@ export default function EvaluationFormModal({
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
-    const studentsList = (team.members || []).filter((m: any) => !m.is_mentor);
 
     // CSS Styling representing the exact printed report format
     const styles = `
@@ -136,19 +211,19 @@ export default function EvaluationFormModal({
         }
       }
       body {
-        font-family: 'Times New Roman', Times, serif, sans-serif;
+        font-family: 'Times New Roman', Times, serif;
         color: #000;
         margin: 0;
         padding: 0;
-        line-height: 1.5;
-        font-size: 13px;
+        line-height: 1.4;
+        font-size: 13.5px;
       }
       .page {
         width: 100%;
         box-sizing: border-box;
         page-break-after: always;
-        min-height: 277mm; /* Standard A4 height */
-        padding: 10px;
+        min-height: 262mm;
+        padding: 5px;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -157,101 +232,97 @@ export default function EvaluationFormModal({
       .header-logo-container {
         display: flex;
         align-items: center;
-        justify-content: center;
-        border-bottom: 2px solid #000;
-        padding-bottom: 12px;
-        margin-bottom: 30px;
-        position: relative;
+        border-bottom: 2px solid #1f4e78;
+        padding-bottom: 10px;
+        margin-bottom: 25px;
+        width: 100%;
       }
-      .logo-graphic {
-        width: 70px;
-        height: 70px;
-        margin-right: 15px;
-        border: 2px solid #000;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: Georgia, serif;
+      .header-title-text {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 25px;
         font-weight: bold;
-        font-size: 24px;
+        color: #1f4e78;
+        line-height: 1.1;
       }
-      .header-text {
+      .header-sub-text {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        font-weight: bold;
+        color: #595959;
+        margin-top: 3px;
+      }
+      .cover-title-box {
+        border: 2px solid #385723;
+        background-color: #e2f0d9 !important;
+        border-radius: 12px;
+        padding: 12px 20px;
         text-align: center;
+        margin: 25px auto;
+        width: 92%;
       }
-      .header-text h1 {
-        font-size: 22px;
-        margin: 0;
+      .cover-title {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 21px;
         font-weight: bold;
-        font-family: Georgia, serif;
+        color: #1f4e78;
+        margin: 0;
         letter-spacing: 0.5px;
       }
-      .header-text p {
-        font-size: 11px;
-        margin: 4px 0 0 0;
+      .section-label {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 14.5px;
         font-weight: bold;
-      }
-      .doc-title-box {
-        border: 2px solid #000;
-        padding: 15px;
         text-align: center;
-        background-color: #f4f9f4 !important;
-        margin: 40px 0;
-        border-radius: 8px;
-      }
-      .doc-title-box h2 {
-        font-size: 18px;
-        margin: 0;
-        font-family: Georgia, serif;
-        font-weight: bold;
-        letter-spacing: 1px;
-      }
-      .center-sub-title {
-        text-align: center;
-        font-size: 14px;
-        font-weight: bold;
-        margin-bottom: 30px;
-      }
-      .meta-label {
-        font-size: 12px;
-        font-weight: bold;
-        text-transform: uppercase;
-        color: #444;
+        margin-top: 18px;
         margin-bottom: 4px;
-        display: block;
       }
-      .meta-value {
-        font-size: 15px;
+      .section-val-red {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 18px;
         font-weight: bold;
-        color: #b91c1c; /* Crimson color like PDF */
-        margin-bottom: 20px;
+        color: #c00000;
         text-align: center;
+        margin-bottom: 15px;
+        line-height: 1.35;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
       }
       .data-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 25px;
+        margin-top: 20px;
       }
       .data-table th, .data-table td {
         border: 1px solid #000;
-        padding: 10px;
+        padding: 8px 10px;
         text-align: left;
         vertical-align: middle;
       }
       .data-table th {
         font-weight: bold;
-        background-color: #f3f4f6;
+        background-color: #f2f2f2;
       }
-      .col-label {
+      .col-label-red {
         font-weight: bold;
-        width: 30%;
+        width: 38%;
+        color: #c00000;
+      }
+      .col-label-blue {
+        font-weight: bold;
+        width: 32%;
+        color: #1f4e78;
+      }
+      .col-val-blue {
+        font-weight: bold;
+        color: #2f5597;
       }
       .signature-grid {
         display: flex;
         justify-content: space-between;
         margin-top: auto;
-        padding-top: 50px;
-        padding-bottom: 20px;
+        padding-top: 40px;
+        padding-bottom: 10px;
       }
       .signature-col {
         text-align: center;
@@ -261,25 +332,57 @@ export default function EvaluationFormModal({
       }
       .signature-line {
         border-top: 1px dotted #000;
-        margin-top: 40px;
+        margin-top: 30px;
         padding-top: 5px;
       }
       .evaluation-title {
         text-align: center;
-        font-size: 16px;
+        font-size: 19px;
         font-weight: bold;
-        margin-bottom: 20px;
-        font-family: Georgia, serif;
-        border-bottom: 1px solid #000;
-        padding-bottom: 8px;
+        margin-bottom: 5px;
+        font-family: 'Times New Roman', Times, serif;
+        color: #1f4e78;
+      }
+      .evaluation-subtitle {
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 18px;
+        color: #c00000;
       }
       .observations-box {
         border: 1px solid #000;
-        padding: 12px;
-        min-height: 120px;
-        margin-top: 20px;
+        padding: 10px;
+        min-height: 100px;
+        margin-top: 10px;
         font-style: italic;
+        font-weight: bold;
+        color: #2f5597;
       }
+    `;
+
+    const logoHeader = `
+      <div class="header-logo-container">
+        <svg viewBox="0 0 100 100" width="65" height="65" style="margin-right: 15px; shrink-0;">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#1f4e78" stroke-width="2.5" />
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#1f4e78" stroke-width="1.2" stroke-dasharray="2,2" />
+          <path d="M35 30 L65 30 L65 55 C65 65 50 75 50 75 C50 75 35 65 35 55 Z" fill="none" stroke="#1f4e78" stroke-width="2.5" />
+          <text x="50" y="55" font-family="Georgia, serif" font-size="20" font-weight="bold" fill="#1f4e78" text-anchor="middle">RV</text>
+          <path id="curveTop" d="M 20,50 A 30,30 0 0,1 80,50" fill="none" />
+          <path id="curveBottom" d="M 80,50 A 30,30 0 0,1 20,50" fill="none" />
+          <text font-size="5.8" font-family="Arial, sans-serif" font-weight="black" fill="#1f4e78">
+            <textPath href="#curveTop" startOffset="50%" text-anchor="middle">RASHTREEYA SIKSHANA SAMITHI TRUST</textPath>
+          </text>
+          <text font-size="5.8" font-family="Arial, sans-serif" font-weight="black" fill="#1f4e78">
+            <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">INSTITUTIONS</textPath>
+          </text>
+        </svg>
+        <div style="display: flex; flex-direction: column; text-align: left;">
+          <span class="header-title-text">RV College of Engineering<sup>®</sup></span>
+          <span class="header-sub-text">Mysore Road, RV Vidyaniketan Post,</span>
+          <span class="header-sub-text" style="margin-top: 1px;">Bengaluru - 560059, Karnataka, India</span>
+        </div>
+      </div>
     `;
 
     let htmlContent = `
@@ -296,52 +399,56 @@ export default function EvaluationFormModal({
     // ----------------------------------------------------
     htmlContent += `
       <div class="page">
-        <div class="header-logo-container">
-          <div class="logo-graphic">RV</div>
-          <div class="header-text">
-            <h1>RV College of Engineering<sup>®</sup></h1>
-            <p>Mysore Road, RV Vidyaniketan Post, Bengaluru - 560059, Karnataka, India</p>
-          </div>
+        ${logoHeader}
+        
+        <div class="cover-title-box">
+          <h2 class="cover-title">EXPERIENTIAL LEARNING OBSERVATION RECORD</h2>
         </div>
         
-        <div class="doc-title-box">
-          <h2>EXPERIENTIAL LEARNING OBSERVATION RECORD</h2>
+        <div style="text-align: center; font-weight: bold; font-size: 15px; margin-top: 15px; font-family: 'Times New Roman', Times, serif;">
+          For the II Semester B.E PROGRAMS, 2025 batch
         </div>
         
-        <div class="center-sub-title">For the II Semester B.E PROGRAMS, 2025 batch</div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-          <span class="meta-label">Title of the project</span>
-          <div class="meta-value">${team.project_topic || "Not Specified"}</div>
+        <div style="margin-top: 25px;">
+          <div class="section-label">Title of the project</div>
+          <div class="section-val-red">${(team.project_topic || "").toUpperCase()}</div>
           
-          <span class="meta-label">Theme</span>
-          <div class="meta-value">${team.project_sub_topic || "Not Specified"}</div>
+          <div class="section-label">Theme</div>
+          <div class="section-val-red">${(team.project_theme || "Not Specified").toUpperCase()}</div>
           
-          <span class="meta-label">Team Name</span>
-          <div class="meta-value">${team.name}</div>
+          <div class="section-label">Sub-Topic</div>
+          <div class="section-val-red">${(team.project_sub_topic || "Not Specified").toUpperCase()}</div>
+          
+          <div class="section-label">Team Name</div>
+          <div class="section-val-red">${team.name.toUpperCase()}</div>
         </div>
         
-        <table class="data-table">
+        <table class="data-table" style="margin-top: auto; margin-bottom: 20px;">
           <tr>
-            <td class="col-label">Name of the students<br/>(In Capitals) with USN</td>
+            <td class="col-label-red">Name of the students<br/>(In Capitals) with USN</td>
             <td>
-              ${studentsList.map((m: any) => `<div style="font-weight:bold; margin-bottom:6px;">${m.full_name.toUpperCase()} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (${m.usn || "N/A"})</div>`).join('')}
+              ${studentsList.map((m: any) => `
+                <div style="display: flex; justify-content: space-between; font-weight: bold; color: #2f5597; font-size: 13.5px; margin-bottom: 5px;">
+                  <span>${m.full_name.toUpperCase()}</span>
+                  <span style="font-family: monospace; font-size: 13px;">${m.usn || "N/A"}</span>
+                </div>
+              `).join('')}
             </td>
           </tr>
           <tr>
-            <td class="col-label">Name of the faculty Mentor with Designation and Department</td>
-            <td style="font-weight:bold;">
+            <td class="col-label-red">Name of the faculty Mentor with Designation and Department</td>
+            <td class="col-val-blue">
               ${(team.mentor_name || '').toUpperCase()}<br/>
-              <span style="font-weight:normal; font-size:11px;">
+              <span style="font-size: 11px; font-weight: bold; color: #555;">
                 ${studentsList[0]?.department ? `DEPARTMENT OF ${studentsList[0].department.toUpperCase()}` : 'FACULTY ADVISOR'}
               </span>
             </td>
           </tr>
           <tr>
-            <td class="col-label">Name of the Chief Faculty Mentor with Designation and Department</td>
-            <td style="font-weight:bold;">
+            <td class="col-label-red">Name of the Chief Faculty Mentor with Designation and Department</td>
+            <td class="col-val-blue">
               ${chiefMentorName.toUpperCase()}<br/>
-              <span style="font-weight:normal; font-size:11px;">
+              <span style="font-size: 11px; font-weight: bold; color: #555;">
                 ${chiefMentorDesignation.toUpperCase()} ${chiefMentorDepartment ? `• DEPARTMENT OF ${chiefMentorDepartment.toUpperCase()}` : ''}
               </span>
             </td>
@@ -354,15 +461,10 @@ export default function EvaluationFormModal({
     // PAGE 2: YEAR PAGE
     // ----------------------------------------------------
     htmlContent += `
-      <div class="page" style="justify-content: center; align-items: center; min-height: 277mm;">
-        <div class="header-logo-container" style="border: none; margin-bottom: 80px; width: 100%;">
-          <div class="logo-graphic">RV</div>
-          <div class="header-text">
-            <h1>RV College of Engineering<sup>®</sup></h1>
-            <p>Mysore Road, RV Vidyaniketan Post, Bengaluru - 560059, Karnataka, India</p>
-          </div>
-        </div>
-        <div style="font-size: 52px; font-weight: bold; letter-spacing: 2px; font-family: Georgia, serif;">2025-2026</div>
+      <div class="page" style="justify-content: space-between;">
+        ${logoHeader}
+        <div class="page-divider-year">2025-2026</div>
+        <div></div>
       </div>
     `;
 
@@ -371,87 +473,106 @@ export default function EvaluationFormModal({
     // ----------------------------------------------------
     htmlContent += `
       <div class="page">
-        <div class="header-logo-container">
-          <div class="logo-graphic">RV</div>
-          <div class="header-text">
-            <h1>RV College of Engineering<sup>®</sup></h1>
-            <p>Mysore Road, RV Vidyaniketan Post, Bengaluru - 560059, Karnataka, India</p>
-          </div>
+        ${logoHeader}
+        
+        <div style="text-align: center; font-size: 26px; font-weight: bold; color: #c00000; font-family: 'Times New Roman', Times, serif; letter-spacing: 0.5px; margin-bottom: 5px;">
+          EXPERIENTIAL LEARNING
+        </div>
+        <div style="text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif;">
+          For the II Semester B.E PROGRAMS
         </div>
         
-        <div class="evaluation-title" style="font-size: 18px; margin-bottom: 25px;">EXPERIENTIAL LEARNING</div>
-        <div class="center-sub-title" style="margin-top: -15px; margin-bottom: 30px;">For the II Semester B.E PROGRAMS</div>
-        
-        <table class="data-table" style="margin-bottom: 40px;">
+        <table class="data-table" style="margin-top: 0; margin-bottom: 25px;">
           <tr>
-            <td class="col-label">Team Name</td>
-            <td style="font-weight: bold;">${team.name}</td>
+            <td class="col-label-blue" style="width: 25%;">Team Name</td>
+            <td style="font-weight: bold; font-size: 14.5px; color: #2f5597;">${team.name.toUpperCase()}</td>
           </tr>
           <tr>
-            <td class="col-label">Theme</td>
-            <td>${team.project_sub_topic || "N/A"}</td>
+            <td class="col-label-blue">Theme</td>
+            <td style="font-weight: bold;">${team.project_theme || "N/A"}</td>
           </tr>
           <tr>
-            <td class="col-label">Team ID</td>
-            <td>EL-2026-TEAM-${team.id}</td>
+            <td class="col-label-blue">Sub-Topic</td>
+            <td style="font-weight: bold;">${team.project_sub_topic || "N/A"}</td>
           </tr>
           <tr>
-            <td class="col-label">Topic</td>
-            <td style="font-weight: bold;">${team.project_topic || "N/A"}</td>
+            <td class="col-label-blue">Team ID</td>
+            <td style="font-weight: bold; font-family: monospace;">EL-2026-TEAM-${team.id}</td>
           </tr>
           <tr>
-            <td class="col-label">Team Leader Name</td>
-            <td>${studentsList[0]?.full_name || "N/A"}</td>
+            <td class="col-label-blue">Topic</td>
+            <td style="font-weight: bold; color: #c00000;">${(team.project_topic || "N/A").toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td class="col-label-blue">Team Leader Name</td>
+            <td style="font-weight: bold; color: #2f5597;">${(studentsList[0]?.full_name || "N/A").toUpperCase()}</td>
           </tr>
         </table>
         
-        <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px; font-family: Georgia, serif;">Details of the Group Members</div>
+        <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #1f4e78; text-align: center; font-family: 'Times New Roman', Times, serif;">
+          Details of the Group Members
+        </div>
         <table class="data-table" style="margin-top: 0;">
           <thead>
-            <tr>
-              <th style="width: 8%;">Sl. No.</th>
-              <th style="width: 15%;">Program</th>
-              <th style="width: 12%;">Cycle</th>
-              <th style="width: 25%;">USN / Registration</th>
-              <th style="width: 22%;">Name</th>
-              <th>RVCE Email ID</th>
+            <tr style="background-color: #f2f2f2;">
+              <th style="width: 7%; color: #1f4e78; font-weight: bold; text-align: center;">Sl. No.</th>
+              <th style="width: 15%; color: #1f4e78; font-weight: bold;">Program</th>
+              <th style="width: 12%; color: #1f4e78; font-weight: bold;">Cycle</th>
+              <th style="width: 28%; color: #1f4e78; font-weight: bold;">USN/Registration Number</th>
+              <th style="width: 23%; color: #1f4e78; font-weight: bold;">Name</th>
+              <th style="color: #1f4e78; font-weight: bold;">RVCE Email Id</th>
             </tr>
           </thead>
           <tbody>
             ${studentsList.map((m: any, idx: number) => `
               <tr>
-                <td>${idx + 1}.</td>
-                <td>B.E (${m.branch || "CS"})</td>
+                <td style="text-align: center; font-weight: bold;">${idx + 1}.</td>
+                <td>B.E</td>
                 <td>${(m.cycle || "P").toUpperCase()}-Cycle</td>
-                <td>${m.usn || "N/A"}</td>
-                <td style="font-weight: bold;">${m.full_name}</td>
+                <td style="font-family: monospace; font-size: 13px;">${m.usn || "N/A"}</td>
+                <td style="font-weight: bold; color: #2f5597;">${m.full_name.toUpperCase()}</td>
                 <td>${m.email}</td>
+              </tr>
+            `).join('')}
+            ${Array.from({ length: Math.max(0, 4 - studentsList.length) }).map((_, idx) => `
+              <tr>
+                <td style="text-align: center; font-weight: bold;">${studentsList.length + idx + 1}.</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
               </tr>
             `).join('')}
           </tbody>
         </table>
         
-        <div class="signature-grid" style="margin-top: 50px;">
+        <div class="signature-grid" style="margin-top: auto; padding-top: 60px;">
           ${studentsList.map((m: any, idx: number) => `
             <div class="signature-col">
-              <div class="signature-line">Student-${idx + 1} Signature</div>
-              <div style="font-size:9px; color:#555; margin-top:2px;">${m.full_name}</div>
+              <div class="signature-line" style="border-top: 1px solid #000;">Student-${idx + 1} Signature</div>
+              <div style="font-size:9.5px; color:#555; margin-top:2px;">${m.full_name.toUpperCase()}</div>
+            </div>
+          `).join('')}
+          ${Array.from({ length: Math.max(0, 5 - studentsList.length) }).map((_, idx) => `
+            <div class="signature-col">
+              <div class="signature-line" style="border-top: 1px solid #000;">Student-${studentsList.length + idx + 1} Signature</div>
             </div>
           `).join('')}
         </div>
         
-        <div class="signature-grid" style="margin-top: 20px;">
-          <div class="signature-col">
-            <div class="signature-line">Faculty Mentor</div>
+        <div class="signature-grid" style="margin-top: 25px; padding-top: 30px;">
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Faculty Mentor</div>
           </div>
-          <div class="signature-col">
-            <div class="signature-line">Chief Faculty Mentor</div>
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Chief Faculty Mentor</div>
           </div>
-          <div class="signature-col">
-            <div class="signature-line">Dean Academics</div>
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Dean Academics</div>
           </div>
-          <div class="signature-col">
-            <div class="signature-line">Vice Principal</div>
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Vice Principal</div>
           </div>
         </div>
       </div>
@@ -461,107 +582,136 @@ export default function EvaluationFormModal({
     // INDIVIDUAL EVALUATION PAGES FOR EACH STUDENT
     // ----------------------------------------------------
     studentsList.forEach((stud: any) => {
+      const evalData = studentEvals[stud.id] || {};
+      
+      const p1Det = evalData.phase1_detail_marks || {};
+      const p1ProbVal = p1Det.problem_definition ?? 0;
+      const p1ObjVal = p1Det.objectives ?? 0;
+      const p1MethVal = p1Det.methodology ?? 0;
+      const p1ObsVal = evalData.phase1_observations || '';
+
+      const p2Det = evalData.phase2_detail_marks || {};
+      const p2ExecVal = p2Det.project_execution ?? 0;
+      const p2ToolsVal = p2Det.tools_techniques ?? 0;
+      const p2ResVal = p2Det.partial_results ?? 0;
+      const p2ObsVal = evalData.phase2_observations || '';
+
+      const p3Det = evalData.phase3_detail_marks || {};
+      const p3ProtoVal = p3Det.prototype_demonstration ?? 0;
+      const p3ResDiscVal = p3Det.results_discussions ?? 0;
+      const p3ReportVal = p3Det.report_poster_ppt ?? 0;
+      const p3OutVal = p3Det.outcome_work ?? 0;
+      const p3ObsVal = evalData.phase3_observations || '';
+
       // 1. Phase I Evaluation Sheet
       htmlContent += `
         <div class="page">
-          <div class="header-logo-container">
-            <div class="logo-graphic">RV</div>
-            <div class="header-text">
-              <h1>RV College of Engineering<sup>®</sup></h1>
-              <p>Mysore Road, RV Vidyaniketan Post, Bengaluru - 560059, Karnataka, India</p>
-            </div>
-          </div>
+          ${logoHeader}
           
-          <div class="evaluation-title">PHASE - I EVALUATION – 40 MARKS</div>
-          <div class="center-sub-title" style="margin-top: -15px; margin-bottom: 20px;">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
+          <div class="evaluation-title">PHASE -1 EVALUATION – 40 MARKS</div>
+          <div class="evaluation-subtitle">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
           
-          <table class="data-table" style="margin-top: 0; margin-bottom: 20px;">
+          <table class="data-table" style="margin-top: 0; margin-bottom: 15px;">
             <tr>
-              <td class="col-label" style="width: 15%;">Theme:</td>
-              <td colspan="3">${team.project_sub_topic || "N/A"}</td>
+              <td style="width: 18%; font-weight: bold;">Theme:</td>
+              <td colspan="3">${team.project_theme || "N/A"} &nbsp;&bull;&nbsp; ${team.project_sub_topic || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">Team Name:</td>
-              <td>${team.name}</td>
-              <td class="col-label" style="width: 15%;">Team No:</td>
-              <td>EL-${team.id}</td>
+              <td style="width: 18%; font-weight: bold;">Team Name:</td>
+              <td style="font-weight: bold;">${team.name.toUpperCase()}</td>
+              <td style="width: 18%; font-weight: bold; text-align: right; padding-right: 15px;">Team No:</td>
+              <td style="font-weight: bold;">EL-${team.id}</td>
             </tr>
             <tr>
-              <td class="col-label">Title:</td>
-              <td colspan="3" style="font-weight: bold;">${team.project_topic || "N/A"}</td>
+              <td style="width: 18%; font-weight: bold;">Title:</td>
+              <td colspan="3" style="font-weight: bold;">${(team.project_topic || "N/A").toUpperCase()}</td>
             </tr>
           </table>
           
-          <table class="data-table" style="margin-top: 0; margin-bottom: 30px;">
+          <table class="data-table" style="margin-top: 0; margin-bottom: 25px;">
             <tr>
-              <td class="col-label" style="width: 25%;">USN:</td>
-              <td style="font-weight: bold;">${stud.usn || "N/A"}</td>
+              <td style="width: 25%; font-weight: bold;">USN</td>
+              <td style="font-weight: bold; color: #2f5597; font-family: monospace; font-size: 13.5px;">${stud.usn || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">NAME (in Capitals):</td>
-              <td style="font-weight: bold;">${stud.full_name.toUpperCase()}</td>
+              <td style="font-weight: bold;">NAME (in Capitals)</td>
+              <td style="font-weight: bold; color: #2f5597;">${stud.full_name.toUpperCase()}</td>
             </tr>
             <tr>
-              <td class="col-label">Mobile No.:</td>
+              <td style="font-weight: bold;">Mobile No.</td>
               <td>${stud.mobile_no || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">Email ID:</td>
+              <td style="font-weight: bold;">Email Id</td>
               <td>${stud.email}</td>
             </tr>
           </table>
           
-          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; font-family: Georgia, serif;">PHASE - I EVALUATION – 40 MARKS</div>
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #1f4e78; font-family: 'Times New Roman', Times, serif; text-align: center;">
+            PHASE -1 EVALUATION – 40 MARKS
+          </div>
           <table class="data-table" style="margin-top: 0;">
             <thead>
-              <tr>
-                <th>Parameter</th>
-                <th style="text-align: center; width: 20%;">Maximum Marks</th>
-                <th style="text-align: center; width: 25%;">Marks Obtained</th>
+              <tr style="background-color: #f2f2f2;">
+                <th style="color: #1f4e78; font-weight: bold;">Parameter</th>
+                <th style="text-align: center; width: 22%; color: #1f4e78; font-weight: bold;">Maximum</th>
+                <th style="text-align: center; width: 25%; color: #1f4e78; font-weight: bold;">Obtained</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>Problem Definition</td>
-                <td style="text-align: center;">10</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p1Problem}</td>
+                <td style="text-align: center; font-weight: bold;">10</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p1ProbVal}</td>
               </tr>
               <tr>
                 <td>Objectives</td>
-                <td style="text-align: center;">10</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p1Objectives}</td>
+                <td style="text-align: center; font-weight: bold;">10</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p1ObjVal}</td>
               </tr>
               <tr>
                 <td>Methodology</td>
-                <td style="text-align: center;">20</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p1Methodology}</td>
+                <td style="text-align: center; font-weight: bold;">20</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p1MethVal}</td>
               </tr>
               <tr style="background-color: #f9fafb; font-weight: bold;">
-                <td>Total</td>
-                <td style="text-align: center;">40</td>
-                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #b91c1c;">${Number(p1Problem) + Number(p1Objectives) + Number(p1Methodology)}</td>
+                <td style="font-weight: bold;">Total</td>
+                <td style="text-align: center; font-weight: bold;">40</td>
+                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #c00000;">${Number(p1ProbVal) + Number(p1ObjVal) + Number(p1MethVal)}</td>
               </tr>
             </tbody>
           </table>
           
-          <div style="margin-top: 25px;">
-            <div style="font-weight: bold; font-size: 12px; font-family: Georgia, serif;">Observations by the Faculty Mentors / Evaluators:</div>
-            <div class="observations-box">${p1Obs || "No specific guidelines or suggestions recorded yet."}</div>
+          <div style="margin-top: 20px;">
+            <div style="font-weight: bold; font-size: 13.5px; color: #c00000; font-family: 'Times New Roman', Times, serif;">
+              Observations by the Faculty Mentors / Evaluators:<br/>
+              (Suggestions and Guidelines to be included)
+            </div>
+            <div class="observations-box">${p1ObsVal || ""}</div>
           </div>
           
-          <div style="font-weight: bold; font-size: 12px; margin-top: 30px; margin-bottom: 5px; font-family: Georgia, serif;">Mentors / Evaluators Name and Signature</div>
-          <table class="data-table" style="margin-top: 0;">
+          <div style="font-weight: bold; font-size: 13px; margin-top: auto; margin-bottom: 5px; color: #1f4e78;">
+            Mentors / Evaluators Name and Signature
+          </div>
+          <table class="data-table" style="margin-top: 0; margin-bottom: 10px;">
             <tbody>
               <tr>
-                <td style="width: 8%;">1.</td>
-                <td style="font-weight: bold;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
-                <td style="width: 35%; border-left: none; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                <td style="width: 8%; text-align: center; font-weight: bold;">1.</td>
+                <td style="font-weight: bold; color: #2f5597;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
+                <td style="width: 35%; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
               </tr>
               ${evaluators.filter(Boolean).map((ev, i) => `
                 <tr>
-                  <td>${i + 2}.</td>
-                  <td style="font-weight: bold;">${ev.toUpperCase()}</td>
-                  <td style="border-left: none; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                  <td style="text-align: center; font-weight: bold;">${i + 2}.</td>
+                  <td style="font-weight: bold; color: #2f5597;">${ev.toUpperCase()}</td>
+                  <td style="text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                </tr>
+              `).join('')}
+              ${Array.from({ length: Math.max(0, 3 - evaluators.filter(Boolean).length) }).map((_, idx) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${evaluators.filter(Boolean).length + idx + 2}.</td>
+                  <td></td>
+                  <td></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -572,104 +722,112 @@ export default function EvaluationFormModal({
       // 2. Phase II Evaluation Sheet
       htmlContent += `
         <div class="page">
-          <div class="header-logo-container">
-            <div class="logo-graphic">RV</div>
-            <div class="header-text">
-              <h1>RV College of Engineering<sup>®</sup></h1>
-              <p>Mysore Road, RV Vidyaniketan Post, Bengaluru - 560059, Karnataka, India</p>
-            </div>
-          </div>
+          ${logoHeader}
           
-          <div class="evaluation-title">PHASE - II EVALUATION – 50 MARKS</div>
-          <div class="center-sub-title" style="margin-top: -15px; margin-bottom: 20px;">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
+          <div class="evaluation-title">PHASE -II EVALUATION – 50 MARKS</div>
+          <div class="evaluation-subtitle">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
           
-          <table class="data-table" style="margin-top: 0; margin-bottom: 20px;">
+          <table class="data-table" style="margin-top: 0; margin-bottom: 15px;">
             <tr>
-              <td class="col-label" style="width: 15%;">Theme:</td>
-              <td colspan="3">${team.project_sub_topic || "N/A"}</td>
+              <td style="width: 18%; font-weight: bold;">Theme:</td>
+              <td colspan="3">${team.project_theme || "N/A"} &nbsp;&bull;&nbsp; ${team.project_sub_topic || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">Team Name:</td>
-              <td>${team.name}</td>
-              <td class="col-label" style="width: 15%;">Team No:</td>
-              <td>EL-${team.id}</td>
+              <td style="width: 18%; font-weight: bold;">Team Name:</td>
+              <td style="font-weight: bold;">${team.name.toUpperCase()}</td>
+              <td style="width: 18%; font-weight: bold; text-align: right; padding-right: 15px;">Team No:</td>
+              <td style="font-weight: bold;">EL-${team.id}</td>
             </tr>
             <tr>
-              <td class="col-label">Title:</td>
-              <td colspan="3" style="font-weight: bold;">${team.project_topic || "N/A"}</td>
+              <td style="width: 18%; font-weight: bold;">Title:</td>
+              <td colspan="3" style="font-weight: bold;">${(team.project_topic || "N/A").toUpperCase()}</td>
             </tr>
           </table>
           
-          <table class="data-table" style="margin-top: 0; margin-bottom: 30px;">
+          <table class="data-table" style="margin-top: 0; margin-bottom: 25px;">
             <tr>
-              <td class="col-label" style="width: 25%;">USN:</td>
-              <td style="font-weight: bold;">${stud.usn || "N/A"}</td>
+              <td style="width: 25%; font-weight: bold;">USN</td>
+              <td style="font-weight: bold; color: #2f5597; font-family: monospace; font-size: 13.5px;">${stud.usn || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">NAME (in Capitals):</td>
-              <td style="font-weight: bold;">${stud.full_name.toUpperCase()}</td>
+              <td style="font-weight: bold;">NAME (in Capitals)</td>
+              <td style="font-weight: bold; color: #2f5597;">${stud.full_name.toUpperCase()}</td>
             </tr>
             <tr>
-              <td class="col-label">Mobile No.:</td>
+              <td style="font-weight: bold;">Mobile No.</td>
               <td>${stud.mobile_no || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">Email ID:</td>
+              <td style="font-weight: bold;">Email Id</td>
               <td>${stud.email}</td>
             </tr>
           </table>
           
-          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; font-family: Georgia, serif;">PHASE - II EVALUATION – 50 MARKS</div>
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #1f4e78; font-family: 'Times New Roman', Times, serif; text-align: center;">
+            PHASE -II EVALUATION – 50 MARKS
+          </div>
           <table class="data-table" style="margin-top: 0;">
             <thead>
-              <tr>
-                <th>Parameter</th>
-                <th style="text-align: center; width: 20%;">Maximum Marks</th>
-                <th style="text-align: center; width: 25%;">Marks Obtained</th>
+              <tr style="background-color: #f2f2f2;">
+                <th style="color: #1f4e78; font-weight: bold;">Parameter</th>
+                <th style="text-align: center; width: 22%; color: #1f4e78; font-weight: bold;">Maximum</th>
+                <th style="text-align: center; width: 25%; color: #1f4e78; font-weight: bold;">Obtained</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>Project Execution</td>
-                <td style="text-align: center;">20</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p2Execution}</td>
+                <td style="text-align: center; font-weight: bold;">20</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p2ExecVal}</td>
               </tr>
               <tr>
                 <td>Tools and Techniques Used</td>
-                <td style="text-align: center;">15</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p2Tools}</td>
+                <td style="text-align: center; font-weight: bold;">15</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p2ToolsVal}</td>
               </tr>
               <tr>
                 <td>Partial Results (mentors can Gauge the status)</td>
-                <td style="text-align: center;">15</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p2Results}</td>
+                <td style="text-align: center; font-weight: bold;">15</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p2ResVal}</td>
               </tr>
               <tr style="background-color: #f9fafb; font-weight: bold;">
-                <td>Total</td>
-                <td style="text-align: center;">50</td>
-                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #b91c1c;">${Number(p2Execution) + Number(p2Tools) + Number(p2Results)}</td>
+                <td style="font-weight: bold;">Total</td>
+                <td style="text-align: center; font-weight: bold;">50</td>
+                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #c00000;">${Number(p2ExecVal) + Number(p2ToolsVal) + Number(p2ResVal)}</td>
               </tr>
             </tbody>
           </table>
           
-          <div style="margin-top: 25px;">
-            <div style="font-weight: bold; font-size: 12px; font-family: Georgia, serif;">Observations by the Faculty Mentors / Evaluators:</div>
-            <div class="observations-box">${p2Obs || "No specific guidelines or suggestions recorded yet."}</div>
+          <div style="margin-top: 20px;">
+            <div style="font-weight: bold; font-size: 13.5px; color: #c00000; font-family: 'Times New Roman', Times, serif;">
+              Observations by the Faculty Mentors / Evaluators:<br/>
+              (Suggestions and Guidelines to be included)
+            </div>
+            <div class="observations-box">${p2ObsVal || ""}</div>
           </div>
           
-          <div style="font-weight: bold; font-size: 12px; margin-top: 30px; margin-bottom: 5px; font-family: Georgia, serif;">Mentors / Evaluators Name and Signature</div>
-          <table class="data-table" style="margin-top: 0;">
+          <div style="font-weight: bold; font-size: 13px; margin-top: auto; margin-bottom: 5px; color: #1f4e78;">
+            Mentors / Evaluators Name and Signature
+          </div>
+          <table class="data-table" style="margin-top: 0; margin-bottom: 10px;">
             <tbody>
               <tr>
-                <td style="width: 8%;">1.</td>
-                <td style="font-weight: bold;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
-                <td style="width: 35%; border-left: none; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                <td style="width: 8%; text-align: center; font-weight: bold;">1.</td>
+                <td style="font-weight: bold; color: #2f5597;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
+                <td style="width: 35%; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
               </tr>
               ${evaluators.filter(Boolean).map((ev, i) => `
                 <tr>
-                  <td>${i + 2}.</td>
-                  <td style="font-weight: bold;">${ev.toUpperCase()}</td>
-                  <td style="border-left: none; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                  <td style="text-align: center; font-weight: bold;">${i + 2}.</td>
+                  <td style="font-weight: bold; color: #2f5597;">${ev.toUpperCase()}</td>
+                  <td style="text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                </tr>
+              `).join('')}
+              ${Array.from({ length: Math.max(0, 3 - evaluators.filter(Boolean).length) }).map((_, idx) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${evaluators.filter(Boolean).length + idx + 2}.</td>
+                  <td></td>
+                  <td></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -680,109 +838,117 @@ export default function EvaluationFormModal({
       // 3. Phase III Evaluation Sheet
       htmlContent += `
         <div class="page">
-          <div class="header-logo-container">
-            <div class="logo-graphic">RV</div>
-            <div class="header-text">
-              <h1>RV College of Engineering<sup>®</sup></h1>
-              <p>Mysore Road, RV Vidyaniketan Post, Bengaluru - 560059, Karnataka, India</p>
-            </div>
-          </div>
+          ${logoHeader}
           
-          <div class="evaluation-title">PHASE - III EVALUATION – 50 MARKS</div>
-          <div class="center-sub-title" style="margin-top: -15px; margin-bottom: 20px;">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
+          <div class="evaluation-title">PHASE -III EVALUATION – 50 MARKS</div>
+          <div class="evaluation-subtitle">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
           
-          <table class="data-table" style="margin-top: 0; margin-bottom: 20px;">
+          <table class="data-table" style="margin-top: 0; margin-bottom: 15px;">
             <tr>
-              <td class="col-label" style="width: 15%;">Theme:</td>
-              <td colspan="3">${team.project_sub_topic || "N/A"}</td>
+              <td style="width: 18%; font-weight: bold;">Theme:</td>
+              <td colspan="3">${team.project_theme || "N/A"} &nbsp;&bull;&nbsp; ${team.project_sub_topic || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">Team Name:</td>
-              <td>${team.name}</td>
-              <td class="col-label" style="width: 15%;">Team No:</td>
-              <td>EL-${team.id}</td>
+              <td style="width: 18%; font-weight: bold;">Team Name:</td>
+              <td style="font-weight: bold;">${team.name.toUpperCase()}</td>
+              <td style="width: 18%; font-weight: bold; text-align: right; padding-right: 15px;">Team No:</td>
+              <td style="font-weight: bold;">EL-${team.id}</td>
             </tr>
             <tr>
-              <td class="col-label">Title:</td>
-              <td colspan="3" style="font-weight: bold;">${team.project_topic || "N/A"}</td>
+              <td style="width: 18%; font-weight: bold;">Title:</td>
+              <td colspan="3" style="font-weight: bold;">${(team.project_topic || "N/A").toUpperCase()}</td>
             </tr>
           </table>
           
-          <table class="data-table" style="margin-top: 0; margin-bottom: 30px;">
+          <table class="data-table" style="margin-top: 0; margin-bottom: 25px;">
             <tr>
-              <td class="col-label" style="width: 25%;">USN:</td>
-              <td style="font-weight: bold;">${stud.usn || "N/A"}</td>
+              <td style="width: 25%; font-weight: bold;">USN</td>
+              <td style="font-weight: bold; color: #2f5597; font-family: monospace; font-size: 13.5px;">${stud.usn || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">NAME (in Capitals):</td>
-              <td style="font-weight: bold;">${stud.full_name.toUpperCase()}</td>
+              <td style="font-weight: bold;">NAME (in Capitals)</td>
+              <td style="font-weight: bold; color: #2f5597;">${stud.full_name.toUpperCase()}</td>
             </tr>
             <tr>
-              <td class="col-label">Mobile No.:</td>
+              <td style="font-weight: bold;">Mobile No.</td>
               <td>${stud.mobile_no || "N/A"}</td>
             </tr>
             <tr>
-              <td class="col-label">Email ID:</td>
+              <td style="font-weight: bold;">Email Id</td>
               <td>${stud.email}</td>
             </tr>
           </table>
           
-          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; font-family: Georgia, serif;">PHASE - III EVALUATION – 50 MARKS</div>
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #1f4e78; font-family: 'Times New Roman', Times, serif; text-align: center;">
+            PHASE -III EVALUATION – 50 MARKS
+          </div>
           <table class="data-table" style="margin-top: 0;">
             <thead>
-              <tr>
-                <th>Parameter</th>
-                <th style="text-align: center; width: 20%;">Maximum Marks</th>
-                <th style="text-align: center; width: 25%;">Marks Obtained</th>
+              <tr style="background-color: #f2f2f2;">
+                <th style="color: #1f4e78; font-weight: bold;">Parameter</th>
+                <th style="text-align: center; width: 22%; color: #1f4e78; font-weight: bold;">Maximum</th>
+                <th style="text-align: center; width: 25%; color: #1f4e78; font-weight: bold;">Obtained</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>Complete prototype demonstration</td>
-                <td style="text-align: center;">5</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p3Prototype}</td>
+                <td style="text-align: center; font-weight: bold;">5</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3ProtoVal}</td>
               </tr>
               <tr>
                 <td>Results & Discussions</td>
-                <td style="text-align: center;">5</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p3ResultsDisc}</td>
+                <td style="text-align: center; font-weight: bold;">5</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3ResDiscVal}</td>
               </tr>
               <tr>
                 <td>Report, Poster and PPT demonstration</td>
-                <td style="text-align: center;">10</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p3ReportPpt}</td>
+                <td style="text-align: center; font-weight: bold;">10</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3ReportVal}</td>
               </tr>
               <tr>
                 <td>Outcome of the work (Publication/Product Development/Patenting)</td>
-                <td style="text-align: center;">30</td>
-                <td style="text-align: center; font-weight: bold; font-size: 15px;">${p3Outcome}</td>
+                <td style="text-align: center; font-weight: bold;">30</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3OutVal}</td>
               </tr>
               <tr style="background-color: #f9fafb; font-weight: bold;">
-                <td>Total</td>
-                <td style="text-align: center;">50</td>
-                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #b91c1c;">${Number(p3Prototype) + Number(p3ResultsDisc) + Number(p3ReportPpt) + Number(p3Outcome)}</td>
+                <td style="font-weight: bold;">Total</td>
+                <td style="text-align: center; font-weight: bold;">50</td>
+                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #c00000;">${Number(p3ProtoVal) + Number(p3ResDiscVal) + Number(p3ReportVal) + Number(p3OutVal)}</td>
               </tr>
             </tbody>
           </table>
           
-          <div style="margin-top: 25px;">
-            <div style="font-weight: bold; font-size: 12px; font-family: Georgia, serif;">Observations by the Faculty Mentors / Evaluators:</div>
-            <div class="observations-box">${p3Obs || "No specific guidelines or suggestions recorded yet."}</div>
+          <div style="margin-top: 20px;">
+            <div style="font-weight: bold; font-size: 13.5px; color: #c00000; font-family: 'Times New Roman', Times, serif;">
+              Observations by the Faculty Mentors / Evaluators:<br/>
+              (Suggestions and Guidelines to be included)
+            </div>
+            <div class="observations-box">${p3ObsVal || ""}</div>
           </div>
           
-          <div style="font-weight: bold; font-size: 12px; margin-top: 30px; margin-bottom: 5px; font-family: Georgia, serif;">Mentors / Evaluators Name and Signature</div>
-          <table class="data-table" style="margin-top: 0;">
+          <div style="font-weight: bold; font-size: 13px; margin-top: auto; margin-bottom: 5px; color: #1f4e78;">
+            Mentors / Evaluators Name and Signature
+          </div>
+          <table class="data-table" style="margin-top: 0; margin-bottom: 10px;">
             <tbody>
               <tr>
-                <td style="width: 8%;">1.</td>
-                <td style="font-weight: bold;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
-                <td style="width: 35%; border-left: none; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                <td style="width: 8%; text-align: center; font-weight: bold;">1.</td>
+                <td style="font-weight: bold; color: #2f5597;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
+                <td style="width: 35%; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
               </tr>
               ${evaluators.filter(Boolean).map((ev, i) => `
                 <tr>
-                  <td>${i + 2}.</td>
-                  <td style="font-weight: bold;">${ev.toUpperCase()}</td>
-                  <td style="border-left: none; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                  <td style="text-align: center; font-weight: bold;">${i + 2}.</td>
+                  <td style="font-weight: bold; color: #2f5597;">${ev.toUpperCase()}</td>
+                  <td style="text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                </tr>
+              `).join('')}
+              ${Array.from({ length: Math.max(0, 3 - evaluators.filter(Boolean).length) }).map((_, idx) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${evaluators.filter(Boolean).length + idx + 2}.</td>
+                  <td></td>
+                  <td></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -790,6 +956,15 @@ export default function EvaluationFormModal({
         </div>
       `;
     });
+
+    // ----------------------------------------------------
+    // PAGE 7: FINAL PAGE DIVIDER
+    // ----------------------------------------------------
+    htmlContent += `
+      <div class="page" style="justify-content: flex-start;">
+        ${logoHeader}
+      </div>
+    `;
 
     htmlContent += `
         </body>
@@ -883,7 +1058,11 @@ export default function EvaluationFormModal({
                     <span className="font-bold text-slate-900 dark:text-white capitalize">{team.project_topic || 'No topic entered yet'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Theme / Sub-Topic</span>
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Theme</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{team.project_theme || 'No theme selected'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Sub-Topic</span>
                     <span className="font-bold text-slate-900 dark:text-white">{team.project_sub_topic || 'No sub-topic selected'}</span>
                   </div>
                   <div>
@@ -907,7 +1086,6 @@ export default function EvaluationFormModal({
                       type="text"
                       value={chiefMentorName}
                       onChange={e => setChiefMentorName(e.target.value)}
-                      disabled={!isMentor}
                       placeholder="e.g. Dr. Subramanya KN"
                       className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
                     />
@@ -918,7 +1096,6 @@ export default function EvaluationFormModal({
                       type="text"
                       value={chiefMentorDesignation}
                       onChange={e => setChiefMentorDesignation(e.target.value)}
-                      disabled={!isMentor}
                       placeholder="e.g. Principal"
                       className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
                     />
@@ -929,7 +1106,6 @@ export default function EvaluationFormModal({
                       type="text"
                       value={chiefMentorDepartment}
                       onChange={e => setChiefMentorDepartment(e.target.value)}
-                      disabled={!isMentor}
                       placeholder="e.g. Institutional Head"
                       className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
                     />
@@ -952,7 +1128,6 @@ export default function EvaluationFormModal({
                           updated[idx] = e.target.value;
                           setEvaluators(updated);
                         }}
-                        disabled={!isMentor}
                         placeholder={`Evaluator ${idx + 1} Name`}
                         className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
                       />
@@ -963,8 +1138,32 @@ export default function EvaluationFormModal({
             </div>
           )}
 
+          {/* Student Selector for Grades (Tabs Phase 1, Phase 2, Phase 3) */}
+          {activeTab !== 'info' && studentsList.length > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-950/20 p-4 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-3 mb-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Select Student to Grade</span>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {studentsList.map((stud: any) => (
+                  <button
+                    key={stud.id}
+                    onClick={() => setSelectedStudentId(stud.id)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
+                      selectedStudentId === stud.id
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <User size={13} />
+                    <span>{stud.full_name}</span>
+                    <span className="opacity-75 font-mono text-[9px]">({stud.usn || 'N/A'})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Phase 1 Form */}
-          {activeTab === 'phase1' && (
+          {activeTab === 'phase1' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 1 Score Breakdown</h4>
@@ -981,7 +1180,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="10"
                     value={p1Problem}
-                    onChange={e => setP1Problem(Math.min(10, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(10, Math.max(0, Number(e.target.value)));
+                      setP1Problem(val);
+                      updateStudentEvalField('phase1', 'problem_definition', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -993,7 +1196,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="10"
                     value={p1Objectives}
-                    onChange={e => setP1Objectives(Math.min(10, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(10, Math.max(0, Number(e.target.value)));
+                      setP1Objectives(val);
+                      updateStudentEvalField('phase1', 'objectives', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1005,7 +1212,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="20"
                     value={p1Methodology}
-                    onChange={e => setP1Methodology(Math.min(20, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(20, Math.max(0, Number(e.target.value)));
+                      setP1Methodology(val);
+                      updateStudentEvalField('phase1', 'methodology', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1016,7 +1227,11 @@ export default function EvaluationFormModal({
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 1 Observations / Feedback</label>
                 <textarea
                   value={p1Obs}
-                  onChange={e => setP1Obs(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setP1Obs(val);
+                    updateStudentEvalField('phase1', 'phase1_observations', val);
+                  }}
                   disabled={!isMentor}
                   placeholder="Suggestions, guidelines, or criticisms to be included on the observation record..."
                   rows={4}
@@ -1027,7 +1242,7 @@ export default function EvaluationFormModal({
           )}
 
           {/* Phase 2 Form */}
-          {activeTab === 'phase2' && (
+          {activeTab === 'phase2' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 2 Score Breakdown</h4>
@@ -1044,7 +1259,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="20"
                     value={p2Execution}
-                    onChange={e => setP2Execution(Math.min(20, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(20, Math.max(0, Number(e.target.value)));
+                      setP2Execution(val);
+                      updateStudentEvalField('phase2', 'project_execution', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1056,7 +1275,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="15"
                     value={p2Tools}
-                    onChange={e => setP2Tools(Math.min(15, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(15, Math.max(0, Number(e.target.value)));
+                      setP2Tools(val);
+                      updateStudentEvalField('phase2', 'tools_techniques', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1068,7 +1291,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="15"
                     value={p2Results}
-                    onChange={e => setP2Results(Math.min(15, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(15, Math.max(0, Number(e.target.value)));
+                      setP2Results(val);
+                      updateStudentEvalField('phase2', 'partial_results', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1079,7 +1306,11 @@ export default function EvaluationFormModal({
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 2 Observations / Feedback</label>
                 <textarea
                   value={p2Obs}
-                  onChange={e => setP2Obs(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setP2Obs(val);
+                    updateStudentEvalField('phase2', 'phase2_observations', val);
+                  }}
                   disabled={!isMentor}
                   placeholder="Suggestions, guidelines, or criticisms to be included on the observation record..."
                   rows={4}
@@ -1090,7 +1321,7 @@ export default function EvaluationFormModal({
           )}
 
           {/* Phase 3 Form */}
-          {activeTab === 'phase3' && (
+          {activeTab === 'phase3' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 3 Score Breakdown</h4>
@@ -1107,7 +1338,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="5"
                     value={p3Prototype}
-                    onChange={e => setP3Prototype(Math.min(5, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(5, Math.max(0, Number(e.target.value)));
+                      setP3Prototype(val);
+                      updateStudentEvalField('phase3', 'prototype_demonstration', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1119,7 +1354,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="5"
                     value={p3ResultsDisc}
-                    onChange={e => setP3ResultsDisc(Math.min(5, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(5, Math.max(0, Number(e.target.value)));
+                      setP3ResultsDisc(val);
+                      updateStudentEvalField('phase3', 'results_discussions', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1131,7 +1370,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="10"
                     value={p3ReportPpt}
-                    onChange={e => setP3ReportPpt(Math.min(10, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(10, Math.max(0, Number(e.target.value)));
+                      setP3ReportPpt(val);
+                      updateStudentEvalField('phase3', 'report_poster_ppt', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1143,7 +1386,11 @@ export default function EvaluationFormModal({
                     min="0"
                     max="30"
                     value={p3Outcome}
-                    onChange={e => setP3Outcome(Math.min(30, Math.max(0, Number(e.target.value))))}
+                    onChange={e => {
+                      const val = Math.min(30, Math.max(0, Number(e.target.value)));
+                      setP3Outcome(val);
+                      updateStudentEvalField('phase3', 'outcome_work', val);
+                    }}
                     disabled={!isMentor}
                     className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
                   />
@@ -1154,7 +1401,11 @@ export default function EvaluationFormModal({
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 3 Observations / Feedback</label>
                 <textarea
                   value={p3Obs}
-                  onChange={e => setP3Obs(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setP3Obs(val);
+                    updateStudentEvalField('phase3', 'phase3_observations', val);
+                  }}
                   disabled={!isMentor}
                   placeholder="Suggestions, guidelines, or criticisms to be included on the observation record..."
                   rows={4}
@@ -1169,7 +1420,10 @@ export default function EvaluationFormModal({
         {/* Footer */}
         <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 shrink-0 flex items-center justify-between">
           <div className="text-xs text-slate-400 dark:text-slate-500 font-semibold italic">
-            {!isMentor && "* Note: Only your assigned advisor can edit marks and observations."}
+            {!isMentor && (activeTab === 'info' 
+              ? "* Note: You can edit the Chief Mentor and Evaluators fields."
+              : "* Note: Only your assigned advisor can edit marks and observations.")
+            }
           </div>
           <div className="flex gap-3">
             <button
@@ -1178,7 +1432,7 @@ export default function EvaluationFormModal({
             >
               Cancel
             </button>
-            {isMentor && (
+            {(isMentor || activeTab === 'info') && (
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -1192,7 +1446,7 @@ export default function EvaluationFormModal({
                   </>
                 ) : (
                   <>
-                    <Save size={14} /> Save Grades & Details
+                    <Save size={14} /> Save Details
                   </>
                 )}
               </button>

@@ -24,6 +24,58 @@ interface ConnectionItem {
   };
 }
 
+export const THEME_SUBTOPICS: Record<string, string[]> = {
+  "Agriculture, Livestock & Rural Development": [
+    "Smart Irrigation and Water Management",
+    "Drone-based Crop Monitoring and Soil Analysis",
+    "Post-Harvest Storage and Food Preservation",
+    "Automated Weed Detection and Pest Control",
+    "Rural Energy Solutions and Waste-to-Biogas"
+  ],
+  "Education, Skilling & Student-Centric Solutions": [
+    "Personalized AI Tutors and Learning Assistants",
+    "Virtual Labs and VR-based Skill Training",
+    "Student Assessment and Automated Grading Systems",
+    "Career Counseling and Skill Mapping Platforms",
+    "Gamified Learning and Coding Platforms for Kids"
+  ],
+  "Health, Wellness & Traditional Medicine": [
+    "Remote Patient Monitoring and Telehealth Systems",
+    "Wearable Health Sensors and Fall Detection",
+    "AI-based Medical Diagnostics and Imaging",
+    "Herbal and Traditional Medicine Standardization",
+    "Mental Health and Stress Management Applications"
+  ],
+  "Urban Development, Mobility & Smart Cities": [
+    "Smart Traffic Management and Congestion Control",
+    "IoT-based Waste Collection and Sorting",
+    "Smart Parking and EV Charging Stations",
+    "Energy-Efficient Smart Street Lighting",
+    "Public Safety and Crowd Monitoring Systems"
+  ],
+  "Sustainability & Environment": [
+    "Carbon Footprint Tracking and Auditing",
+    "Smart Water Quality and Leak Detection",
+    "Solar and Wind Energy Grid Optimization",
+    "Biodegradable Material Synthesis and Tracking",
+    "Air Quality and Pollution Source Identification"
+  ],
+  "Emerging Technology, Innovation & Industry 4.0": [
+    "Industrial Automation and Robotic Arm Control",
+    "Blockchain-based Secure Supply Chain",
+    "AR/VR for Industrial Training and Assembly",
+    "Edge Computing for Real-Time Machine Analytics",
+    "Cybersecurity for Industrial IoT Networks"
+  ],
+  "Ocean, Marine & Aerospace Technologies": [
+    "Autonomous Underwater Vehicles (AUV) Navigation",
+    "Drone/UAV path planning and mapping",
+    "Satellite Data Processing for Weather Prediction",
+    "Marine Litter and Plastic Pollution Trackers",
+    "Aircraft Structural Health Monitoring Systems"
+  ]
+};
+
 interface GroupItem {
   id: number;
   name: string;
@@ -36,6 +88,7 @@ interface GroupItem {
   validation_error?: string | null;
   project_topic?: string | null;
   project_sub_topic?: string | null;
+  project_theme?: string | null;
   allow_member_leave?: boolean;
   mentor_status?: string;
 }
@@ -52,6 +105,7 @@ export default function MyTeam() {
   const [isPublic, setIsPublic] = useState(false);
   const [projectTopic, setProjectTopic] = useState('');
   const [projectSubTopic, setProjectSubTopic] = useState('');
+  const [projectTheme, setProjectTheme] = useState('');
 
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
@@ -131,7 +185,8 @@ export default function MyTeam() {
         member_ids: selectedMembers,
         is_public: isPublic,
         project_topic: projectTopic,
-        project_sub_topic: projectSubTopic
+        project_sub_topic: projectSubTopic,
+        project_theme: projectTheme
       });
       setShowCreateGroup(false);
       setGroupName('');
@@ -139,6 +194,7 @@ export default function MyTeam() {
       setIsPublic(false);
       setProjectTopic('');
       setProjectSubTopic('');
+      setProjectTheme('');
       fetchData();
     } catch (err: any) {
       console.error(err);
@@ -240,19 +296,27 @@ export default function MyTeam() {
                       {/* Project Topic Details */}
                       <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/60 rounded-xl p-5 mb-6 text-left">
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Project Details</span>
-                        <div className="flex items-center gap-3">
-                          <FolderGit className="text-indigo-600 dark:text-indigo-400 w-5.5 h-5.5 shrink-0" />
+                        <div className="flex items-start gap-3">
+                          <FolderGit className="text-indigo-600 dark:text-indigo-400 w-5.5 h-5.5 shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Topic Name</span>
-                            <p className="text-base font-bold text-slate-800 dark:text-slate-100 capitalize">
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Project Title</span>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize leading-snug">
                               {team.project_topic ? team.project_topic : "No topic entered yet"}
                             </p>
                           </div>
                         </div>
+                        {team.project_theme && (
+                          <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-800/50">
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Theme</span>
+                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                              {team.project_theme}
+                            </span>
+                          </div>
+                        )}
                         {team.project_sub_topic && (
-                          <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center gap-3">
-                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Sub-Topic:</span>
-                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                          <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-slate-800/30">
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Sub-Topic</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                               {team.project_sub_topic}
                             </span>
                           </div>
@@ -507,10 +571,11 @@ export default function MyTeam() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Topic</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Title</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. IoT Smart Parking System"
+                    required 
+                    placeholder="e.g. Design of a Hybrid Dielectric Immersion..."
                     value={projectTopic}
                     onChange={e => setProjectTopic(e.target.value)}
                     className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold"
@@ -518,20 +583,38 @@ export default function MyTeam() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Sub-Topic</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Theme</label>
                   <select
-                    value={projectSubTopic}
-                    onChange={e => setProjectSubTopic(e.target.value)}
+                    required
+                    value={projectTheme}
+                    onChange={e => {
+                      setProjectTheme(e.target.value);
+                      setProjectSubTopic(''); // Reset sub-topic on theme change
+                    }}
                     className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold bg-white dark:bg-slate-900"
                   >
-                    <option value="">-- Select a Sub-Topic --</option>
-                    <option value="Agriculture, Livestock & Rural Development">Agriculture, Livestock & Rural Development</option>
-                    <option value="Education, Skilling & Student-Centric Solutions">Education, Skilling & Student-Centric Solutions</option>
-                    <option value="Health, Wellness & Traditional Medicine">Health, Wellness & Traditional Medicine</option>
-                    <option value="Urban Development, Mobility & Smart Cities">Urban Development, Mobility & Smart Cities</option>
-                    <option value="Sustainability & Environment">Sustainability & Environment</option>
-                    <option value="Emerging Technology, Innovation & Industry 4.0">Emerging Technology, Innovation & Industry 4.0</option>
-                    <option value="Ocean, Marine & Aerospace Technologies">Ocean, Marine & Aerospace Technologies</option>
+                    <option value="">-- Select a Theme --</option>
+                    {Object.keys(THEME_SUBTOPICS).map(theme => (
+                      <option key={theme} value={theme}>{theme}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Project Sub-Topic</label>
+                  <select
+                    required
+                    disabled={!projectTheme}
+                    value={projectSubTopic}
+                    onChange={e => setProjectSubTopic(e.target.value)}
+                    className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold bg-white dark:bg-slate-900 disabled:opacity-50"
+                  >
+                    <option value="">
+                      {projectTheme ? "-- Select a Sub-Topic --" : "-- Select a Theme first --"}
+                    </option>
+                    {projectTheme && THEME_SUBTOPICS[projectTheme]?.map(sub => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
                   </select>
                 </div>
 

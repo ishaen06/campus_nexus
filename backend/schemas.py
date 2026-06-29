@@ -127,6 +127,7 @@ class GroupChatCreate(BaseModel):
     is_public: Optional[bool] = False
     project_topic: Optional[str] = None
     project_sub_topic: Optional[str] = None
+    project_theme: Optional[str] = None
 
 class GroupChatUpdate(BaseModel):
     name: Optional[str] = None
@@ -137,6 +138,11 @@ class GroupChatUpdate(BaseModel):
     mentor_name: Optional[str] = None
     mentor_email: Optional[str] = None
     allow_member_leave: Optional[bool] = None
+    project_theme: Optional[str] = None
+    chief_mentor_name: Optional[str] = None
+    chief_mentor_designation: Optional[str] = None
+    chief_mentor_department: Optional[str] = None
+    evaluators: Optional[List[str]] = None
 
 class GroupChatResponse(BaseModel):
     id: int
@@ -170,6 +176,7 @@ class GroupChatResponse(BaseModel):
     phase1_observations: Optional[str] = None
     phase2_observations: Optional[str] = None
     phase3_observations: Optional[str] = None
+    student_evaluations: Optional[dict] = None
     
     class Config:
         from_attributes = True
@@ -200,6 +207,7 @@ class GroupMarksUpdate(BaseModel):
     chief_mentor_designation: Optional[str] = None
     chief_mentor_department: Optional[str] = None
     evaluators: Optional[List[str]] = None
+    student_evaluations: Optional[dict] = None
 
 class MentorActionRequest(BaseModel):
     action: str  # "APPROVE" or "REJECT"

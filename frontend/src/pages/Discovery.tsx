@@ -34,6 +34,7 @@ interface GroupItem {
   validation_error?: string | null;
   project_topic?: string | null;
   project_sub_topic?: string | null;
+  project_theme?: string | null;
   allow_member_leave?: boolean;
   mentor_status?: string;
   department?: string;
@@ -382,9 +383,14 @@ export default function Discovery() {
                                       Topic: {team.project_topic}
                                     </span>
                                   )}
+                                  {team.project_theme && (
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-tight font-medium" title={team.project_theme}>
+                                      Theme: {team.project_theme}
+                                    </span>
+                                  )}
                                   {team.project_sub_topic && (
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-tight font-medium" title={team.project_sub_topic}>
-                                      Theme: {team.project_sub_topic}
+                                      Sub-Topic: {team.project_sub_topic}
                                     </span>
                                   )}
                                 </div>
