@@ -509,6 +509,7 @@ export default function ProjectDashboard() {
                   updatedGroups[0] = updatedTeam;
                   setGroups(updatedGroups);
                 }}
+                initialStudentId={currentUser?.id}
               />
             </div>
           );

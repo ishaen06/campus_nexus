@@ -8,6 +8,7 @@ interface EvaluationFormModalProps {
   team: any;
   isMentor: boolean;
   onSaveSuccess?: (updatedTeam: any) => void;
+  initialStudentId?: number | null;
 }
 
 export default function EvaluationFormModal({
@@ -15,7 +16,8 @@ export default function EvaluationFormModal({
   onClose,
   team,
   isMentor,
-  onSaveSuccess
+  onSaveSuccess,
+  initialStudentId
 }: EvaluationFormModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'phase1' | 'phase2' | 'phase3'>('info');
   const [saving, setSaving] = useState(false);
@@ -84,12 +86,13 @@ export default function EvaluationFormModal({
       // Default select the first student if current selection is not valid anymore
       if (studs.length > 0) {
         setSelectedStudentId(prevId => {
-          const stillExists = studs.some((s: any) => s.id === prevId);
-          return (prevId && stillExists) ? prevId : studs[0].id;
+          const targetId = initialStudentId || prevId;
+          const stillExists = studs.some((s: any) => s.id === targetId);
+          return (targetId && stillExists) ? targetId : studs[0].id;
         });
       }
     }
-  }, [team, isOpen]);
+  }, [team, isOpen, initialStudentId]);
   if (!isOpen || !team) return null;
 
   // 3. Synchronize input changes back to the studentEvals dictionary

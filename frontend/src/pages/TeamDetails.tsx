@@ -54,6 +54,7 @@ export default function TeamDetails() {
   const [loading, setLoading] = useState(true);
 
   const [evalModalOpen, setEvalModalOpen] = useState(false);
+  const [initialStudentId, setInitialStudentId] = useState<number | null>(null);
 
   const navigate = useNavigate();
 
@@ -179,6 +180,18 @@ export default function TeamDetails() {
                     </div>
                     <span className="text-[9px] text-slate-400 block mt-1">{member.email}</span>
                   </div>
+
+                  {/* Grade Student button */}
+                  <button
+                    onClick={() => {
+                      setInitialStudentId(member.id);
+                      setEvalModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/45 rounded-lg text-[10px] font-bold transition-all cursor-pointer border border-indigo-100 dark:border-indigo-900/35 uppercase tracking-wide"
+                  >
+                    <Award size={11} className="shrink-0" />
+                    <span>Grade</span>
+                  </button>
                 </div>
               );
             })}
@@ -276,7 +289,10 @@ export default function TeamDetails() {
             </div>
             
             <button
-              onClick={() => setEvalModalOpen(true)}
+              onClick={() => {
+                setInitialStudentId(null);
+                setEvalModalOpen(true);
+              }}
               className="w-full flex items-center justify-center gap-2 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/15 cursor-pointer uppercase tracking-wider"
             >
               <FileText size={15} />
@@ -291,6 +307,7 @@ export default function TeamDetails() {
           team={team}
           isMentor={true}
           onSaveSuccess={(updatedTeam) => setTeam(updatedTeam)}
+          initialStudentId={initialStudentId}
         />
       </motion.div>
     </div>
