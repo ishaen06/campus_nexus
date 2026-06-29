@@ -367,7 +367,7 @@ export default function EvaluationFormModal({
     const logoHeader = `
       <div class="header-logo-container">
         <svg viewBox="0 0 100 100" width="65" height="65" style="margin-right: 15px; shrink-0;">
-          <circle cx="50" cy="50" r="47" fill="none" stroke="#1f4e78" stroke-width="1.8" />
+          <circle cx="50" cy="50" r="47" fill="none" stroke="#1f4e78" stroke-width="1.2" stroke-dasharray="1.5,1.5" />
           <circle cx="50" cy="50" r="40" fill="none" stroke="#1f4e78" stroke-width="1.2" />
           <path id="curveTop" d="M 13.5,50 A 36.5,36.5 0 0,1 86.5,50" fill="none" />
           <path id="curveBottom" d="M 86.5,50 A 36.5,36.5 0 0,1 13.5,50" fill="none" />
@@ -377,7 +377,6 @@ export default function EvaluationFormModal({
           <text font-size="4.5" font-family="Arial, sans-serif" font-weight="900" fill="#1f4e78">
             <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">INSTITUTIONS</textPath>
           </text>
-          <text x="82" y="16" font-family="Arial, sans-serif" font-size="5" font-weight="bold" fill="#1f4e78">®</text>
           
           <!-- Shield -->
           <path d="M 50,33 C 44,33.5 38,32 32,31 L 32,54 C 32,64 43,71 50,74 C 57,71 68,64 68,54 L 68,31 C 62,32 56,33.5 50,33 Z" fill="none" stroke="#1f4e78" stroke-width="1.8" />
