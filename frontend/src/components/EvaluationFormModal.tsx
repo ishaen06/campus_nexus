@@ -379,15 +379,8 @@ export default function EvaluationFormModal({
           </text>
           
           <!-- Shield -->
-          <path d="M 50,33 C 44,33.5 38,32 32,31 L 32,54 C 32,64 43,71 50,74 C 57,71 68,64 68,54 L 68,31 C 62,32 56,33.5 50,33 Z" fill="none" stroke="#1f4e78" stroke-width="1.8" />
-          <line x1="50" y1="33" x2="50" y2="74" stroke="#1f4e78" stroke-width="1.5" />
-          
-          <!-- Letter R in box -->
-          <rect x="36.5" y="41" width="10" height="11" fill="none" stroke="#1f4e78" stroke-width="1.2" />
-          <text x="41.5" y="49.5" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="#1f4e78" text-anchor="middle">R</text>
-          
-          <!-- Letter V -->
-          <text x="59" y="49.5" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="#1f4e78" text-anchor="middle">V</text>
+          <path d="M 50,33 C 44,34 38,32.5 32,31 L 32,53 C 32,63 43,69 50,72 C 57,69 68,63 68,53 L 68,31 C 62,32.5 56,34 50,33 Z" fill="none" stroke="#1f4e78" stroke-width="1.8" />
+          <text x="50" y="54" font-family="'Times New Roman', Times, serif" font-weight="bold" font-size="16" fill="#1f4e78" text-anchor="middle">RV</text>
         </svg>
         <div style="display: flex; flex-direction: column; text-align: left;">
           <span class="header-title-text">RV College of Engineering<sup>®</sup></span>
