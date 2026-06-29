@@ -536,6 +536,14 @@ export default function EvaluationFormModal({
       const p3OutVal = p3Det.outcome_work ?? 0;
       const p3ObsVal = evalData.phase3_observations || '';
 
+      // Skip students with no grades or observations to prevent blank booklet pages
+      const hasGrades = 
+        Number(p1ProbVal) > 0 || Number(p1ObjVal) > 0 || Number(p1MethVal) > 0 || p1ObsVal.trim() !== '' ||
+        Number(p2ExecVal) > 0 || Number(p2ToolsVal) > 0 || Number(p2ResVal) > 0 || p2ObsVal.trim() !== '' ||
+        Number(p3ProtoVal) > 0 || Number(p3ResDiscVal) > 0 || Number(p3ReportVal) > 0 || Number(p3OutVal) > 0 || p3ObsVal.trim() !== '';
+
+      if (!hasGrades) return;
+
       // 1. Phase I Evaluation Sheet
       htmlContent += `
         <div class="page">
@@ -900,12 +908,18 @@ export default function EvaluationFormModal({
     printWindow.document.write(htmlContent);
     printWindow.document.close();
 
-    // Trigger printing once loaded
-    printWindow.onload = function() {
+    // Trigger printing with fallback for modern browsers
+    const runPrint = () => {
       printWindow.focus();
       printWindow.print();
       printWindow.close();
     };
+
+    if (printWindow.document.readyState === 'complete') {
+      runPrint();
+    } else {
+      printWindow.onload = runPrint;
+    }
   };
 
   return (
