@@ -252,6 +252,28 @@ export default function TeamDetails() {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Open the interactive fillable form mapping the official RVCE Experiential Learning Observation Record. You can grade Phase 1, Phase 2, and Phase 3 sections, enter observations, and export a print-ready PDF book for both students and mentors.
             </p>
+
+            {/* Scorecard cards */}
+            <div className="grid grid-cols-3 gap-3 my-1">
+              <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 text-center">
+                <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phase 1</span>
+                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
+                  {team.phase1_marks ?? 0} <span className="text-[10px] text-slate-400 font-normal">/ 40</span>
+                </span>
+              </div>
+              <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 text-center">
+                <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phase 2</span>
+                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
+                  {team.phase2_marks ?? 0} <span className="text-[10px] text-slate-400 font-normal">/ 50</span>
+                </span>
+              </div>
+              <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 text-center">
+                <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phase 3</span>
+                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
+                  {team.phase3_marks ?? 0} <span className="text-[10px] text-slate-400 font-normal">/ 50</span>
+                </span>
+              </div>
+            </div>
             
             <button
               onClick={() => setEvalModalOpen(true)}
