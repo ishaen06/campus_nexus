@@ -364,18 +364,28 @@ export default function EvaluationFormModal({
     const logoHeader = `
       <div class="header-logo-container">
         <svg viewBox="0 0 100 100" width="65" height="65" style="margin-right: 15px; shrink-0;">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="#1f4e78" stroke-width="2.5" />
-          <circle cx="50" cy="50" r="40" fill="none" stroke="#1f4e78" stroke-width="1.2" stroke-dasharray="2,2" />
-          <path d="M35 30 L65 30 L65 55 C65 65 50 75 50 75 C50 75 35 65 35 55 Z" fill="none" stroke="#1f4e78" stroke-width="2.5" />
-          <text x="50" y="55" font-family="Georgia, serif" font-size="20" font-weight="bold" fill="#1f4e78" text-anchor="middle">RV</text>
-          <path id="curveTop" d="M 20,50 A 30,30 0 0,1 80,50" fill="none" />
-          <path id="curveBottom" d="M 80,50 A 30,30 0 0,1 20,50" fill="none" />
-          <text font-size="5.8" font-family="Arial, sans-serif" font-weight="black" fill="#1f4e78">
+          <circle cx="50" cy="50" r="47" fill="none" stroke="#1f4e78" stroke-width="1.8" />
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#1f4e78" stroke-width="1.2" />
+          <path id="curveTop" d="M 13.5,50 A 36.5,36.5 0 0,1 86.5,50" fill="none" />
+          <path id="curveBottom" d="M 86.5,50 A 36.5,36.5 0 0,1 13.5,50" fill="none" />
+          <text font-size="4.2" font-family="Arial, sans-serif" font-weight="900" fill="#1f4e78">
             <textPath href="#curveTop" startOffset="50%" text-anchor="middle">RASHTREEYA SIKSHANA SAMITHI TRUST</textPath>
           </text>
-          <text font-size="5.8" font-family="Arial, sans-serif" font-weight="black" fill="#1f4e78">
+          <text font-size="4.5" font-family="Arial, sans-serif" font-weight="900" fill="#1f4e78">
             <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">INSTITUTIONS</textPath>
           </text>
+          <text x="82" y="16" font-family="Arial, sans-serif" font-size="5" font-weight="bold" fill="#1f4e78">®</text>
+          
+          <!-- Shield -->
+          <path d="M 50,33 C 44,33.5 38,32 32,31 L 32,54 C 32,64 43,71 50,74 C 57,71 68,64 68,54 L 68,31 C 62,32 56,33.5 50,33 Z" fill="none" stroke="#1f4e78" stroke-width="1.8" />
+          <line x1="50" y1="33" x2="50" y2="74" stroke="#1f4e78" stroke-width="1.5" />
+          
+          <!-- Letter R in box -->
+          <rect x="36.5" y="41" width="10" height="11" fill="none" stroke="#1f4e78" stroke-width="1.2" />
+          <text x="41.5" y="49.5" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="#1f4e78" text-anchor="middle">R</text>
+          
+          <!-- Letter V -->
+          <text x="59" y="49.5" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="#1f4e78" text-anchor="middle">V</text>
         </svg>
         <div style="display: flex; flex-direction: column; text-align: left;">
           <span class="header-title-text">RV College of Engineering<sup>®</sup></span>
