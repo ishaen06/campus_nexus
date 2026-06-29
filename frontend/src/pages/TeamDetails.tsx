@@ -268,7 +268,7 @@ export default function TeamDetails() {
           onClose={() => setEvalModalOpen(false)}
           team={team}
           isMentor={true}
-          onSaveSuccess={fetchTeamDetails}
+          onSaveSuccess={(updatedTeam) => setTeam(updatedTeam)}
         />
       </motion.div>
     </div>

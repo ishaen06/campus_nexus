@@ -524,7 +524,11 @@ export default function ProjectDashboard() {
                 onClose={() => setEvalModalOpen(false)}
                 team={team}
                 isMentor={false}
-                onSaveSuccess={fetchData}
+                onSaveSuccess={(updatedTeam) => {
+                  const updatedGroups = [...groups];
+                  updatedGroups[0] = updatedTeam;
+                  setGroups(updatedGroups);
+                }}
               />
             </div>
           );
