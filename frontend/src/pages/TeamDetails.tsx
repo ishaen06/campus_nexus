@@ -181,17 +181,7 @@ export default function TeamDetails() {
                     <span className="text-[9px] text-slate-400 block mt-1">{member.email}</span>
                   </div>
 
-                  {/* Grade Student button */}
-                  <button
-                    onClick={() => {
-                      setInitialStudentId(member.id);
-                      setEvalModalOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/45 rounded-lg text-[10px] font-bold transition-all cursor-pointer border border-indigo-100 dark:border-indigo-900/35 uppercase tracking-wide"
-                  >
-                    <Award size={11} className="shrink-0" />
-                    <span>Grade</span>
-                  </button>
+
                 </div>
               );
             })}
@@ -266,27 +256,7 @@ export default function TeamDetails() {
               Open the interactive fillable form mapping the official RVCE Experiential Learning Observation Record. You can grade Phase 1, Phase 2, and Phase 3 sections, enter observations, and export a print-ready PDF book for both students and mentors.
             </p>
 
-            {/* Scorecard cards */}
-            <div className="grid grid-cols-3 gap-3 my-1">
-              <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 text-center">
-                <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phase 1</span>
-                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
-                  {team.phase1_marks ?? 0} <span className="text-[10px] text-slate-400 font-normal">/ 40</span>
-                </span>
-              </div>
-              <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 text-center">
-                <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phase 2</span>
-                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
-                  {team.phase2_marks ?? 0} <span className="text-[10px] text-slate-400 font-normal">/ 50</span>
-                </span>
-              </div>
-              <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 text-center">
-                <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phase 3</span>
-                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
-                  {team.phase3_marks ?? 0} <span className="text-[10px] text-slate-400 font-normal">/ 50</span>
-                </span>
-              </div>
-            </div>
+
             
             <button
               onClick={() => {
