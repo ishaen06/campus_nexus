@@ -83,26 +83,16 @@ export default function EvaluationFormModal({
 
       setStudentEvals(evalsMap);
       
-      // Keep selection if it still exists in the studs list, otherwise select the first student
+      // Default select the first student if current selection is not valid anymore
       if (studs.length > 0) {
         setSelectedStudentId(prevId => {
-          const stillExists = studs.some((s: any) => s.id === prevId);
-          return stillExists ? prevId : studs[0].id;
+          const targetId = initialStudentId || prevId;
+          const stillExists = studs.some((s: any) => s.id === targetId);
+          return (targetId && stillExists) ? targetId : studs[0].id;
         });
       }
     }
-  }, [team]);
-
-  // 2. Initialize student selection only when the modal opens or initial student ID is changed
-  useEffect(() => {
-    if (isOpen && team) {
-      const studs = (team.members || []).filter((m: any) => !m.is_mentor);
-      if (studs.length > 0) {
-        const stillExists = studs.some((s: any) => s.id === initialStudentId);
-        setSelectedStudentId(stillExists ? initialStudentId : studs[0].id);
-      }
-    }
-  }, [isOpen, initialStudentId]);
+  }, [team, isOpen, initialStudentId]);
   if (!isOpen || !team) return null;
 
   // 3. Synchronize input changes back to the studentEvals dictionary
@@ -202,8 +192,9 @@ export default function EvaluationFormModal({
         flex-direction: column;
         justify-content: flex-start;
       }
-      .page:last-child {
-        page-break-after: avoid;
+      .page:last-of-type {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
       .header-logo-container {
         display: flex;
@@ -546,13 +537,6 @@ export default function EvaluationFormModal({
       const p3OutVal = p3Det.outcome_work ?? 0;
       const p3ObsVal = evalData.phase3_observations || '';
 
-      // Skip students with no grades or observations to prevent blank booklet pages
-      const hasGrades = 
-        Number(p1ProbVal) > 0 || Number(p1ObjVal) > 0 || Number(p1MethVal) > 0 || p1ObsVal.trim() !== '' ||
-        Number(p2ExecVal) > 0 || Number(p2ToolsVal) > 0 || Number(p2ResVal) > 0 || p2ObsVal.trim() !== '' ||
-        Number(p3ProtoVal) > 0 || Number(p3ResDiscVal) > 0 || Number(p3ReportVal) > 0 || Number(p3OutVal) > 0 || p3ObsVal.trim() !== '';
-
-      if (!hasGrades) return;
 
       // 1. Phase I Evaluation Sheet
       htmlContent += `
