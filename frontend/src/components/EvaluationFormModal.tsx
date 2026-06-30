@@ -83,16 +83,26 @@ export default function EvaluationFormModal({
 
       setStudentEvals(evalsMap);
       
-      // Default select the first student if current selection is not valid anymore
+      // Keep selection if it still exists in the studs list, otherwise select the first student
       if (studs.length > 0) {
         setSelectedStudentId(prevId => {
-          const targetId = initialStudentId || prevId;
-          const stillExists = studs.some((s: any) => s.id === targetId);
-          return (targetId && stillExists) ? targetId : studs[0].id;
+          const stillExists = studs.some((s: any) => s.id === prevId);
+          return stillExists ? prevId : studs[0].id;
         });
       }
     }
-  }, [team, isOpen, initialStudentId]);
+  }, [team]);
+
+  // 2. Initialize student selection only when the modal opens or initial student ID is changed
+  useEffect(() => {
+    if (isOpen && team) {
+      const studs = (team.members || []).filter((m: any) => !m.is_mentor);
+      if (studs.length > 0) {
+        const stillExists = studs.some((s: any) => s.id === initialStudentId);
+        setSelectedStudentId(stillExists ? initialStudentId : studs[0].id);
+      }
+    }
+  }, [isOpen, initialStudentId]);
   if (!isOpen || !team) return null;
 
   // 3. Synchronize input changes back to the studentEvals dictionary

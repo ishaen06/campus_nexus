@@ -19,8 +19,12 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
     # Mock token fallback for local automated testing/development
     if token.startswith("mock_google_token_"):
         parts = token.split("_")
-        email = parts[2].lower().strip()
-        name = parts[3] if len(parts) > 3 else "Google User"
+        if len(parts) >= 4 and parts[2] == "token":
+            email = parts[3].lower().strip()
+            name = parts[4] if len(parts) > 4 else "Google User"
+        else:
+            email = parts[2].lower().strip()
+            name = parts[3] if len(parts) > 3 else "Google User"
         picture = ""
     else:
         try:
