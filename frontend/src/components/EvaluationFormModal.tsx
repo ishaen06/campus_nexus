@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Printer, Save, FileText, CheckCircle2, User } from 'lucide-react';
 import api from '../api';
 
@@ -35,64 +35,77 @@ export default function EvaluationFormModal({
 
   // Dictionary of student evaluations: { [studentId]: { phase1_detail_marks, phase1_observations, ... } }
   const [studentEvals, setStudentEvals] = useState<Record<number, any>>({});
-  // 1. Initialize data when team changes
+
+  // Track the last team ID + isOpen that we initialized from, so we re-init only on genuine changes
+  const lastInitKeyRef = useRef<string>('');
+
+  // Helper: build studentEvals map from a raw student_evaluations dict + members list
+  const buildEvalsMap = (members: any[], storedEvals: Record<string, any>) => {
+    const studs = members.filter((m: any) => !m.is_mentor);
+    const evalsMap: Record<number, any> = {};
+    studs.forEach((stud: any) => {
+      const key = stud.id.toString();
+      const studEval = storedEvals[key] || storedEvals[stud.id] || {};
+      const p1Detail = studEval.phase1_detail_marks || {};
+      const p2Detail = studEval.phase2_detail_marks || {};
+      const p3Detail = studEval.phase3_detail_marks || {};
+      evalsMap[stud.id] = {
+        phase1_detail_marks: {
+          problem_definition: p1Detail.problem_definition ?? 0,
+          objectives: p1Detail.objectives ?? 0,
+          methodology: p1Detail.methodology ?? 0
+        },
+        phase1_observations: studEval.phase1_observations || '',
+        phase2_detail_marks: {
+          project_execution: p2Detail.project_execution ?? 0,
+          tools_techniques: p2Detail.tools_techniques ?? 0,
+          partial_results: p2Detail.partial_results ?? 0
+        },
+        phase2_observations: studEval.phase2_observations || '',
+        phase3_detail_marks: {
+          prototype_demonstration: p3Detail.prototype_demonstration ?? 0,
+          results_discussions: p3Detail.results_discussions ?? 0,
+          report_poster_ppt: p3Detail.report_poster_ppt ?? 0,
+          outcome_work: p3Detail.outcome_work ?? 0
+        },
+        phase3_observations: studEval.phase3_observations || ''
+      };
+    });
+    return { evalsMap, studs };
+  };
+
+  // 1. Initialize data only when the modal opens for a (possibly different) team
   useEffect(() => {
-    if (team) {
-      setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
-      setChiefMentorDesignation(team.chief_mentor_designation || 'PRINCIPAL');
-      setChiefMentorDepartment(team.chief_mentor_department || '');
-      setEvaluators(team.evaluators && team.evaluators.length ? [...team.evaluators] : ['', '', '', '']);
+    if (!isOpen || !team) return;
+    const initKey = `${team.id}:${isOpen}`;
+    if (lastInitKeyRef.current === initKey) return; // already initialized for this team+open
+    lastInitKeyRef.current = initKey;
 
-      const studs = (team.members || []).filter((m: any) => !m.is_mentor);
-      const storedEvals = team.student_evaluations || {};
-      console.log("EvaluationFormModal: team.student_evaluations =", storedEvals);
-      const evalsMap: Record<number, any> = {};
+    setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
+    setChiefMentorDesignation(team.chief_mentor_designation || 'PRINCIPAL');
+    setChiefMentorDepartment(team.chief_mentor_department || '');
+    setEvaluators(team.evaluators && team.evaluators.length ? [...team.evaluators] : ['', '', '', '']);
 
-      studs.forEach((stud: any) => {
-        const key = stud.id.toString();
-        // Fallback checks for string or integer keys
-        const studEval = storedEvals[key] || storedEvals[stud.id] || {};
-        console.log(`EvaluationFormModal: Lookup for student ${stud.full_name} (ID: ${stud.id}) found:`, studEval);
-        
-        const p1Detail = studEval.phase1_detail_marks || {};
-        const p2Detail = studEval.phase2_detail_marks || {};
-        const p3Detail = studEval.phase3_detail_marks || {};
+    const storedEvals = team.student_evaluations || {};
+    const { evalsMap, studs } = buildEvalsMap(team.members || [], storedEvals);
+    setStudentEvals(evalsMap);
 
-        evalsMap[stud.id] = {
-          phase1_detail_marks: {
-            problem_definition: p1Detail.problem_definition ?? 0,
-            objectives: p1Detail.objectives ?? 0,
-            methodology: p1Detail.methodology ?? 0
-          },
-          phase1_observations: studEval.phase1_observations || '',
-          phase2_detail_marks: {
-            project_execution: p2Detail.project_execution ?? 0,
-            tools_techniques: p2Detail.tools_techniques ?? 0,
-            partial_results: p2Detail.partial_results ?? 0
-          },
-          phase2_observations: studEval.phase2_observations || '',
-          phase3_detail_marks: {
-            prototype_demonstration: p3Detail.prototype_demonstration ?? 0,
-            results_discussions: p3Detail.results_discussions ?? 0,
-            report_poster_ppt: p3Detail.report_poster_ppt ?? 0,
-            outcome_work: p3Detail.outcome_work ?? 0
-          },
-          phase3_observations: studEval.phase3_observations || ''
-        };
+    if (studs.length > 0) {
+      setSelectedStudentId(prevId => {
+        const targetId = initialStudentId || prevId;
+        const stillExists = studs.some((s: any) => s.id === targetId);
+        return (targetId && stillExists) ? targetId : studs[0].id;
       });
-
-      setStudentEvals(evalsMap);
-      
-      // Default select the first student if current selection is not valid anymore
-      if (studs.length > 0) {
-        setSelectedStudentId(prevId => {
-          const targetId = initialStudentId || prevId;
-          const stillExists = studs.some((s: any) => s.id === targetId);
-          return (targetId && stillExists) ? targetId : studs[0].id;
-        });
-      }
     }
-  }, [team, isOpen, initialStudentId]);
+  }, [isOpen, team?.id, initialStudentId]);
+
+  // Reset init key when modal closes so next open re-reads fresh team data from server
+  useEffect(() => {
+    if (!isOpen) {
+      lastInitKeyRef.current = '';
+    }
+  }, [isOpen]);
+
   if (!isOpen || !team) return null;
 
   // 3. Synchronize input changes back to the studentEvals dictionary
@@ -148,6 +161,12 @@ export default function EvaluationFormModal({
         });
       }
       setSaveStatus('success');
+      // Immediately update local studentEvals from the server response so marks
+      // reflect the saved state without waiting for parent to propagate team prop
+      if (response.data?.student_evaluations && response.data?.members) {
+        const { evalsMap } = buildEvalsMap(response.data.members, response.data.student_evaluations);
+        setStudentEvals(evalsMap);
+      }
       if (onSaveSuccess) onSaveSuccess(response.data);
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err: any) {

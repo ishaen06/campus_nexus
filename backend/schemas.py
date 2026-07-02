@@ -153,6 +153,7 @@ class GroupChatResponse(BaseModel):
     is_public: bool = False
     project_topic: Optional[str] = None
     project_sub_topic: Optional[str] = None
+    project_theme: Optional[str] = None
     members: Optional[List[UserResponse]] = []
     criteria_met: bool = False
     validation_error: Optional[str] = None
