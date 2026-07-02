@@ -27,6 +27,7 @@ interface GroupItem {
   phase2_marks?: number;
   phase3_marks?: number;
   project_files?: any[];
+  student_evaluations?: Record<string, any>;
 }
 
 export default function ProjectDashboard() {
@@ -42,6 +43,7 @@ export default function ProjectDashboard() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [evalModalOpen, setEvalModalOpen] = useState(false);
+  const [evalModalLoading, setEvalModalLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -56,6 +58,20 @@ export default function ProjectDashboard() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch latest team data from server and open the evaluation modal
+  const openEvalModal = async () => {
+    setEvalModalLoading(true);
+    try {
+      const groupRes = await api.get('/chat/groups');
+      setGroups(groupRes.data);
+    } catch (err) {
+      console.error('Failed to refresh team data', err);
+    } finally {
+      setEvalModalLoading(false);
+      setEvalModalOpen(true);
     }
   };
 
@@ -173,39 +189,52 @@ export default function ProjectDashboard() {
           return (
             <div className="space-y-6">
               {/* Grades at the Top (Full Width when Approved) */}
-              {team.mentor_status === 'APPROVED' && (
-                <div className="bg-white dark:bg-[#1e1e24] border border-slate-100 dark:border-slate-800 rounded-xl p-6 text-left">
-                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-4">Project Evaluation</span>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-                        🏆 Grades & Scorecard
-                      </h3>
-                      <p className="text-xs text-gray-400 mt-1">Overall evaluation across project phases</p>
-                    </div>
-                    <div className="flex gap-4 w-full sm:w-auto">
-                      <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
-                        <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 1</span>
-                        <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">
-                          {team.phase1_marks ?? 0}
-                        </span>
+              {team.mentor_status === 'APPROVED' && (() => {
+                // Compute student's individual marks from student_evaluations
+                const myEval = currentUser ? (
+                  (team.student_evaluations || {})[String(currentUser.id)] || {}
+                ) : {};
+                const myP1 = myEval.phase1_detail_marks
+                  ? Object.values(myEval.phase1_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
+                  : (team.phase1_marks ?? 0);
+                const myP2 = myEval.phase2_detail_marks
+                  ? Object.values(myEval.phase2_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
+                  : (team.phase2_marks ?? 0);
+                const myP3 = myEval.phase3_detail_marks
+                  ? Object.values(myEval.phase3_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
+                  : (team.phase3_marks ?? 0);
+
+                return (
+                  <div className="bg-white dark:bg-[#1e1e24] border border-slate-100 dark:border-slate-800 rounded-xl p-6 text-left">
+                    <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-4">Project Evaluation</span>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+                          🏆 Grades &amp; Scorecard
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1">Your individual evaluation across project phases</p>
                       </div>
-                      <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
-                        <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 2</span>
-                        <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">
-                          {team.phase2_marks ?? 0}
-                        </span>
-                      </div>
-                      <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
-                        <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 3</span>
-                        <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">
-                          {team.phase3_marks ?? 0}
-                        </span>
+                      <div className="flex gap-4 w-full sm:w-auto">
+                        <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
+                          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 1</span>
+                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{myP1}</span>
+                          <span className="text-[9px] text-slate-400 font-normal">/ 40</span>
+                        </div>
+                        <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
+                          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 2</span>
+                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{myP2}</span>
+                          <span className="text-[9px] text-slate-400 font-normal">/ 50</span>
+                        </div>
+                        <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
+                          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 3</span>
+                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{myP3}</span>
+                          <span className="text-[9px] text-slate-400 font-normal">/ 50</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Left Column: File Management (Main) - md:col-span-2 */}
@@ -302,34 +331,51 @@ export default function ProjectDashboard() {
                     </div>
                     
                     <div className="mt-4 flex flex-col gap-3 p-4 bg-slate-50/50 dark:bg-slate-950/10 border border-slate-100 dark:border-slate-800/80 rounded-2xl">
-                      <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        <span>Total Score:</span>
-                        <span className="font-extrabold text-indigo-600 dark:text-indigo-400 text-sm">
-                          {(team.phase1_marks || 0) + (team.phase2_marks || 0) + (team.phase3_marks || 0)} / 140
-                        </span>
-                      </div>
-                      <div className="h-px bg-slate-200 dark:bg-slate-800" />
-                      <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        <div>
-                          <span className="block text-slate-400 mb-0.5">Phase 1</span>
-                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{team.phase1_marks || 0} / 40</span>
-                        </div>
-                        <div>
-                          <span className="block text-slate-400 mb-0.5">Phase 2</span>
-                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{team.phase2_marks || 0} / 50</span>
-                        </div>
-                        <div>
-                          <span className="block text-slate-400 mb-0.5">Phase 3</span>
-                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{team.phase3_marks || 0} / 50</span>
-                        </div>
-                      </div>
-                      
+                      {(() => {
+                        const myEval2 = currentUser
+                          ? ((team.student_evaluations || {})[String(currentUser.id)] || {})
+                          : {};
+                        const s1 = myEval2.phase1_detail_marks
+                          ? Object.values(myEval2.phase1_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
+                          : (team.phase1_marks || 0);
+                        const s2 = myEval2.phase2_detail_marks
+                          ? Object.values(myEval2.phase2_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
+                          : (team.phase2_marks || 0);
+                        const s3 = myEval2.phase3_detail_marks
+                          ? Object.values(myEval2.phase3_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
+                          : (team.phase3_marks || 0);
+                        return (
+                          <>
+                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              <span>My Total Score:</span>
+                              <span className="font-extrabold text-indigo-600 dark:text-indigo-400 text-sm">{s1 + s2 + s3} / 140</span>
+                            </div>
+                            <div className="h-px bg-slate-200 dark:bg-slate-800" />
+                            <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                              <div>
+                                <span className="block text-slate-400 mb-0.5">Phase 1</span>
+                                <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{s1} / 40</span>
+                              </div>
+                              <div>
+                                <span className="block text-slate-400 mb-0.5">Phase 2</span>
+                                <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{s2} / 50</span>
+                              </div>
+                              <div>
+                                <span className="block text-slate-400 mb-0.5">Phase 3</span>
+                                <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{s3} / 50</span>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+
                       <button
-                        onClick={() => setEvalModalOpen(true)}
-                        className="mt-2 w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/15 cursor-pointer uppercase tracking-wider"
+                        onClick={openEvalModal}
+                        disabled={evalModalLoading}
+                        className="mt-2 w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/15 cursor-pointer disabled:cursor-wait uppercase tracking-wider"
                       >
                         <FileText size={15} />
-                        Open Evaluation Book (Fillable Form)
+                        {evalModalLoading ? 'Loading...' : 'Open Evaluation Book (View Marks)'}
                       </button>
                     </div>
                   </div>
@@ -509,7 +555,7 @@ export default function ProjectDashboard() {
                   updatedGroups[0] = updatedTeam;
                   setGroups(updatedGroups);
                 }}
-                initialStudentId={currentUser?.id}
+                initialStudentId={currentUser?.id ?? null}
               />
             </div>
           );
