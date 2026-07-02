@@ -7,7 +7,7 @@ from datetime import datetime
 class UserResponse(BaseModel):
     id: int
     usn: Optional[str] = None
-    email: EmailStr
+    email: str
     full_name: str
     branch: Optional[str] = None
     year_of_study: Optional[int] = None
@@ -15,9 +15,9 @@ class UserResponse(BaseModel):
     interests: Optional[List[str]] = None
     goals: Optional[List[str]] = None
     avatar_config: Optional[dict] = None
-    is_admin: bool
+    is_admin: bool = False
     is_mentor: Optional[bool] = None
-    is_banned: bool
+    is_banned: bool = False
     cycle: Optional[str] = None
     department: Optional[str] = None
     post: Optional[str] = None
@@ -148,7 +148,7 @@ class GroupChatResponse(BaseModel):
     id: int
     name: str
     created_by: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
     member_ids: List[int] = []
     is_public: bool = False
     project_topic: Optional[str] = None

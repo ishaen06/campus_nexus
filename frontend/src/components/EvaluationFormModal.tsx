@@ -170,8 +170,10 @@ export default function EvaluationFormModal({
       if (onSaveSuccess) onSaveSuccess(response.data);
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.detail || 'Failed to save evaluation sheet data.');
+      console.error('Save error:', err);
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || err.response?.data?.message || JSON.stringify(err.response?.data) || err.message || 'Network error';
+      alert(`Save failed (${status || 'no response'}): ${detail}`);
     } finally {
       setSaving(false);
     }

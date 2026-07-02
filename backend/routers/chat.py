@@ -1195,27 +1195,35 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
         update_fields["student_evaluations"] = marks.student_evaluations
         
         # Calculate overall phase marks by taking the average of all students' total marks
-        p1_sums = []
-        p2_sums = []
-        p3_sums = []
-        for stud_id, eval_data in marks.student_evaluations.items():
-            if not eval_data:
-                continue
-            p1_det = eval_data.get("phase1_detail_marks") or {}
-            p1_sums.append(sum(int(float(v or 0)) for v in p1_det.values()))
-            
-            p2_det = eval_data.get("phase2_detail_marks") or {}
-            p2_sums.append(sum(int(float(v or 0)) for v in p2_det.values()))
-            
-            p3_det = eval_data.get("phase3_detail_marks") or {}
-            p3_sums.append(sum(int(float(v or 0)) for v in p3_det.values()))
-            
-        if p1_sums:
-            update_fields["phase1_marks"] = int(sum(p1_sums) / len(p1_sums))
-        if p2_sums:
-            update_fields["phase2_marks"] = int(sum(p2_sums) / len(p2_sums))
-        if p3_sums:
-            update_fields["phase3_marks"] = int(sum(p3_sums) / len(p3_sums))
+        try:
+            p1_sums = []
+            p2_sums = []
+            p3_sums = []
+            for stud_id, eval_data in marks.student_evaluations.items():
+                if not eval_data or not isinstance(eval_data, dict):
+                    continue
+                p1_det = eval_data.get("phase1_detail_marks") or {}
+                if isinstance(p1_det, dict):
+                    p1_sums.append(sum(int(float(v or 0)) for v in p1_det.values() if v is not None))
+                
+                p2_det = eval_data.get("phase2_detail_marks") or {}
+                if isinstance(p2_det, dict):
+                    p2_sums.append(sum(int(float(v or 0)) for v in p2_det.values() if v is not None))
+                
+                p3_det = eval_data.get("phase3_detail_marks") or {}
+                if isinstance(p3_det, dict):
+                    p3_sums.append(sum(int(float(v or 0)) for v in p3_det.values() if v is not None))
+                
+            if p1_sums:
+                update_fields["phase1_marks"] = int(sum(p1_sums) / len(p1_sums))
+            if p2_sums:
+                update_fields["phase2_marks"] = int(sum(p2_sums) / len(p2_sums))
+            if p3_sums:
+                update_fields["phase3_marks"] = int(sum(p3_sums) / len(p3_sums))
+        except Exception as calc_err:
+            # Don't block the save if mark calculation fails — just skip the aggregation
+            import logging
+            logging.warning(f"Phase mark calculation failed for group {group_id}: {calc_err}")
         
     if update_fields:
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
