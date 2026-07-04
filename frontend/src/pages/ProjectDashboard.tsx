@@ -202,57 +202,6 @@ export default function ProjectDashboard() {
           
           return (
             <div className="space-y-6">
-              {/* Grades at the Top (Full Width when Approved) */}
-              {team.mentor_status === 'APPROVED' && (() => {
-                // Compute student's individual marks from student_evaluations
-                const myEval = currentUser ? (
-                  (team.student_evaluations || {})[String(currentUser.id)] || {}
-                ) : {};
-                if (currentUser) {
-                  console.log("Student scorecard loaded for student:", currentUser.id);
-                }
-                const myP1 = myEval.phase1_detail_marks
-                  ? Object.values(myEval.phase1_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
-                  : (team.phase1_marks ?? 0);
-                const myP2 = myEval.phase2_detail_marks
-                  ? Object.values(myEval.phase2_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
-                  : (team.phase2_marks ?? 0);
-                const myP3 = myEval.phase3_detail_marks
-                  ? Object.values(myEval.phase3_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
-                  : (team.phase3_marks ?? 0);
-
-                return (
-                  <div className="bg-white dark:bg-[#1e1e24] border border-slate-100 dark:border-slate-800 rounded-xl p-6 text-left">
-                    <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-4">Project Evaluation</span>
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-                          🏆 Grades &amp; Scorecard
-                        </h3>
-                        <p className="text-xs text-gray-400 mt-1">Your individual evaluation across project phases</p>
-                      </div>
-                      <div className="flex gap-4 w-full sm:w-auto">
-                        <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
-                          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 1</span>
-                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{myP1}</span>
-                          <span className="text-[9px] text-slate-400 font-normal">/ 40</span>
-                        </div>
-                        <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
-                          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 2</span>
-                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{myP2}</span>
-                          <span className="text-[9px] text-slate-400 font-normal">/ 50</span>
-                        </div>
-                        <div className="flex-1 sm:w-28 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 text-center">
-                          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phase 3</span>
-                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{myP3}</span>
-                          <span className="text-[9px] text-slate-400 font-normal">/ 50</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Left Column: File Management (Main) - md:col-span-2 */}
                 <div className="md:col-span-2 space-y-6">
