@@ -131,8 +131,6 @@ export default function Login() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-6 mt-4">
-            <div className="w-12 h-12 rounded-full border-4 border-indigo-100 border-t-indigo-600 dark:border-indigo-950 dark:border-t-indigo-500 animate-spin mb-6"></div>
-            
             {/* Status texts */}
             <div className="text-center space-y-2">
               <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider uppercase transition-all duration-300">
