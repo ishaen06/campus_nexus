@@ -224,13 +224,36 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
         
     return True, ""
 
-def build_group_response(group: dict, db) -> dict:
+def build_group_response(group: dict, db, current_user = None) -> dict:
     member_records = list(db.group_members.find({"group_id": group["id"]}))
     member_ids = [m["user_id"] for m in member_records]
     member_users = list(db.users.find({"id": {"$in": member_ids}}))
     for u in member_users:
         u.pop("_id", None)
     criteria_met, val_error = validate_team_criteria(member_users)
+    
+    # Query evaluations from evaluations collection
+    evaluations = list(db.evaluations.find({"group_id": group["id"]}))
+    student_evaluations_dict = {}
+    for ev in evaluations:
+        student_evaluations_dict[str(ev["student_id"])] = {
+            "phase1_detail_marks": ev.get("phase1_detail_marks") or {},
+            "phase1_observations": ev.get("phase1_observations") or "",
+            "phase2_detail_marks": ev.get("phase2_detail_marks") or {},
+            "phase2_observations": ev.get("phase2_observations") or "",
+            "phase3_detail_marks": ev.get("phase3_detail_marks") or {},
+            "phase3_observations": ev.get("phase3_observations") or "",
+            "evaluator_id": ev.get("evaluator_id")
+        }
+        
+    # Restrict evaluations to only the current user's ID if they are a student
+    if current_user and not current_user.get("is_mentor", False) and not current_user.get("is_admin", False):
+        user_id_str = str(current_user["id"])
+        if user_id_str in student_evaluations_dict:
+            student_evaluations_dict = {user_id_str: student_evaluations_dict[user_id_str]}
+        else:
+            student_evaluations_dict = {}
+
     return {
         "id": group["id"],
         "name": group["name"],
@@ -263,12 +286,11 @@ def build_group_response(group: dict, db) -> dict:
         "phase1_observations": group.get("phase1_observations") or "",
         "phase2_observations": group.get("phase2_observations") or "",
         "phase3_observations": group.get("phase3_observations") or "",
-        "student_evaluations": group.get("student_evaluations") or {}
+        "student_evaluations": student_evaluations_dict
     }
 
-# Helper to populate group members for GroupChatResponse
-def populate_group_response(group: dict, db) -> dict:
-    return build_group_response(group, db)
+def populate_group_response(group: dict, db, current_user = None) -> dict:
+    return build_group_response(group, db, current_user)
 
 @router.post("/groups", response_model=GroupChatResponse)
 def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -325,14 +347,14 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
             "user_id": u["id"]
         })
     
-    return build_group_response(new_group, db)
+    return build_group_response(new_group, db, current_user)
 
 @router.get("/groups", response_model=List[GroupChatResponse])
 def get_user_group_chats(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     member_records = list(db.group_members.find({"user_id": current_user["id"]}))
     group_ids = [m["group_id"] for m in member_records]
     groups = list(db.group_chats.find({"id": {"$in": group_ids}}))
-    return [build_group_response(g, db) for g in groups]
+    return [build_group_response(g, db, current_user) for g in groups]
 
 @router.get("/groups/public", response_model=List[GroupChatResponse])
 def get_public_group_chats(db = Depends(get_mongo_db)):
@@ -341,7 +363,7 @@ def get_public_group_chats(db = Depends(get_mongo_db)):
     
     results = []
     for g in public_groups:
-        resp = build_group_response(g, db)
+        resp = build_group_response(g, db, None)
         # Only show groups that have fewer than 5 members (open to accept people)
         if len(resp["member_ids"]) < 5:
             results.append(resp)
@@ -352,7 +374,7 @@ def get_mentor_teams(current_user = Depends(get_current_user), db = Depends(get_
     if not current_user.get("is_mentor", False):
         raise HTTPException(status_code=403, detail="Only mentors can access this endpoint")
     groups = list(db.group_chats.find({"mentor_email": {"$regex": f"^{current_user['email']}$", "$options": "i"}}))
-    return [populate_group_response(g, db) for g in groups]
+    return [populate_group_response(g, db, current_user) for g in groups]
 
 @router.get("/groups/{group_id}", response_model=GroupChatResponse)
 def get_group_details(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -369,7 +391,7 @@ def get_group_details(group_id: int, current_user = Depends(get_current_user), d
     if not is_member and not is_approved_mentor:
         raise HTTPException(status_code=403, detail="Not authorized to view this group")
         
-    return build_group_response(group, db)
+    return build_group_response(group, db, current_user)
 
 @router.put("/groups/{group_id}", response_model=GroupChatResponse)
 def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -464,7 +486,7 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
         group.update(update_fields)
         
     updated_group = db.group_chats.find_one({"id": group_id})
-    return build_group_response(updated_group, db)
+    return build_group_response(updated_group, db, current_user)
 
 @router.get("/groups/{group_id}/messages", response_model=List[GroupMessageResponse])
 def get_group_messages(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -586,7 +608,7 @@ def toggle_group_leave(group_id: int, allow: bool = Query(...), current_user = D
         
     db.group_chats.update_one({"id": group_id}, {"$set": {"allow_member_leave": allow}})
     group["allow_member_leave"] = allow
-    return populate_group_response(group, db)
+    return populate_group_response(group, db, current_user)
 
 @router.put("/groups/{group_id}/toggle-privacy", response_model=GroupChatResponse)
 def toggle_group_privacy(group_id: int, is_public: bool = Query(...), current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -602,7 +624,7 @@ def toggle_group_privacy(group_id: int, is_public: bool = Query(...), current_us
         
     db.group_chats.update_one({"id": group_id}, {"$set": {"is_public": is_public}})
     group["is_public"] = is_public
-    return populate_group_response(group, db)
+    return populate_group_response(group, db, current_user)
 
 @router.put("/groups/{group_id}/transfer-admin", response_model=GroupChatResponse)
 def transfer_group_admin(group_id: int, new_admin_id: int = Query(...), current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -620,7 +642,7 @@ def transfer_group_admin(group_id: int, new_admin_id: int = Query(...), current_
         
     db.group_chats.update_one({"id": group_id}, {"$set": {"created_by": new_admin_id}})
     group["created_by"] = new_admin_id
-    return populate_group_response(group, db)
+    return populate_group_response(group, db, current_user)
 
 
 # --- Project Dashboard and Mentor Approval Endpoints ---
@@ -771,7 +793,7 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
     
     updated_group = db.group_chats.find_one({"id": group_id})
-    return build_group_response(updated_group, db)
+    return build_group_response(updated_group, db, current_user)
 
 # Request Mentor Approval
 @router.post("/groups/{group_id}/submit-approval")
@@ -1143,7 +1165,7 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
         
     db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
     updated_group = db.group_chats.find_one({"id": group_id})
-    return populate_group_response(updated_group, db)
+    return populate_group_response(updated_group, db, current_user)
 
 @router.put("/groups/{group_id}/marks", response_model=GroupChatResponse)
 def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -1192,8 +1214,43 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
         update_fields["evaluators"] = marks.evaluators
 
     if marks.student_evaluations is not None:
-        update_fields["student_evaluations"] = marks.student_evaluations
-        
+        # Save individual student evaluations to evaluations collection
+        for student_id_str, eval_data in marks.student_evaluations.items():
+            try:
+                student_id = int(student_id_str)
+            except (ValueError, TypeError):
+                continue
+                
+            # Perform an INSERT only if no evaluation exists, otherwise UPDATE
+            existing = db.evaluations.find_one({"group_id": group_id, "student_id": student_id})
+            eval_doc = {
+                "group_id": group_id,
+                "student_id": student_id,
+                "evaluator_id": current_user["id"],
+                "phase1_detail_marks": eval_data.get("phase1_detail_marks") or {"problem_definition": 0, "objectives": 0, "methodology": 0},
+                "phase1_observations": eval_data.get("phase1_observations") or "",
+                "phase2_detail_marks": eval_data.get("phase2_detail_marks") or {"project_execution": 0, "tools_techniques": 0, "partial_results": 0},
+                "phase2_observations": eval_data.get("phase2_observations") or "",
+                "phase3_detail_marks": eval_data.get("phase3_detail_marks") or {"prototype_demonstration": 0, "results_discussions": 0, "report_poster_ppt": 0, "outcome_work": 0},
+                "phase3_observations": eval_data.get("phase3_observations") or ""
+            }
+            if existing:
+                db.evaluations.update_one(
+                    {"group_id": group_id, "student_id": student_id},
+                    {"$set": {
+                        "evaluator_id": current_user["id"],
+                        "phase1_detail_marks": eval_doc["phase1_detail_marks"],
+                        "phase1_observations": eval_doc["phase1_observations"],
+                        "phase2_detail_marks": eval_doc["phase2_detail_marks"],
+                        "phase2_observations": eval_doc["phase2_observations"],
+                        "phase3_detail_marks": eval_doc["phase3_detail_marks"],
+                        "phase3_observations": eval_doc["phase3_observations"]
+                    }}
+                )
+            else:
+                eval_doc["id"] = get_next_sequence_value("evaluations")
+                db.evaluations.insert_one(eval_doc)
+
         # Calculate overall phase marks by taking the average of all students' total marks
         try:
             p1_sums = []
@@ -1221,7 +1278,6 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
             if p3_sums:
                 update_fields["phase3_marks"] = int(sum(p3_sums) / len(p3_sums))
         except Exception as calc_err:
-            # Don't block the save if mark calculation fails — just skip the aggregation
             import logging
             logging.warning(f"Phase mark calculation failed for group {group_id}: {calc_err}")
         
@@ -1229,7 +1285,7 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
         
     updated_group = db.group_chats.find_one({"id": group_id})
-    return populate_group_response(updated_group, db)
+    return populate_group_response(updated_group, db, current_user)
 
 @router.websocket("/ws/group/{group_id}")
 async def websocket_group_chat(websocket: WebSocket, group_id: int, token: str = Query(...), db = Depends(get_mongo_db)):
