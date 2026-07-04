@@ -75,10 +75,12 @@ export default function EvaluationFormModal({
   };
 
   // 1. Initialize data only when the modal opens for a (possibly different) team
+  // or when the team's student_evaluations data has changed (new marks saved by mentor)
   useEffect(() => {
     if (!isOpen || !team) return;
-    const initKey = `${team.id}:${isOpen}`;
-    if (lastInitKeyRef.current === initKey) return; // already initialized for this team+open
+    const evalFingerprint = JSON.stringify(team.student_evaluations || {}).length;
+    const initKey = `${team.id}:${isOpen}:${evalFingerprint}`;
+    if (lastInitKeyRef.current === initKey) return; // already initialized for this exact state
     lastInitKeyRef.current = initKey;
 
     setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
@@ -97,7 +99,7 @@ export default function EvaluationFormModal({
         return (targetId && stillExists) ? targetId : studs[0].id;
       });
     }
-  }, [isOpen, team?.id, initialStudentId]);
+  }, [isOpen, team?.id, team?.student_evaluations, initialStudentId]);
 
   // Reset init key when modal closes so next open re-reads fresh team data from server
   useEffect(() => {

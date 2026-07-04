@@ -44,6 +44,9 @@ export default function ProjectDashboard() {
   const [loading, setLoading] = useState(true);
   const [evalModalOpen, setEvalModalOpen] = useState(false);
   const [evalModalLoading, setEvalModalLoading] = useState(false);
+  // Holds the freshly-fetched team passed directly to the evaluation modal
+  // (avoids the React batched state update timing bug where groups[0] is still stale)
+  const [latestTeamForModal, setLatestTeamForModal] = useState<any>(null);
 
   const navigate = useNavigate();
 
@@ -66,7 +69,13 @@ export default function ProjectDashboard() {
     setEvalModalLoading(true);
     try {
       const groupRes = await api.get('/chat/groups');
-      setGroups(groupRes.data);
+      const freshGroups = groupRes.data;
+      setGroups(freshGroups);
+      // Store the fresh team directly so the modal gets it immediately
+      // (don't rely on groups[0] which is still stale due to React batching)
+      if (freshGroups && freshGroups.length > 0) {
+        setLatestTeamForModal(freshGroups[0]);
+      }
     } catch (err) {
       console.error('Failed to refresh team data', err);
     } finally {
@@ -548,12 +557,13 @@ export default function ProjectDashboard() {
               <EvaluationFormModal
                 isOpen={evalModalOpen}
                 onClose={() => setEvalModalOpen(false)}
-                team={team}
+                team={latestTeamForModal || team}
                 isMentor={false}
                 onSaveSuccess={(updatedTeam) => {
                   const updatedGroups = [...groups];
                   updatedGroups[0] = updatedTeam;
                   setGroups(updatedGroups);
+                  setLatestTeamForModal(updatedTeam);
                 }}
                 initialStudentId={currentUser?.id ?? null}
               />
