@@ -1093,7 +1093,7 @@ export default function EvaluationFormModal({
           {/* Student Selector for Grades (Tabs Phase 1, Phase 2, Phase 3) */}
           {activeTab !== 'info' && studentsList.length > 0 && (
             <div className="bg-slate-50 dark:bg-slate-950/20 p-4 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-3 mb-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Select Student to Grade</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">{isMentor ? 'Select Student to Grade' : 'Select Student'}</span>
               <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {studentsList.map((stud: any) => (
                   <button
@@ -1114,7 +1114,7 @@ export default function EvaluationFormModal({
             </div>
           )}
 
-          {/* Phase 1 Form */}
+          {/* Phase 1 */}
           {activeTab === 'phase1' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -1128,72 +1128,74 @@ export default function EvaluationFormModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Problem Definition (Max 10)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={studentEvals[selectedStudentId]?.phase1_detail_marks?.problem_definition ?? 0}
-                    onChange={e => {
-                      const val = Math.min(10, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase1', 'problem_definition', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
+              {isMentor ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Problem Definition (Max 10)</label>
+                    <input type="number" min="0" max="10"
+                      value={studentEvals[selectedStudentId]?.phase1_detail_marks?.problem_definition ?? 0}
+                      onChange={e => updateStudentEvalField('phase1', 'problem_definition', Math.min(10, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Objectives (Max 10)</label>
+                    <input type="number" min="0" max="10"
+                      value={studentEvals[selectedStudentId]?.phase1_detail_marks?.objectives ?? 0}
+                      onChange={e => updateStudentEvalField('phase1', 'objectives', Math.min(10, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Methodology (Max 20)</label>
+                    <input type="number" min="0" max="20"
+                      value={studentEvals[selectedStudentId]?.phase1_detail_marks?.methodology ?? 0}
+                      onChange={e => updateStudentEvalField('phase1', 'methodology', Math.min(20, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Objectives (Max 10)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={studentEvals[selectedStudentId]?.phase1_detail_marks?.objectives ?? 0}
-                    onChange={e => {
-                      const val = Math.min(10, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase1', 'objectives', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[{label:'Problem Definition',key:'problem_definition',max:10},{label:'Objectives',key:'objectives',max:10},{label:'Methodology',key:'methodology',max:20}].map(c => {
+                    const score = Number(studentEvals[selectedStudentId]?.phase1_detail_marks?.[c.key] ?? 0);
+                    const pct = Math.round((score / c.max) * 100);
+                    return (
+                      <div key={c.key} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</span>
+                        <div className="flex items-end gap-1">
+                          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">{score}</span>
+                          <span className="text-xs text-slate-400 mb-0.5">/ {c.max}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Methodology (Max 20)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="20"
-                    value={studentEvals[selectedStudentId]?.phase1_detail_marks?.methodology ?? 0}
-                    onChange={e => {
-                      const val = Math.min(20, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase1', 'methodology', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 1 Observations / Feedback</label>
-                <textarea
-                  value={studentEvals[selectedStudentId]?.phase1_observations || ''}
-                  onChange={e => {
-                    const val = e.target.value;
-                    updateStudentEvalField('phase1', 'phase1_observations', val);
-                  }}
-                  disabled={!isMentor}
-                  placeholder="Suggestions, guidelines, or criticisms to be included on the observation record..."
-                  rows={4}
-                  className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
-                />
+                {isMentor ? (
+                  <textarea
+                    value={studentEvals[selectedStudentId]?.phase1_observations || ''}
+                    onChange={e => updateStudentEvalField('phase1', 'phase1_observations', e.target.value)}
+                    placeholder="Suggestions, guidelines, or criticisms..."
+                    rows={4}
+                    className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
+                  />
+                ) : (
+                  <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 font-medium text-xs text-slate-700 dark:text-slate-300 min-h-[80px] whitespace-pre-wrap">
+                    {studentEvals[selectedStudentId]?.phase1_observations || <span className="text-slate-400 italic">No feedback provided yet.</span>}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Phase 2 Form */}
+          {/* Phase 2 */}
           {activeTab === 'phase2' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -1207,72 +1209,74 @@ export default function EvaluationFormModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Project Execution (Max 20)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="20"
-                    value={studentEvals[selectedStudentId]?.phase2_detail_marks?.project_execution ?? 0}
-                    onChange={e => {
-                      const val = Math.min(20, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase2', 'project_execution', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
+              {isMentor ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Project Execution (Max 20)</label>
+                    <input type="number" min="0" max="20"
+                      value={studentEvals[selectedStudentId]?.phase2_detail_marks?.project_execution ?? 0}
+                      onChange={e => updateStudentEvalField('phase2', 'project_execution', Math.min(20, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tools &amp; Techniques Used (Max 15)</label>
+                    <input type="number" min="0" max="15"
+                      value={studentEvals[selectedStudentId]?.phase2_detail_marks?.tools_techniques ?? 0}
+                      onChange={e => updateStudentEvalField('phase2', 'tools_techniques', Math.min(15, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Partial Results (Max 15)</label>
+                    <input type="number" min="0" max="15"
+                      value={studentEvals[selectedStudentId]?.phase2_detail_marks?.partial_results ?? 0}
+                      onChange={e => updateStudentEvalField('phase2', 'partial_results', Math.min(15, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tools & Techniques Used (Max 15)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="15"
-                    value={studentEvals[selectedStudentId]?.phase2_detail_marks?.tools_techniques ?? 0}
-                    onChange={e => {
-                      const val = Math.min(15, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase2', 'tools_techniques', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[{label:'Project Execution',key:'project_execution',max:20},{label:'Tools & Techniques',key:'tools_techniques',max:15},{label:'Partial Results',key:'partial_results',max:15}].map(c => {
+                    const score = Number(studentEvals[selectedStudentId]?.phase2_detail_marks?.[c.key] ?? 0);
+                    const pct = Math.round((score / c.max) * 100);
+                    return (
+                      <div key={c.key} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</span>
+                        <div className="flex items-end gap-1">
+                          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">{score}</span>
+                          <span className="text-xs text-slate-400 mb-0.5">/ {c.max}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Partial Results (Max 15)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="15"
-                    value={studentEvals[selectedStudentId]?.phase2_detail_marks?.partial_results ?? 0}
-                    onChange={e => {
-                      const val = Math.min(15, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase2', 'partial_results', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 2 Observations / Feedback</label>
-                <textarea
-                  value={studentEvals[selectedStudentId]?.phase2_observations || ''}
-                  onChange={e => {
-                    const val = e.target.value;
-                    updateStudentEvalField('phase2', 'phase2_observations', val);
-                  }}
-                  disabled={!isMentor}
-                  placeholder="Suggestions, guidelines, or criticisms to be included on the observation record..."
-                  rows={4}
-                  className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
-                />
+                {isMentor ? (
+                  <textarea
+                    value={studentEvals[selectedStudentId]?.phase2_observations || ''}
+                    onChange={e => updateStudentEvalField('phase2', 'phase2_observations', e.target.value)}
+                    placeholder="Suggestions, guidelines, or criticisms..."
+                    rows={4}
+                    className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
+                  />
+                ) : (
+                  <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 font-medium text-xs text-slate-700 dark:text-slate-300 min-h-[80px] whitespace-pre-wrap">
+                    {studentEvals[selectedStudentId]?.phase2_observations || <span className="text-slate-400 italic">No feedback provided yet.</span>}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Phase 3 Form */}
+          {/* Phase 3 */}
           {activeTab === 'phase3' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -1287,82 +1291,77 @@ export default function EvaluationFormModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Prototype Demo (Max 5)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="5"
-                    value={studentEvals[selectedStudentId]?.phase3_detail_marks?.prototype_demonstration ?? 0}
-                    onChange={e => {
-                      const val = Math.min(5, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase3', 'prototype_demonstration', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
+              {isMentor ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Prototype Demo (Max 5)</label>
+                    <input type="number" min="0" max="5"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.prototype_demonstration ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'prototype_demonstration', Math.min(5, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Results &amp; Disc. (Max 5)</label>
+                    <input type="number" min="0" max="5"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.results_discussions ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'results_discussions', Math.min(5, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Report / PPT (Max 10)</label>
+                    <input type="number" min="0" max="10"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.report_poster_ppt ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'report_poster_ppt', Math.min(10, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Outcome (Max 30)</label>
+                    <input type="number" min="0" max="30"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.outcome_work ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'outcome_work', Math.min(30, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Results & Disc. (Max 5)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="5"
-                    value={studentEvals[selectedStudentId]?.phase3_detail_marks?.results_discussions ?? 0}
-                    onChange={e => {
-                      const val = Math.min(5, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase3', 'results_discussions', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[{label:'Prototype Demo',key:'prototype_demonstration',max:5},{label:'Results & Disc.',key:'results_discussions',max:5},{label:'Report / PPT',key:'report_poster_ppt',max:10},{label:'Outcome',key:'outcome_work',max:30}].map(c => {
+                    const score = Number(studentEvals[selectedStudentId]?.phase3_detail_marks?.[c.key] ?? 0);
+                    const pct = Math.round((score / c.max) * 100);
+                    return (
+                      <div key={c.key} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</span>
+                        <div className="flex items-end gap-1">
+                          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">{score}</span>
+                          <span className="text-xs text-slate-400 mb-0.5">/ {c.max}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Report / PPT (Max 10)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={studentEvals[selectedStudentId]?.phase3_detail_marks?.report_poster_ppt ?? 0}
-                    onChange={e => {
-                      const val = Math.min(10, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase3', 'report_poster_ppt', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Outcome (Max 30)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="30"
-                    value={studentEvals[selectedStudentId]?.phase3_detail_marks?.outcome_work ?? 0}
-                    onChange={e => {
-                      const val = Math.min(30, Math.max(0, Number(e.target.value)));
-                      updateStudentEvalField('phase3', 'outcome_work', val);
-                    }}
-                    disabled={!isMentor}
-                    className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 3 Observations / Feedback</label>
-                <textarea
-                  value={studentEvals[selectedStudentId]?.phase3_observations || ''}
-                  onChange={e => {
-                    const val = e.target.value;
-                    updateStudentEvalField('phase3', 'phase3_observations', val);
-                  }}
-                  disabled={!isMentor}
-                  placeholder="Suggestions, guidelines, or criticisms to be included on the observation record..."
-                  rows={4}
-                  className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
-                />
+                {isMentor ? (
+                  <textarea
+                    value={studentEvals[selectedStudentId]?.phase3_observations || ''}
+                    onChange={e => updateStudentEvalField('phase3', 'phase3_observations', e.target.value)}
+                    placeholder="Suggestions, guidelines, or criticisms..."
+                    rows={4}
+                    className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
+                  />
+                ) : (
+                  <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 font-medium text-xs text-slate-700 dark:text-slate-300 min-h-[80px] whitespace-pre-wrap">
+                    {studentEvals[selectedStudentId]?.phase3_observations || <span className="text-slate-400 italic">No feedback provided yet.</span>}
+                  </div>
+                )}
               </div>
             </div>
           )}

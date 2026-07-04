@@ -53,7 +53,12 @@ export default function ProjectDashboard() {
   const fetchData = async () => {
     try {
       const groupRes = await api.get('/chat/groups');
-      setGroups(groupRes.data);
+      const freshGroups = groupRes.data;
+      setGroups(freshGroups);
+      // Seed latestTeamForModal so the evaluation modal always has fresh data
+      if (freshGroups && freshGroups.length > 0) {
+        setLatestTeamForModal(freshGroups[0]);
+      }
       
       const meRes = await api.get('/users/me');
       setCurrentUser(meRes.data);
