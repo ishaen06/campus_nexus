@@ -78,9 +78,16 @@ export default function EvaluationFormModal({
   // or when the team's student_evaluations data has changed (new marks saved by mentor)
   useEffect(() => {
     if (!isOpen || !team) return;
+    
+    console.log("Evaluation page opened");
+    console.log("Evaluator ID received:", team.mentor_email || team.mentor_name);
+
     const evalFingerprint = JSON.stringify(team.student_evaluations || {}).length;
     const initKey = `${team.id}:${isOpen}:${evalFingerprint}`;
-    if (lastInitKeyRef.current === initKey) return; // already initialized for this exact state
+    if (lastInitKeyRef.current === initKey) {
+      console.log("Form already initialized for this state, skipping re-init");
+      return; 
+    }
     lastInitKeyRef.current = initKey;
 
     setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
@@ -90,13 +97,22 @@ export default function EvaluationFormModal({
 
     const storedEvals = team.student_evaluations || {};
     const { evalsMap, studs } = buildEvalsMap(team.members || [], storedEvals);
+    
+    studs.forEach((stud: any) => {
+      const hasEval = !!storedEvals[stud.id.toString()] || !!storedEvals[stud.id];
+      console.log(`Student ${stud.id} (${stud.full_name}): Existing evaluation found: ${hasEval}`);
+    });
+    
     setStudentEvals(evalsMap);
 
     if (studs.length > 0) {
       setSelectedStudentId(prevId => {
         const targetId = initialStudentId || prevId;
         const stillExists = studs.some((s: any) => s.id === targetId);
-        return (targetId && stillExists) ? targetId : studs[0].id;
+        const finalId = (targetId && stillExists) ? targetId : studs[0].id;
+        console.log("Student ID received:", finalId);
+        console.log("Form populated successfully for student:", finalId);
+        return finalId;
       });
     }
   }, [isOpen, team?.id, team?.student_evaluations, initialStudentId]);
@@ -144,6 +160,7 @@ export default function EvaluationFormModal({
   const handleSave = async () => {
     setSaving(true);
     setSaveStatus(null);
+    console.log("Save request started for student:", selectedStudentId);
     try {
       let response;
       if (isMentor) {
@@ -162,12 +179,14 @@ export default function EvaluationFormModal({
           evaluators: evaluators
         });
       }
+      console.log("Save successful for student:", selectedStudentId);
       setSaveStatus('success');
       // Immediately update local studentEvals from the server response so marks
       // reflect the saved state without waiting for parent to propagate team prop
       if (response.data?.student_evaluations && response.data?.members) {
         const { evalsMap } = buildEvalsMap(response.data.members, response.data.student_evaluations);
         setStudentEvals(evalsMap);
+        console.log("Data reloaded after save:", selectedStudentId);
       }
       if (onSaveSuccess) onSaveSuccess(response.data);
       setTimeout(() => setSaveStatus(null), 3000);

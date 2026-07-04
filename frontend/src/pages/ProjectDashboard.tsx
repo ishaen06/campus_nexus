@@ -208,6 +208,9 @@ export default function ProjectDashboard() {
                 const myEval = currentUser ? (
                   (team.student_evaluations || {})[String(currentUser.id)] || {}
                 ) : {};
+                if (currentUser) {
+                  console.log("Student scorecard loaded for student:", currentUser.id);
+                }
                 const myP1 = myEval.phase1_detail_marks
                   ? Object.values(myEval.phase1_detail_marks as Record<string,number>).reduce((a: number, b: any) => a + Number(b || 0), 0)
                   : (team.phase1_marks ?? 0);

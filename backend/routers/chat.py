@@ -233,9 +233,13 @@ def build_group_response(group: dict, db, current_user = None) -> dict:
     criteria_met, val_error = validate_team_criteria(member_users)
     
     # Query evaluations from evaluations collection
+    print(f"Database query executed: fetching evaluations for group_id: {group['id']}")
     evaluations = list(db.evaluations.find({"group_id": group["id"]}))
+    print(f"Query result: found {len(evaluations)} evaluations")
+    
     student_evaluations_dict = {}
     for ev in evaluations:
+        print(f"Existing evaluation found for student {ev['student_id']}")
         student_evaluations_dict[str(ev["student_id"])] = {
             "phase1_detail_marks": ev.get("phase1_detail_marks") or {},
             "phase1_observations": ev.get("phase1_observations") or "",
@@ -1214,6 +1218,7 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
         update_fields["evaluators"] = marks.evaluators
 
     if marks.student_evaluations is not None:
+        print(f"Save request started for group_id: {group_id} by evaluator_id: {current_user['id']}")
         # Save individual student evaluations to evaluations collection
         for student_id_str, eval_data in marks.student_evaluations.items():
             try:
@@ -1221,6 +1226,7 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
             except (ValueError, TypeError):
                 continue
                 
+            print(f"Checking existing evaluation for student_id: {student_id}")
             # Perform an INSERT only if no evaluation exists, otherwise UPDATE
             existing = db.evaluations.find_one({"group_id": group_id, "student_id": student_id})
             eval_doc = {
@@ -1235,6 +1241,7 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
                 "phase3_observations": eval_data.get("phase3_observations") or ""
             }
             if existing:
+                print(f"Update performed for student_id: {student_id}")
                 db.evaluations.update_one(
                     {"group_id": group_id, "student_id": student_id},
                     {"$set": {
@@ -1248,8 +1255,10 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
                     }}
                 )
             else:
+                print(f"Insert performed for student_id: {student_id}")
                 eval_doc["id"] = get_next_sequence_value("evaluations")
                 db.evaluations.insert_one(eval_doc)
+        print(f"Save successful for group_id: {group_id}")
 
         # Calculate overall phase marks by taking the average of all students' total marks
         try:
