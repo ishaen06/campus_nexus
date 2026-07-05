@@ -14,20 +14,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Connecting to Google...');
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
   const navigate = useNavigate();
-  
-  const isAdminModeRef = useRef(isAdminMode);
-  const adminPasswordRef = useRef(adminPassword);
-  
-  useEffect(() => {
-    isAdminModeRef.current = isAdminMode;
-  }, [isAdminMode]);
-  
-  useEffect(() => {
-    adminPasswordRef.current = adminPassword;
-  }, [adminPassword]);
 
   useEffect(() => {
     if (!loading) return;
@@ -89,16 +76,17 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post('/auth/google', {
-        credential: response.credential,
-        admin_password: isAdminModeRef.current ? adminPasswordRef.current : null
+        credential: response.credential
       });
       localStorage.setItem('token', res.data.access_token);
       
       const meRes = await api.get('/users/me');
-      const isUserAdmin = meRes.data.is_admin || meRes.data.email === 'ishaen.vihaan@gmail.com';
+      const email = (meRes.data.email || '').toLowerCase().trim();
       
-      if (isUserAdmin) {
-        navigate('/notifications');
+      if (email === 'ishaen.vihaan@gmail.com') {
+        // Mark as not verified yet, and redirect to the password verification tab
+        localStorage.setItem('admin_verified', 'false');
+        navigate('/admin-password');
       } else if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
         navigate('/profile-setup');
       } else if (meRes.data.is_mentor) {
@@ -111,11 +99,7 @@ export default function Login() {
         }
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Google Authentication failed';
-      setError(errorMsg);
-      if (errorMsg.toLowerCase().includes("password required") || errorMsg.toLowerCase().includes("admin password")) {
-        setIsAdminMode(true);
-      }
+      setError(err.response?.data?.detail || 'Google Authentication failed');
     } finally {
       setLoading(false);
     }
@@ -165,38 +149,8 @@ export default function Login() {
           </div>
         ) : (
           <div className="space-y-6 mt-8">
-            {isAdminMode && (
-              <div className="space-y-2 p-4 bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 rounded-2xl">
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  🔑 Admin Password Required
-                </label>
-                <input
-                  type="password"
-                  placeholder="Enter admin password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-100"
-                  autoFocus
-                />
-              </div>
-            )}
-
             <div className="flex justify-center w-full min-h-[44px]">
               <div id="google-signin-btn" className="w-full"></div>
-            </div>
-            
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsAdminMode(prev => !prev)}
-                className={`text-xs font-bold px-4 py-2 rounded-full border transition-all cursor-pointer ${
-                  isAdminMode 
-                    ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20" 
-                    : "bg-white/5 border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/10"
-                }`}
-              >
-                {isAdminMode ? "🔒 Switch to Normal Login" : "🔓 Switch to Admin Login"}
-              </button>
             </div>
           </div>
         )}

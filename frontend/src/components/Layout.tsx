@@ -56,14 +56,23 @@ export default function Layout() {
     api.get('/users/me')
       .then(res => {
         setCurrentUser(res.data);
-        setIsAdmin(res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com');
+        const isAdminUser = res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com';
+        setIsAdmin(isAdminUser);
         setIsMentor(res.data.is_mentor);
+        
+        // Admin verification check
+        if (isAdminUser && localStorage.getItem('admin_verified') !== 'true') {
+          if (location.pathname !== '/admin-password') {
+            navigate('/admin-password');
+            return;
+          }
+        }
         
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
           || (res.data.is_mentor === false && (!res.data.usn || !res.data.bio))
           || (res.data.is_mentor === true && (!res.data.department || !res.data.post || !res.data.bio));
           
-        if (needsSetup && location.pathname !== '/profile-setup') {
+        if (needsSetup && location.pathname !== '/profile-setup' && location.pathname !== '/admin-password') {
           navigate('/profile-setup');
         }
       })
@@ -104,7 +113,7 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const navItems = isMentor
+  let navItems = isMentor
     ? [
         { name: 'Dashboard', path: '/mentor-dashboard', icon: LayoutDashboard },
         { name: 'Notifications', path: '/notifications', icon: Bell },
@@ -128,12 +137,21 @@ export default function Layout() {
     }
   }
 
+  // Guard navigation links if admin is not verified yet
+  const isEmailAdmin = currentUser?.email === 'ishaen.vihaan@gmail.com';
+  const isAdminVerified = localStorage.getItem('admin_verified') === 'true';
+  if (isEmailAdmin && !isAdminVerified) {
+    navItems = [
+      { name: 'Verify Password', path: '/admin-password', icon: ShieldAlert }
+    ];
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
       {/* Desktop Sidebar */}
       <nav className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50">
         <div className="p-6">
-          <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
+          <Link to={isEmailAdmin && !isAdminVerified ? "/admin-password" : (isMentor ? "/mentor-dashboard" : "/discovery")} className="flex items-center gap-3">
             <Logo size={36} showText={false} />
             <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Campus Nexus

@@ -14,6 +14,7 @@ import Chat from './pages/Chat';
 import GroupChat from './pages/GroupChat';
 import AdminDashboard from './pages/AdminDashboard';
 import Notifications from './pages/Notifications';
+import AdminPassword from './pages/AdminPassword';
 import Layout from './components/Layout';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
           <Route path="/chat/group/:groupId" element={<GroupChat />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/admin-password" element={<AdminPassword />} />
           <Route path="/dashboard" element={<Navigate to="/discovery" replace />} />
         </Route>
         
