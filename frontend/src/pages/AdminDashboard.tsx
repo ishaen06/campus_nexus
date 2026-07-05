@@ -72,26 +72,49 @@ export default function AdminDashboard() {
           <p className="text-gray-500 font-medium mt-1">Review flagged profiles, user reports, and manage campus safety bans</p>
         </div>
         
-        <button
-          onClick={async () => {
-            try {
-              const res = await api.get('/admin/download-approved-teams', { responseType: 'blob' });
-              const url = window.URL.createObjectURL(new Blob([res.data]));
-              const link = document.createElement('a');
-              link.href = url;
-              link.setAttribute('download', 'approved_teams.csv');
-              document.body.appendChild(link);
-              link.click();
-              link.parentNode?.removeChild(link);
-            } catch (err) {
-              console.error("Failed to download teams CSV", err);
-              alert("Failed to download spreadsheet.");
-            }
-          }}
-          className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-full hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/25 flex items-center gap-2 cursor-pointer text-sm"
-        >
-          Download Approved Teams Spreadsheet
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={async () => {
+              try {
+                const res = await api.get('/admin/download-approved-teams', { responseType: 'blob' });
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'approved_teams.csv');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode?.removeChild(link);
+              } catch (err) {
+                console.error("Failed to download teams CSV", err);
+                alert("Failed to download spreadsheet.");
+              }
+            }}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+          >
+            Download Teams
+          </button>
+          
+          <button
+            onClick={async () => {
+              try {
+                const res = await api.get('/admin/download-student-marks', { responseType: 'blob' });
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'student_phase_marks.csv');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode?.removeChild(link);
+              } catch (err) {
+                console.error("Failed to download student marks CSV", err);
+                alert("Failed to download marks spreadsheet.");
+              }
+            }}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-emerald-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+          >
+            Download Phase 1/2/3 Marks
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
