@@ -40,13 +40,6 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
 
-    # Check if this is the admin email
-    if email == "ishaen.vihaan@gmail.com":
-        if not payload.admin_password:
-            raise HTTPException(status_code=400, detail="Admin password required")
-        if payload.admin_password != "12345678":
-            raise HTTPException(status_code=401, detail="Invalid admin password")
-
     # Check if user already exists
     user = db.users.find_one({"email": email})
     
