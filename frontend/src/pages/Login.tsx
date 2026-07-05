@@ -80,7 +80,11 @@ export default function Login() {
     
     let email = '';
     try {
-      const payloadBase64 = response.credential.split('.')[1];
+      let payloadBase64 = response.credential.split('.')[1];
+      // Add base64url padding
+      const padLength = (4 - (payloadBase64.length % 4)) % 4;
+      payloadBase64 += '='.repeat(padLength);
+      
       const decodedPayload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
       email = (decodedPayload.email || '').toLowerCase().trim();
     } catch (e) {

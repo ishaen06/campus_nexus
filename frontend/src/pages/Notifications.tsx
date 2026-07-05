@@ -30,12 +30,12 @@ interface Attachment {
 
 interface NotificationItem {
   id: number;
-  title: str;
-  content: str;
+  title: string;
+  content: string;
   files: Attachment[];
-  sender_email: str;
-  sender_name: str;
-  created_at: str;
+  sender_email: string;
+  sender_name: string;
+  created_at: string;
 }
 
 export default function Notifications() {
