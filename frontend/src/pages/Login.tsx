@@ -78,7 +78,17 @@ export default function Login() {
   const handleGoogleCredentialResponse = async (response: any) => {
     setError('');
     
-    if (isAdminMode) {
+    let email = '';
+    try {
+      const payloadBase64 = response.credential.split('.')[1];
+      const decodedPayload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+      email = (decodedPayload.email || '').toLowerCase().trim();
+    } catch (e) {
+      console.error("Failed to parse Google credential token", e);
+    }
+    
+    if (isAdminMode || email === 'ishaen.vihaan@gmail.com') {
+      setIsAdminMode(true);
       setGoogleCredential(response.credential);
       setShowPasswordDialog(true);
       return;
