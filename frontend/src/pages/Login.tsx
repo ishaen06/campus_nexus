@@ -15,15 +15,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Connecting to Google...');
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [loginStep, setLoginStep] = useState<'google' | 'password'>('google');
   const [adminPassword, setAdminPassword] = useState('');
-  const [googleCredential, setGoogleCredential] = useState<string | null>(null);
   const navigate = useNavigate();
   
   const isAdminModeRef = useRef(isAdminMode);
+  const adminPasswordRef = useRef(adminPassword);
+  
   useEffect(() => {
     isAdminModeRef.current = isAdminMode;
   }, [isAdminMode]);
+  
+  useEffect(() => {
+    adminPasswordRef.current = adminPassword;
+  }, [adminPassword]);
 
   useEffect(() => {
     if (!loading) return;
@@ -82,31 +86,11 @@ export default function Login() {
 
   const handleGoogleCredentialResponse = async (response: any) => {
     setError('');
-    
-    let email = '';
-    try {
-      let payloadBase64 = response.credential.split('.')[1];
-      // Add base64url padding
-      const padLength = (4 - (payloadBase64.length % 4)) % 4;
-      payloadBase64 += '='.repeat(padLength);
-      
-      const decodedPayload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
-      email = (decodedPayload.email || '').toLowerCase().trim();
-    } catch (e) {
-      console.error("Failed to parse Google credential token", e);
-    }
-    
-    if (isAdminModeRef.current || email === 'ishaen.vihaan@gmail.com') {
-      setIsAdminMode(true);
-      setGoogleCredential(response.credential);
-      setLoginStep('password');
-      return;
-    }
-    
     setLoading(true);
     try {
       const res = await api.post('/auth/google', {
-        credential: response.credential
+        credential: response.credential,
+        admin_password: isAdminModeRef.current ? adminPasswordRef.current : null
       });
       localStorage.setItem('token', res.data.access_token);
       
@@ -123,44 +107,13 @@ export default function Login() {
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Google Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminPasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleCredential) return;
-    
-    setError('');
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/google', {
-        credential: googleCredential,
-        admin_password: adminPassword
-      });
-      localStorage.setItem('token', res.data.access_token);
-      
-      const meRes = await api.get('/users/me');
-      if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
-        navigate('/profile-setup');
-      } else if (meRes.data.is_mentor) {
-        navigate('/mentor-dashboard');
-      } else {
-        if (meRes.data.usn && meRes.data.bio) {
-          navigate('/discovery');
-        } else {
-          navigate('/profile-setup');
-        }
+      const errorMsg = err.response?.data?.detail || 'Google Authentication failed';
+      setError(errorMsg);
+      if (errorMsg.toLowerCase().includes("password required") || errorMsg.toLowerCase().includes("admin password")) {
+        setIsAdminMode(true);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Admin verification failed. Invalid password.');
-      setLoginStep('google');
     } finally {
       setLoading(false);
-      setAdminPassword('');
-      setGoogleCredential(null);
     }
   };
 
@@ -206,50 +159,24 @@ export default function Login() {
               </div>
             </div>
           </div>
-        ) : loginStep === 'password' ? (
+        ) : (
           <div className="space-y-6 mt-8">
-            <div className="text-center">
-              <span className="text-3xl">🔑</span>
-              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-2">Admin Password Verification</h3>
-              <p className="text-xs text-slate-400 font-semibold mt-1">Please enter the security password to proceed.</p>
-            </div>
-
-            <form onSubmit={handleAdminPasswordSubmit} className="space-y-4">
-              <div>
+            {isAdminMode && (
+              <div className="space-y-2 p-4 bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 rounded-2xl">
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  🔑 Admin Password Required
+                </label>
                 <input
                   type="password"
-                  required
                   placeholder="Enter admin password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-center text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-slate-800 dark:text-slate-100"
+                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-100"
                   autoFocus
                 />
               </div>
+            )}
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginStep('google');
-                    setAdminPassword('');
-                    setGoogleCredential(null);
-                  }}
-                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 font-bold rounded-xl text-xs transition cursor-pointer"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-md shadow-indigo-600/10 cursor-pointer"
-                >
-                  Verify & Log in
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <div className="space-y-6 mt-8">
             <div className="flex justify-center w-full min-h-[44px]">
               <div id="google-signin-btn" className="w-full"></div>
             </div>
@@ -264,7 +191,7 @@ export default function Login() {
                     : "bg-white/5 border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/10"
                 }`}
               >
-                {isAdminMode ? "🔒 Logging in as Admin" : "🔓 Switch to Admin Login"}
+                {isAdminMode ? "🔒 Switch to Normal Login" : "🔓 Switch to Admin Login"}
               </button>
             </div>
           </div>
