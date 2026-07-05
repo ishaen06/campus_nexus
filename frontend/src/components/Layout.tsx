@@ -104,7 +104,7 @@ export default function Layout() {
     navigate('/login');
   };
 
-  let navItems = isMentor
+  const navItems = isMentor
     ? [
         { name: 'Dashboard', path: '/mentor-dashboard', icon: LayoutDashboard },
         { name: 'Notifications', path: '/notifications', icon: Bell },
@@ -132,7 +132,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
       {/* Desktop Sidebar */}
       <nav className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50">
-         <div className="p-6">
+        <div className="p-6">
           <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
             <Logo size={44} showText={false} />
             <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">

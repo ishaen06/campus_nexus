@@ -40,6 +40,13 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
 
+    # Check if this is the admin email
+    if email == "ishaen.vihaan@gmail.com":
+        if not payload.admin_password:
+            raise HTTPException(status_code=400, detail="Admin password required")
+        if payload.admin_password != "12345678":
+            raise HTTPException(status_code=401, detail="Invalid admin password")
+
     # Check if user already exists
     user = db.users.find_one({"email": email})
     
@@ -95,22 +102,4 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         data={"sub": user["email"], "id": user["id"]}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
-from pydantic import BaseModel
-from routers.users import get_current_user
-
-class VerifyAdminPasswordRequest(BaseModel):
-    password: str
-
-@router.post("/verify-admin-password")
-def verify_admin_password(
-    payload: VerifyAdminPasswordRequest,
-    current_user = Depends(get_current_user)
-):
-    email = (current_user.get("email") or "").lower().strip()
-    if email != "ishaen.vihaan@gmail.com":
-        raise HTTPException(status_code=403, detail="Only the administrator can perform this verification.")
-    if payload.password != "12345678":
-        raise HTTPException(status_code=401, detail="Invalid admin password.")
-    return {"status": "success", "message": "Admin password verified successfully."}
 
