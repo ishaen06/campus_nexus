@@ -82,11 +82,10 @@ export default function Login() {
       
       const meRes = await api.get('/users/me');
       const email = (meRes.data.email || '').toLowerCase().trim();
+      const isUserAdmin = meRes.data.is_admin || email === 'ishaen.vihaan@gmail.com';
       
-      if (email === 'ishaen.vihaan@gmail.com') {
-        // Mark as not verified yet, and redirect to the password verification tab
-        localStorage.setItem('admin_verified', 'false');
-        navigate('/admin-password');
+      if (isUserAdmin) {
+        navigate('/notifications');
       } else if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
         navigate('/profile-setup');
       } else if (meRes.data.is_mentor) {

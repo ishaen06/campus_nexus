@@ -10,12 +10,10 @@ import {
   Trash2, 
   Mail, 
   MailOpen, 
-  User, 
   AlertCircle,
   X,
   Plus,
   SendHorizontal,
-  ChevronRight,
   ArrowLeft
 } from 'lucide-react';
 import api from '../api';
