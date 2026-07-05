@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Printer, Save, FileText, CheckCircle2, User } from 'lucide-react';
 import api from '../api';
 
@@ -35,9 +35,7 @@ export default function EvaluationFormModal({
 
   // Dictionary of student evaluations: { [studentId]: { phase1_detail_marks, phase1_observations, ... } }
   const [studentEvals, setStudentEvals] = useState<Record<number, any>>({});
-
-  // Track the last team ID + isOpen that we initialized from, so we re-init only on genuine changes
-  const lastInitKeyRef = useRef<string>('');
+  const [loadingEvals, setLoadingEvals] = useState(false);
 
   // Helper: build studentEvals map from a raw student_evaluations dict + members list
   const buildEvalsMap = (members: any[], storedEvals: Record<string, any>) => {
@@ -74,55 +72,71 @@ export default function EvaluationFormModal({
     return { evalsMap, studs };
   };
 
-  // 1. Initialize data only when the modal opens for a (possibly different) team
-  // or when the team's student_evaluations data has changed (new marks saved by mentor)
+  // Fetch fresh evaluation data from the server every time the modal opens.
+  // This guarantees we always show persisted data regardless of prop staleness.
   useEffect(() => {
     if (!isOpen || !team) return;
-    
-    console.log("Evaluation page opened");
-    console.log("Evaluator ID received:", team.mentor_email || team.mentor_name);
 
-    const evalFingerprint = JSON.stringify(team.student_evaluations || {}).length;
-    const initKey = `${team.id}:${isOpen}:${evalFingerprint}`;
-    if (lastInitKeyRef.current === initKey) {
-      console.log("Form already initialized for this state, skipping re-init");
-      return; 
-    }
-    lastInitKeyRef.current = initKey;
+    const loadFreshData = async () => {
+      setLoadingEvals(true);
+      console.log('Evaluation modal opened — fetching fresh data from server for group', team.id);
+      try {
+        const res = await api.get(`/chat/groups/${team.id}`);
+        const freshTeam = res.data;
+        console.log('Fresh team data received. student_evaluations keys:', Object.keys(freshTeam.student_evaluations || {}));
 
-    setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
-    setChiefMentorDesignation(team.chief_mentor_designation || 'PRINCIPAL');
-    setChiefMentorDepartment(team.chief_mentor_department || '');
-    setEvaluators(team.evaluators && team.evaluators.length ? [...team.evaluators] : ['', '', '', '']);
+        setChiefMentorName(freshTeam.chief_mentor_name || 'DR SUBRAMANYA KN');
+        setChiefMentorDesignation(freshTeam.chief_mentor_designation || 'PRINCIPAL');
+        setChiefMentorDepartment(freshTeam.chief_mentor_department || '');
+        setEvaluators(freshTeam.evaluators && freshTeam.evaluators.length ? [...freshTeam.evaluators] : ['', '', '', '']);
 
-    const storedEvals = team.student_evaluations || {};
-    const { evalsMap, studs } = buildEvalsMap(team.members || [], storedEvals);
-    
-    studs.forEach((stud: any) => {
-      const hasEval = !!storedEvals[stud.id.toString()] || !!storedEvals[stud.id];
-      console.log(`Student ${stud.id} (${stud.full_name}): Existing evaluation found: ${hasEval}`);
-    });
-    
-    setStudentEvals(evalsMap);
+        const storedEvals = freshTeam.student_evaluations || {};
+        const membersSource = freshTeam.members && freshTeam.members.length > 0
+          ? freshTeam.members
+          : (team.members || []);
+        const { evalsMap, studs } = buildEvalsMap(membersSource, storedEvals);
 
-    if (studs.length > 0) {
-      setSelectedStudentId(prevId => {
-        const targetId = initialStudentId || prevId;
-        const stillExists = studs.some((s: any) => s.id === targetId);
-        const finalId = (targetId && stillExists) ? targetId : studs[0].id;
-        console.log("Student ID received:", finalId);
-        console.log("Form populated successfully for student:", finalId);
-        return finalId;
-      });
-    }
-  }, [isOpen, team?.id, team?.student_evaluations, initialStudentId]);
+        studs.forEach((stud: any) => {
+          const hasEval = !!storedEvals[stud.id.toString()] || !!storedEvals[stud.id];
+          console.log(`Student ${stud.id} (${stud.full_name}): Existing evaluation found: ${hasEval}`);
+        });
 
-  // Reset init key when modal closes so next open re-reads fresh team data from server
-  useEffect(() => {
-    if (!isOpen) {
-      lastInitKeyRef.current = '';
-    }
-  }, [isOpen]);
+        setStudentEvals(evalsMap);
+
+        if (studs.length > 0) {
+          setSelectedStudentId(prevId => {
+            const targetId = initialStudentId || prevId;
+            const stillExists = studs.some((s: any) => s.id === targetId);
+            const finalId = (targetId && stillExists) ? targetId : studs[0].id;
+            console.log('Selected student ID:', finalId);
+            return finalId;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch fresh evaluation data, falling back to prop data:', err);
+        // Fallback: use the team prop data if the API call fails
+        setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
+        setChiefMentorDesignation(team.chief_mentor_designation || 'PRINCIPAL');
+        setChiefMentorDepartment(team.chief_mentor_department || '');
+        setEvaluators(team.evaluators && team.evaluators.length ? [...team.evaluators] : ['', '', '', '']);
+        const storedEvals = team.student_evaluations || {};
+        const { evalsMap, studs } = buildEvalsMap(team.members || [], storedEvals);
+        setStudentEvals(evalsMap);
+        if (studs.length > 0) {
+          setSelectedStudentId(prevId => {
+            const targetId = initialStudentId || prevId;
+            const stillExists = studs.some((s: any) => s.id === targetId);
+            return (targetId && stillExists) ? targetId : studs[0].id;
+          });
+        }
+      } finally {
+        setLoadingEvals(false);
+      }
+    };
+
+    loadFreshData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, team?.id]);
 
   if (!isOpen || !team) return null;
 
@@ -1021,9 +1035,17 @@ export default function EvaluationFormModal({
 
         {/* Form Body - Scrollable */}
         <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6 text-left">
-          
+
+          {/* Loading overlay while fetching evaluations from server */}
+          {loadingEvals && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Loading saved evaluations…</p>
+            </div>
+          )}
+
           {/* Cover & General Metadata */}
-          {activeTab === 'info' && (
+          {!loadingEvals && activeTab === 'info' && (
             <div className="space-y-5">
               <div className="bg-indigo-50/30 dark:bg-indigo-950/10 border border-indigo-100/40 dark:border-indigo-900/30 rounded-2xl p-5 space-y-3">
                 <h4 className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Auto-Filled Project Info</h4>
@@ -1110,7 +1132,7 @@ export default function EvaluationFormModal({
           )}
 
           {/* Student Selector for Grades (Tabs Phase 1, Phase 2, Phase 3) */}
-          {activeTab !== 'info' && studentsList.length > 0 && (
+          {!loadingEvals && activeTab !== 'info' && studentsList.length > 0 && (
             <div className="bg-slate-50 dark:bg-slate-950/20 p-4 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-3 mb-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">{isMentor ? 'Select Student to Grade' : 'Select Student'}</span>
               <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -1134,7 +1156,7 @@ export default function EvaluationFormModal({
           )}
 
           {/* Phase 1 */}
-          {activeTab === 'phase1' && selectedStudentId && (
+          {!loadingEvals && activeTab === 'phase1' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 1 Score Breakdown</h4>
@@ -1215,7 +1237,7 @@ export default function EvaluationFormModal({
           )}
 
           {/* Phase 2 */}
-          {activeTab === 'phase2' && selectedStudentId && (
+          {!loadingEvals && activeTab === 'phase2' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 2 Score Breakdown</h4>
@@ -1296,7 +1318,7 @@ export default function EvaluationFormModal({
           )}
 
           {/* Phase 3 */}
-          {activeTab === 'phase3' && selectedStudentId && (
+          {!loadingEvals && activeTab === 'phase3' && selectedStudentId && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 3 Score Breakdown</h4>
@@ -1405,7 +1427,7 @@ export default function EvaluationFormModal({
             {(isMentor || activeTab === 'info') && (
               <button
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || loadingEvals}
                 className="flex items-center gap-1.5 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/15 cursor-pointer uppercase tracking-wider"
               >
                 {saving ? (
