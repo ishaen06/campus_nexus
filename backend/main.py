@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from routers import auth, users, connections, chat, communities, events, admin
+from routers import auth, users, connections, chat, communities, events, admin, notifications
 import os, traceback
 
 app = FastAPI(title="Engineering Link (EL) API")
@@ -36,6 +36,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(communities.router, prefix="/api/communities", tags=["communities"])
 app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 
 @app.get("/")
 def read_root():

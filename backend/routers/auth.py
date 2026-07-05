@@ -40,6 +40,13 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
 
+    # Check if this is the admin email
+    if email == "ishaen.vihaan@gmail.com":
+        if not payload.admin_password:
+            raise HTTPException(status_code=400, detail="Admin password required")
+        if payload.admin_password != "12345678":
+            raise HTTPException(status_code=401, detail="Invalid admin password")
+
     # Check if user already exists
     user = db.users.find_one({"email": email})
     
@@ -59,23 +66,35 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             "year_of_study": None,
             "hashed_password": "",  # No password needed for Google OAuth
             "cycle": None,
-            "is_mentor": None,      # None means role is not yet selected
-            "department": None,
-            "post": None,
+            "is_mentor": True if email == "ishaen.vihaan@gmail.com" else None,      # Default admin as mentor role so they see dashboard
+            "department": "Admin Office" if email == "ishaen.vihaan@gmail.com" else None,
+            "post": "Chief Administrator" if email == "ishaen.vihaan@gmail.com" else None,
             "is_verified": True,     # Google emails are pre-verified
-            "is_admin": False,
+            "is_admin": True if email == "ishaen.vihaan@gmail.com" else False,
             "is_banned": False,
-            "bio": "",
+            "bio": "Platform Administrator account." if email == "ishaen.vihaan@gmail.com" else "",
             "interests": [],
             "goals": [],
-            "avatar_config": avatar_config
+            "avatar_config": avatar_config or ({"emoji": "🛡️", "bg": 2} if email == "ishaen.vihaan@gmail.com" else None)
         }
         db.users.insert_one(user)
     else:
         # Ensure user is marked verified
+        update_fields = {}
         if not user.get("is_verified", False):
-            db.users.update_one({"email": email}, {"$set": {"is_verified": True}})
+            update_fields["is_verified"] = True
             user["is_verified"] = True
+            
+        if email == "ishaen.vihaan@gmail.com":
+            if not user.get("is_admin", False):
+                update_fields["is_admin"] = True
+                user["is_admin"] = True
+            if not user.get("is_mentor", False):
+                update_fields["is_mentor"] = True
+                user["is_mentor"] = True
+                
+        if update_fields:
+            db.users.update_one({"email": email}, {"$set": update_fields})
 
     # Generate session access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

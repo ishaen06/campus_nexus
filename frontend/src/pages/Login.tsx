@@ -14,6 +14,10 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Connecting to Google...');
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [googleCredential, setGoogleCredential] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,6 +77,13 @@ export default function Login() {
 
   const handleGoogleCredentialResponse = async (response: any) => {
     setError('');
+    
+    if (isAdminMode) {
+      setGoogleCredential(response.credential);
+      setShowPasswordDialog(true);
+      return;
+    }
+    
     setLoading(true);
     try {
       const res = await api.post('/auth/google', {
@@ -96,6 +107,41 @@ export default function Login() {
       setError(err.response?.data?.detail || 'Google Authentication failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAdminPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleCredential) return;
+    
+    setError('');
+    setShowPasswordDialog(false);
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/google', {
+        credential: googleCredential,
+        admin_password: adminPassword
+      });
+      localStorage.setItem('token', res.data.access_token);
+      
+      const meRes = await api.get('/users/me');
+      if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
+        navigate('/profile-setup');
+      } else if (meRes.data.is_mentor) {
+        navigate('/mentor-dashboard');
+      } else {
+        if (meRes.data.usn && meRes.data.bio) {
+          navigate('/discovery');
+        } else {
+          navigate('/profile-setup');
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Admin verification failed. Invalid password.');
+    } finally {
+      setLoading(false);
+      setAdminPassword('');
+      setGoogleCredential(null);
     }
   };
 
@@ -142,11 +188,78 @@ export default function Login() {
             </div>
           </div>
         ) : (
-          <div className="flex justify-center w-full min-h-[44px] mt-8">
-            <div id="google-signin-btn" className="w-full"></div>
+          <div className="space-y-6 mt-8">
+            <div className="flex justify-center w-full min-h-[44px]">
+              <div id="google-signin-btn" className="w-full"></div>
+            </div>
+            
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsAdminMode(prev => !prev)}
+                className={`text-xs font-bold px-4 py-2 rounded-full border transition-all cursor-pointer ${
+                  isAdminMode 
+                    ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20" 
+                    : "bg-white/5 border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/10"
+                }`}
+              >
+                {isAdminMode ? "🔒 Logging in as Admin" : "🔓 Switch to Admin Login"}
+              </button>
+            </div>
           </div>
         )}
       </motion.div>
+
+      {/* Admin Password verification Modal Dialog Overlay */}
+      {showPasswordDialog && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="max-w-sm w-full glass-panel p-8 space-y-5 border border-white/10"
+          >
+            <div className="text-center">
+              <span className="text-3xl">🔑</span>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white mt-2">Admin Security Verification</h3>
+              <p className="text-xs text-slate-400 font-semibold mt-1">Please enter the security password to authenticate administrative access.</p>
+            </div>
+
+            <form onSubmit={handleAdminPasswordSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter admin password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-center text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordDialog(false);
+                    setAdminPassword('');
+                    setGoogleCredential(null);
+                  }}
+                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 font-bold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-md shadow-red-600/10 cursor-pointer"
+                >
+                  Verify & Log in
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, ShieldAlert, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { Compass, Users, FolderGit, ShieldAlert, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -56,7 +56,7 @@ export default function Layout() {
     api.get('/users/me')
       .then(res => {
         setCurrentUser(res.data);
-        setIsAdmin(res.data.is_admin);
+        setIsAdmin(res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com');
         setIsMentor(res.data.is_mentor);
         
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
@@ -107,20 +107,25 @@ export default function Layout() {
   const navItems = isMentor
     ? [
         { name: 'Dashboard', path: '/mentor-dashboard', icon: LayoutDashboard },
+        { name: 'Notifications', path: '/notifications', icon: Bell },
         { name: 'My Teams', path: '/my-teams', icon: Users },
         { name: 'Chats', path: '/connections', icon: MessageSquare },
         { name: 'My Profile', path: '/profile/edit', icon: UserIcon },
       ]
     : [
         { name: 'Discovery', path: '/discovery', icon: Compass },
+        { name: 'Notifications', path: '/notifications', icon: Bell },
         { name: 'Chats', path: '/connections', icon: MessageSquare },
         { name: 'My Team', path: '/my-team', icon: Users },
         { name: 'Project Dashboard', path: '/project-dashboard', icon: FolderGit },
         { name: 'Profile', path: '/profile/edit', icon: UserIcon },
       ];
   
-  if (!isMentor && isAdmin) {
-    navItems.push({ name: 'Admin', path: '/admin', icon: ShieldAlert, danger: true } as any);
+  if (isAdmin) {
+    const hasAdminLink = navItems.some(item => item.name === 'Admin');
+    if (!hasAdminLink) {
+      navItems.push({ name: 'Admin', path: '/admin', icon: ShieldAlert, danger: true } as any);
+    }
   }
 
   return (

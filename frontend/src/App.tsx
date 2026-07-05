@@ -13,6 +13,7 @@ import TeamDetails from './pages/TeamDetails';
 import Chat from './pages/Chat';
 import GroupChat from './pages/GroupChat';
 import AdminDashboard from './pages/AdminDashboard';
+import Notifications from './pages/Notifications';
 import Layout from './components/Layout';
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
           <Route path="/chat/:connectionId" element={<Chat />} />
           <Route path="/chat/group/:groupId" element={<GroupChat />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/dashboard" element={<Navigate to="/discovery" replace />} />
         </Route>
         

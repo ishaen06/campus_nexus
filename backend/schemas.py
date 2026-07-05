@@ -45,6 +45,7 @@ class ProfileUpdate(BaseModel):
 
 class GoogleLoginRequest(BaseModel):
     credential: str
+    admin_password: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str
