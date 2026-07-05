@@ -10,12 +10,10 @@ import {
   Trash2, 
   Mail, 
   MailOpen, 
-  User, 
   AlertCircle,
   X,
   Plus,
   SendHorizontal,
-  ChevronRight,
   ArrowLeft
 } from 'lucide-react';
 import api from '../api';
@@ -191,7 +189,6 @@ export default function Notifications() {
       return importantIds.includes(notif.id);
     }
     if (activeFolder === 'sent') {
-      // Sent folder matches notifications sent by the current admin user
       return notif.sender_email === currentUser?.email;
     }
     return true; // Inbox
@@ -203,10 +200,10 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-900 text-slate-100 font-sans">
+    <div className="min-h-screen flex flex-col md:flex-row bg-transparent text-slate-800 dark:text-slate-100 font-sans">
       
       {/* Gmail Left Sidebar Section */}
-      <div className="w-full md:w-64 border-r border-slate-800 bg-slate-950/45 p-4 flex flex-col gap-6">
+      <div className="w-full md:w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-4 flex flex-col gap-6">
         
         {/* Compose Button for Admin */}
         {isAdmin && (
@@ -238,8 +235,8 @@ export default function Notifications() {
                 }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer w-full text-left ${
                   isActive 
-                    ? 'bg-indigo-600/15 border-l-4 border-indigo-500 text-indigo-400 font-extrabold' 
-                    : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200'
+                    ? 'bg-indigo-600/10 dark:bg-indigo-600/15 border-l-4 border-indigo-600 dark:border-indigo-500 text-indigo-700 dark:text-indigo-400 font-extrabold' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <Icon size={16} />
@@ -254,19 +251,19 @@ export default function Notifications() {
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* Top Search bar */}
-        <div className="border-b border-slate-800 p-4 bg-slate-950/20 backdrop-blur-md flex items-center justify-between gap-4">
+        <div className="border-b border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-950/20 backdrop-blur-md flex items-center justify-between gap-4">
           <div className="flex-1 max-w-xl relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search notifications..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl outline-none text-xs font-semibold text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
+              className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
             />
           </div>
           
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
+          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest hidden sm:block">
             College Official Feed
           </div>
         </div>
@@ -275,19 +272,19 @@ export default function Notifications() {
         <div className="flex-1 flex min-h-0 relative">
           
           {/* Notifications List Pane */}
-          <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${selectedNotif ? 'hidden lg:flex lg:w-1/2 border-r border-slate-800' : 'w-full'}`}>
+          <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${selectedNotif ? 'hidden lg:flex lg:w-1/2 border-r border-slate-200 dark:border-slate-800' : 'w-full'}`}>
             {loading ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8">
                 <div className="w-8 h-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin mb-3"></div>
-                <p className="text-xs text-slate-400 font-medium">Fetching notifications...</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Fetching notifications...</p>
               </div>
             ) : filteredNotifications.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500">
-                <Mail size={40} className="text-slate-700 mb-3" />
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500">
+                <Mail size={40} className="text-slate-300 dark:text-slate-700 mb-3" />
                 <p className="text-xs font-bold">No notifications found in {activeFolder}</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/60">
+              <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {filteredNotifications.map(notif => {
                   const hasAttachments = notif.files && notif.files.length > 0;
                   const isStarred = starredIds.includes(notif.id);
@@ -297,7 +294,7 @@ export default function Notifications() {
                     <div
                       key={notif.id}
                       onClick={() => setSelectedNotif(notif)}
-                      className={`p-4 flex gap-4 hover:bg-slate-800/40 cursor-pointer transition-all ${
+                      className={`p-4 flex gap-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 cursor-pointer transition-all ${
                         selectedNotif?.id === notif.id ? 'bg-indigo-600/10' : ''
                       }`}
                     >
@@ -306,7 +303,7 @@ export default function Notifications() {
                         <button
                           onClick={(e) => handleToggleStar(e, notif.id)}
                           className={`hover:scale-110 transition-transform cursor-pointer ${
-                            isStarred ? 'text-amber-500' : 'text-slate-600 hover:text-slate-400'
+                            isStarred ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400'
                           }`}
                         >
                           <Star size={15} fill={isStarred ? "currentColor" : "none"} />
@@ -314,7 +311,7 @@ export default function Notifications() {
                         <button
                           onClick={(e) => handleToggleImportant(e, notif.id)}
                           className={`hover:scale-110 transition-transform cursor-pointer ${
-                            isImportant ? 'text-rose-500' : 'text-slate-600 hover:text-slate-400'
+                            isImportant ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400'
                           }`}
                         >
                           <AlertCircle size={15} fill={isImportant ? "currentColor" : "none"} />
@@ -324,20 +321,20 @@ export default function Notifications() {
                       {/* Content: Title, snippet, attachment indicator */}
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex justify-between items-center gap-2">
-                          <span className="text-xs font-black text-slate-200 truncate">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
                             {notif.sender_name}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-bold whitespace-nowrap">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold whitespace-nowrap">
                             {new Date(notif.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                         
-                        <h4 className="text-xs font-extrabold text-slate-100 truncate flex items-center gap-1.5">
+                        <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                           {notif.title}
-                          {hasAttachments && <Paperclip size={11} className="text-indigo-400 shrink-0" />}
+                          {hasAttachments && <Paperclip size={11} className="text-indigo-600 dark:text-indigo-400 shrink-0" />}
                         </h4>
                         
-                        <p className="text-[11px] text-slate-400 font-medium truncate">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
                           {notif.content}
                         </p>
                       </div>
@@ -349,15 +346,15 @@ export default function Notifications() {
           </div>
 
           {/* Email Expanded Detail View Pane */}
-          <div className={`flex-1 flex-col overflow-y-auto bg-slate-950/20 p-6 ${selectedNotif ? 'flex w-full lg:w-1/2' : 'hidden'}`}>
+          <div className={`flex-1 flex-col overflow-y-auto bg-slate-50/30 dark:bg-slate-950/20 p-6 ${selectedNotif ? 'flex w-full lg:w-1/2' : 'hidden'}`}>
             {selectedNotif ? (
               <div className="space-y-6">
                 
                 {/* Back button for mobile view */}
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => setSelectedNotif(null)}
-                    className="flex items-center gap-2 text-slate-400 hover:text-slate-100 text-xs font-bold cursor-pointer"
+                    className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 text-xs font-bold cursor-pointer"
                   >
                     <ArrowLeft size={14} /> Back to List
                   </button>
@@ -365,16 +362,16 @@ export default function Notifications() {
                   <div className="flex gap-2">
                     <button
                       onClick={(e) => handleToggleStar(e, selectedNotif.id)}
-                      className={`p-2 rounded-lg bg-slate-900 border border-slate-800 transition cursor-pointer ${
-                        starredIds.includes(selectedNotif.id) ? 'text-amber-500' : 'text-slate-400'
+                      className={`p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition cursor-pointer ${
+                        starredIds.includes(selectedNotif.id) ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'
                       }`}
                     >
                       <Star size={14} fill={starredIds.includes(selectedNotif.id) ? "currentColor" : "none"} />
                     </button>
                     <button
                       onClick={(e) => handleToggleImportant(e, selectedNotif.id)}
-                      className={`p-2 rounded-lg bg-slate-900 border border-slate-800 transition cursor-pointer ${
-                        importantIds.includes(selectedNotif.id) ? 'text-rose-500' : 'text-slate-400'
+                      className={`p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition cursor-pointer ${
+                        importantIds.includes(selectedNotif.id) ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500'
                       }`}
                     >
                       <AlertCircle size={14} fill={importantIds.includes(selectedNotif.id) ? "currentColor" : "none"} />
@@ -384,26 +381,26 @@ export default function Notifications() {
 
                 {/* Email Subject Title */}
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-100 leading-tight">
+                  <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-tight">
                     {selectedNotif.title}
                   </h2>
                 </div>
 
                 {/* Sender Header Card */}
-                <div className="flex items-center justify-between gap-4 p-4 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+                <div className="flex items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl">
                   <div className="flex items-center gap-3">
                     <Avatar config={null} name={selectedNotif.sender_name} size={38} />
                     <div>
-                      <div className="text-xs font-black text-slate-200">
+                      <div className="text-xs font-black text-slate-800 dark:text-slate-200">
                         {selectedNotif.sender_name}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
                         &lt;{selectedNotif.sender_email}&gt; • to me
                       </div>
                     </div>
                   </div>
                   
-                  <div className="text-[10px] text-slate-400 font-bold">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
                     {new Date(selectedNotif.created_at).toLocaleString(undefined, { 
                       month: 'short', 
                       day: 'numeric', 
@@ -415,15 +412,15 @@ export default function Notifications() {
                 </div>
 
                 {/* Message Body Content */}
-                <div className="text-slate-300 text-xs font-medium leading-relaxed whitespace-pre-wrap p-4 bg-slate-900/20 border border-slate-900/60 rounded-2xl min-h-[150px]">
+                <div className="text-slate-700 dark:text-slate-300 text-xs font-medium leading-relaxed whitespace-pre-wrap p-4 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 rounded-2xl min-h-[150px]">
                   {selectedNotif.content}
                 </div>
 
                 {/* Attachments Section */}
                 {selectedNotif.files && selectedNotif.files.length > 0 && (
                   <div className="space-y-3 pt-2">
-                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Paperclip size={13} className="text-indigo-400" />
+                    <h5 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Paperclip size={13} className="text-indigo-600 dark:text-indigo-400" />
                       Attachments ({selectedNotif.files.length})
                     </h5>
                     
@@ -433,13 +430,13 @@ export default function Notifications() {
                         return (
                           <div
                             key={file.id}
-                            className="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 flex justify-between items-center gap-3 hover:bg-slate-800/30 transition-all"
+                            className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex justify-between items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-all"
                           >
                             <div className="min-w-0">
-                              <span className="text-xs font-bold text-slate-200 block truncate" title={file.name}>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate" title={file.name}>
                                 {file.name}
                               </span>
-                              <span className="text-[9px] text-slate-500 font-bold block mt-0.5">
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
                                 {getFormatSize(file.size)}
                               </span>
                             </div>
@@ -448,7 +445,7 @@ export default function Notifications() {
                               download
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 rounded-lg transition shrink-0 cursor-pointer"
+                              className="p-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-lg transition shrink-0 cursor-pointer"
                               title="Download Attachment"
                             >
                               <Download size={14} />
@@ -461,10 +458,10 @@ export default function Notifications() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-center">
-                <MailOpen size={45} className="text-slate-800 mb-3" />
-                <h4 className="text-sm font-bold text-slate-400">No message selected</h4>
-                <p className="text-[11px] text-slate-500 mt-1 max-w-[220px]">Select a notification from the list to view its full details and files.</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-center">
+                <MailOpen size={45} className="text-slate-200 dark:text-slate-800 mb-3" />
+                <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400">No message selected</h4>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-[220px]">Select a notification from the list to view its full details and files.</p>
               </div>
             )}
           </div>
@@ -478,18 +475,18 @@ export default function Notifications() {
             initial={{ opacity: 0, y: 100, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
-            className="fixed bottom-0 right-0 md:right-10 w-full max-w-lg bg-slate-950 border border-slate-800 rounded-t-2xl shadow-2xl z-50 flex flex-col max-h-[500px]"
+            className="fixed bottom-0 right-0 md:right-10 w-full max-w-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-t-2xl shadow-2xl z-50 flex flex-col max-h-[500px]"
           >
             {/* Compose header */}
-            <div className="flex justify-between items-center p-4 bg-slate-900 rounded-t-2xl border-b border-slate-800">
-              <span className="text-xs font-extrabold text-slate-200">New Post Notification</span>
+            <div className="flex justify-between items-center p-4 bg-slate-100 dark:bg-slate-900 rounded-t-2xl border-b border-slate-200 dark:border-slate-800">
+              <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">New Post Notification</span>
               <button
                 onClick={() => {
                   setIsComposing(false);
                   setSelectedFiles([]);
                   setUploadError(null);
                 }}
-                className="text-slate-500 hover:text-slate-200 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -499,23 +496,23 @@ export default function Notifications() {
             <form onSubmit={handleSendNotification} className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 space-y-4">
               
               {/* To field (All members indicator) */}
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-                <span className="text-xs text-slate-500 font-bold">To:</span>
-                <span className="text-xs text-indigo-400 font-bold bg-indigo-950/45 px-2.5 py-0.5 rounded-full border border-indigo-900/35">
+              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">To:</span>
+                <span className="text-xs text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/45 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/35 font-bold">
                   All Students & Mentors &lt;everyone@campusnexus.edu&gt;
                 </span>
               </div>
 
               {/* Subject Title field */}
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-                <span className="text-xs text-slate-500 font-bold">Subject:</span>
+              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">Subject:</span>
                 <input
                   type="text"
                   required
                   placeholder="Enter notification subject"
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-200"
+                  className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-800 dark:text-slate-200"
                 />
               </div>
 
@@ -527,26 +524,26 @@ export default function Notifications() {
                   value={body}
                   onChange={e => setBody(e.target.value)}
                   rows={6}
-                  className="w-full h-full bg-transparent border-none outline-none text-xs text-slate-300 resize-none leading-relaxed font-medium"
+                  className="w-full h-full bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-300 resize-none leading-relaxed font-medium"
                 />
               </div>
 
               {/* File Attachment list */}
               {selectedFiles.length > 0 && (
-                <div className="space-y-2 border-t border-slate-800/80 pt-3">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Attachments ({selectedFiles.length})</span>
+                <div className="space-y-2 border-t border-slate-200 dark:border-slate-800/80 pt-3">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Attachments ({selectedFiles.length})</span>
                   <div className="flex flex-wrap gap-2">
                     {selectedFiles.map((file, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold"
+                        className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold"
                       >
-                        <span className="text-slate-300 truncate max-w-[150px]">{file.name}</span>
-                        <span className="text-slate-500">({getFormatSize(file.size)})</span>
+                        <span className="text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{file.name}</span>
+                        <span className="text-slate-400 dark:text-slate-500">({getFormatSize(file.size)})</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveFile(idx)}
-                          className="text-slate-500 hover:text-red-400 cursor-pointer"
+                          className="text-slate-400 hover:text-red-500 cursor-pointer"
                         >
                           <X size={12} />
                         </button>
@@ -558,14 +555,14 @@ export default function Notifications() {
 
               {/* Error logs */}
               {uploadError && (
-                <div className="text-red-500 text-xs font-bold bg-red-950/20 border border-red-900/40 p-3 rounded-xl flex items-center gap-2">
+                <div className="text-red-600 dark:text-red-400 text-xs font-bold bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40 p-3 rounded-xl flex items-center gap-2">
                   <AlertCircle size={14} />
                   <span>{uploadError}</span>
                 </div>
               )}
 
               {/* Form Action Controls bar */}
-              <div className="flex items-center justify-between border-t border-slate-800 pt-4 pb-2">
+              <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 pb-2">
                 <div className="flex items-center gap-2">
                   <button
                     type="submit"
@@ -579,7 +576,7 @@ export default function Notifications() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-slate-800 rounded-xl transition cursor-pointer"
+                    className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl transition cursor-pointer"
                     title="Attach Files"
                   >
                     <Paperclip size={15} />
@@ -602,7 +599,7 @@ export default function Notifications() {
                     setSelectedFiles([]);
                     setUploadError(null);
                   }}
-                  className="p-2.5 text-slate-600 hover:text-red-500 rounded-xl transition cursor-pointer"
+                  className="p-2.5 text-slate-400 hover:text-red-500 rounded-xl transition cursor-pointer"
                   title="Discard Draft"
                 >
                   <Trash2 size={15} />
