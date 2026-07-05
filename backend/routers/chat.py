@@ -250,14 +250,6 @@ def build_group_response(group: dict, db, current_user = None) -> dict:
             "evaluator_id": ev.get("evaluator_id")
         }
         
-    # Restrict evaluations to only the current user's ID if they are a student
-    if current_user and not current_user.get("is_mentor", False) and not current_user.get("is_admin", False):
-        user_id_str = str(current_user["id"])
-        if user_id_str in student_evaluations_dict:
-            student_evaluations_dict = {user_id_str: student_evaluations_dict[user_id_str]}
-        else:
-            student_evaluations_dict = {}
-
     print(f"[Backend build_group_response] student_evaluations_dict: {student_evaluations_dict}")
 
     return {
