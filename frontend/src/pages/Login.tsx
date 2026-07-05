@@ -19,6 +19,11 @@ export default function Login() {
   const [adminPassword, setAdminPassword] = useState('');
   const [googleCredential, setGoogleCredential] = useState<string | null>(null);
   const navigate = useNavigate();
+  
+  const isAdminModeRef = useRef(isAdminMode);
+  useEffect(() => {
+    isAdminModeRef.current = isAdminMode;
+  }, [isAdminMode]);
 
   useEffect(() => {
     if (!loading) return;
@@ -91,7 +96,7 @@ export default function Login() {
       console.error("Failed to parse Google credential token", e);
     }
     
-    if (isAdminMode || email === 'ishaen.vihaan@gmail.com') {
+    if (isAdminModeRef.current || email === 'ishaen.vihaan@gmail.com') {
       setIsAdminMode(true);
       setGoogleCredential(response.credential);
       setShowPasswordDialog(true);
