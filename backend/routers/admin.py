@@ -86,7 +86,7 @@ def download_student_marks(admin = Depends(get_admin_user), db = Depends(get_mon
     writer.writerow(headers)
     
     students = list(db.users.find({
-        "is_mentor": False, 
+        "is_mentor": {"$ne": True}, 
         "is_admin": {"$ne": True},
         "email": {"$ne": "ishaen.vihaan@gmail.com"}
     }))
@@ -126,11 +126,17 @@ def download_student_marks(admin = Depends(get_admin_user), db = Depends(get_mon
         if group:
             eval_doc = db.evaluations.find_one({"group_id": group.get("id"), "student_id": student_id})
             if eval_doc:
-                p1_marks = eval_doc.get("phase1_marks") or 0
+                # Sum the detail marks since phase1_marks is computed from detail marks
+                p1_det = eval_doc.get("phase1_detail_marks") or {}
+                p1_marks = sum(int(float(v or 0)) for v in p1_det.values())
                 p1_obs = eval_doc.get("phase1_observations") or ""
-                p2_marks = eval_doc.get("phase2_marks") or 0
+                
+                p2_det = eval_doc.get("phase2_detail_marks") or {}
+                p2_marks = sum(int(float(v or 0)) for v in p2_det.values())
                 p2_obs = eval_doc.get("phase2_observations") or ""
-                p3_marks = eval_doc.get("phase3_marks") or 0
+                
+                p3_det = eval_doc.get("phase3_detail_marks") or {}
+                p3_marks = sum(int(float(v or 0)) for v in p3_det.values())
                 p3_obs = eval_doc.get("phase3_observations") or ""
                 
         total_marks = p1_marks + p2_marks + p3_marks
