@@ -15,7 +15,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Connecting to Google...');
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [loginStep, setLoginStep] = useState<'google' | 'password'>('google');
   const [adminPassword, setAdminPassword] = useState('');
   const [googleCredential, setGoogleCredential] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -99,7 +99,7 @@ export default function Login() {
     if (isAdminModeRef.current || email === 'ishaen.vihaan@gmail.com') {
       setIsAdminMode(true);
       setGoogleCredential(response.credential);
-      setShowPasswordDialog(true);
+      setLoginStep('password');
       return;
     }
     
@@ -134,7 +134,6 @@ export default function Login() {
     if (!googleCredential) return;
     
     setError('');
-    setShowPasswordDialog(false);
     setLoading(true);
     try {
       const res = await api.post('/auth/google', {
@@ -157,6 +156,7 @@ export default function Login() {
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Admin verification failed. Invalid password.');
+      setLoginStep('google');
     } finally {
       setLoading(false);
       setAdminPassword('');
@@ -206,6 +206,48 @@ export default function Login() {
               </div>
             </div>
           </div>
+        ) : loginStep === 'password' ? (
+          <div className="space-y-6 mt-8">
+            <div className="text-center">
+              <span className="text-3xl">🔑</span>
+              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-2">Admin Password Verification</h3>
+              <p className="text-xs text-slate-400 font-semibold mt-1">Please enter the security password to proceed.</p>
+            </div>
+
+            <form onSubmit={handleAdminPasswordSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter admin password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-center text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-slate-800 dark:text-slate-100"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginStep('google');
+                    setAdminPassword('');
+                    setGoogleCredential(null);
+                  }}
+                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 font-bold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-md shadow-indigo-600/10 cursor-pointer"
+                >
+                  Verify & Log in
+                </button>
+              </div>
+            </form>
+          </div>
         ) : (
           <div className="space-y-6 mt-8">
             <div className="flex justify-center w-full min-h-[44px]">
@@ -228,57 +270,6 @@ export default function Login() {
           </div>
         )}
       </motion.div>
-
-      {/* Admin Password verification Modal Dialog Overlay */}
-      {showPasswordDialog && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="max-w-sm w-full glass-panel p-8 space-y-5 border border-white/10"
-          >
-            <div className="text-center">
-              <span className="text-3xl">🔑</span>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white mt-2">Admin Security Verification</h3>
-              <p className="text-xs text-slate-400 font-semibold mt-1">Please enter the security password to authenticate administrative access.</p>
-            </div>
-
-            <form onSubmit={handleAdminPasswordSubmit} className="space-y-4">
-              <div>
-                <input
-                  type="password"
-                  required
-                  placeholder="Enter admin password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-center text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordDialog(false);
-                    setAdminPassword('');
-                    setGoogleCredential(null);
-                  }}
-                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 font-bold rounded-xl text-xs transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-md shadow-red-600/10 cursor-pointer"
-                >
-                  Verify & Log in
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
