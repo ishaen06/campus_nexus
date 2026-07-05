@@ -1295,9 +1295,6 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
                 update_fields["phase2_marks"] = int(sum(p2_sums) / len(p2_sums))
             if p3_sums:
                 update_fields["phase3_marks"] = int(sum(p3_sums) / len(p3_sums))
-                
-            # Store student_evaluations directly inside the group_chats collection document
-            update_fields["student_evaluations"] = marks.student_evaluations
         except Exception as calc_err:
             import logging
             logging.warning(f"Phase mark calculation failed for group {group_id}: {calc_err}")
