@@ -134,7 +134,7 @@ export default function Layout() {
       <nav className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50">
          <div className="p-6">
           <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
-            <Logo size={36} showText={false} />
+            <Logo size={44} showText={false} />
             <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Campus Nexus
             </span>

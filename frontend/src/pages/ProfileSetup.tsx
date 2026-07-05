@@ -143,7 +143,7 @@ export default function ProfileSetup() {
           className="max-w-md w-full glass-panel p-8 text-center"
         >
           <div className="flex justify-center">
-            <Logo size={90} showText={true} />
+            <Logo size={112} showText={true} />
           </div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-6">Welcome to Campus Nexus!</h1>
           <p className="text-gray-500 dark:text-slate-400 mt-2 text-xs font-bold uppercase tracking-wider">Please select your role to continue</p>

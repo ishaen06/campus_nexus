@@ -118,7 +118,7 @@ export default function Login() {
         className="max-w-md w-full space-y-8 glass-panel p-10 relative z-10"
       >
         <div className="text-center flex flex-col items-center">
-          <Logo size={110} showText={true} />
+          <Logo size={136} showText={true} />
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-3">
             Sign in to your peer network
           </p>
