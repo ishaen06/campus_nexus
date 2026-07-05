@@ -104,7 +104,7 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const navItems = isMentor
+  let navItems = isMentor
     ? [
         { name: 'Dashboard', path: '/mentor-dashboard', icon: LayoutDashboard },
         { name: 'Notifications', path: '/notifications', icon: Bell },
@@ -122,6 +122,16 @@ export default function Layout() {
       ];
   
   if (isAdmin) {
+    // Admin should only have access to Notifications, Admin panel, and Profile
+    navItems = navItems.filter(item => 
+      item.name !== 'Dashboard' && 
+      item.name !== 'My Teams' && 
+      item.name !== 'My Team' && 
+      item.name !== 'Chats' && 
+      item.name !== 'Discovery' && 
+      item.name !== 'Project Dashboard'
+    );
+    
     const hasAdminLink = navItems.some(item => item.name === 'Admin');
     if (!hasAdminLink) {
       navItems.push({ name: 'Admin', path: '/admin', icon: ShieldAlert, danger: true } as any);
