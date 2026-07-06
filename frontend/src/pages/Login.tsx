@@ -81,7 +81,11 @@ export default function Login() {
       localStorage.setItem('token', res.data.access_token);
       
       const meRes = await api.get('/users/me');
-      if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
+      const isUserAdmin = meRes.data.is_admin || (meRes.data.email || '').toLowerCase().trim() === 'ishaen.vihaan@gmail.com';
+      
+      if (isUserAdmin) {
+        navigate('/admin');
+      } else if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
         navigate('/profile-setup');
       } else if (meRes.data.is_mentor) {
         navigate('/mentor-dashboard');

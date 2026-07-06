@@ -56,8 +56,16 @@ export default function Layout() {
     api.get('/users/me')
       .then(res => {
         setCurrentUser(res.data);
-        setIsAdmin(res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com');
+        const userIsAdmin = res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com';
+        setIsAdmin(userIsAdmin);
         setIsMentor(res.data.is_mentor);
+        
+        if (userIsAdmin) {
+          if (location.pathname === '/mentor-dashboard' || location.pathname === '/discovery' || location.pathname === '/' || location.pathname === '/profile-setup') {
+            navigate('/admin');
+          }
+          return;
+        }
         
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
           || (res.data.is_mentor === false && (!res.data.usn || !res.data.bio))
