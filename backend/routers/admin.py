@@ -133,3 +133,106 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
         "project_approval_status": approval_status,
         "event_registrations": event_registrations
     }
+
+@router.get("/search")
+def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    q = q.strip()
+    if not q:
+        return {"users": [], "teams": []}
+        
+    # Check if query is an integer (for Team ID)
+    q_is_int = False
+    q_int = None
+    try:
+        q_int = int(q)
+        q_is_int = True
+    except ValueError:
+        pass
+        
+    # Search Users (Students & Mentors)
+    # Search by full_name, usn, branch, or email
+    user_query = {
+        "$or": [
+            {"full_name": {"$regex": q, "$options": "i"}},
+            {"usn": {"$regex": q, "$options": "i"}},
+            {"branch": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}},
+            {"department": {"$regex": q, "$options": "i"}}
+        ],
+        "email": {"$ne": "ishaen.vihaan@gmail.com"} # Exclude admin from search results
+    }
+    
+    users = list(db.users.find(user_query).limit(50))
+    formatted_users = []
+    for u in users:
+        # Resolve group membership if student
+        group_info = None
+        if not u.get("is_mentor"):
+            membership = db.group_members.find_one({"user_id": u["id"]})
+            if membership:
+                group = db.group_chats.find_one({"id": membership["group_id"]})
+                if group:
+                    group_info = {
+                        "id": group["id"],
+                        "name": group["name"],
+                        "project_topic": group.get("project_topic") or "N/A"
+                    }
+        formatted_users.append({
+            "id": u["id"],
+            "full_name": u.get("full_name") or "N/A",
+            "email": u.get("email") or "N/A",
+            "usn": u.get("usn") or "N/A",
+            "branch": u.get("branch") or "N/A",
+            "department": u.get("department") or "N/A",
+            "post": u.get("post") or "N/A",
+            "is_mentor": bool(u.get("is_mentor")),
+            "bio": u.get("bio") or "",
+            "cycle": u.get("cycle") or "N/A",
+            "group": group_info
+        })
+        
+    # Search Teams (Group Chats)
+    # Search by name, project_topic, mentor_name, or ID
+    team_or_conditions = [
+        {"name": {"$regex": q, "$options": "i"}},
+        {"project_topic": {"$regex": q, "$options": "i"}},
+        {"mentor_name": {"$regex": q, "$options": "i"}}
+    ]
+    if q_is_int:
+        team_or_conditions.append({"id": q_int})
+        
+    team_query = {"$or": team_or_conditions}
+    teams = list(db.group_chats.find(team_query).limit(50))
+    formatted_teams = []
+    
+    for t in teams:
+        # Get members details
+        member_recs = list(db.group_members.find({"group_id": t["id"]}))
+        member_ids = [m["user_id"] for m in member_recs]
+        
+        # Resolve mentor id
+        mentor_email = t.get("mentor_email")
+        mentor_id = None
+        if mentor_email:
+            mentor = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+            mentor_id = mentor["id"] if mentor else None
+            
+        student_ids = [uid for uid in member_ids if uid != mentor_id]
+        students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+        
+        member_names = [s.get("full_name") for s in students if s.get("full_name")]
+        
+        formatted_teams.append({
+            "id": t["id"],
+            "name": t.get("name") or "N/A",
+            "project_topic": t.get("project_topic") or "N/A",
+            "mentor_name": t.get("mentor_name") or "N/A",
+            "mentor_email": t.get("mentor_email") or "N/A",
+            "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED",
+            "members": member_names
+        })
+        
+    return {
+        "users": formatted_users,
+        "teams": formatted_teams
+    }

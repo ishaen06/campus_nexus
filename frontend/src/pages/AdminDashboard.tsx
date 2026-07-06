@@ -13,8 +13,13 @@ import {
   CheckCircle2, 
   Clock, 
   BarChart3, 
-  Sparkles 
+  Sparkles,
+  Search,
+  Mail,
+  ChevronRight,
+  X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Report {
   id: number;
@@ -46,13 +51,45 @@ interface AnalyticsData {
   event_registrations: Record<string, number>;
 }
 
+interface MatchedUser {
+  id: number;
+  full_name: string;
+  email: string;
+  usn: string;
+  branch: string;
+  department: string;
+  post: string;
+  is_mentor: boolean;
+  bio: string;
+  cycle: string;
+  group: { id: number; name: string; project_topic: string } | null;
+}
+
+interface MatchedTeam {
+  id: number;
+  name: string;
+  project_topic: string;
+  mentor_name: string;
+  mentor_email: string;
+  mentor_status: string;
+  members: string[];
+}
+
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics'>('moderation');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search'>('moderation');
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ users: MatchedUser[]; teams: MatchedTeam[] }>({ users: [], teams: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<MatchedUser | null>(null);
 
   const fetchReports = async () => {
     try {
@@ -75,6 +112,35 @@ export default function AdminDashboard() {
       setAnalyticsLoading(false);
     }
   };
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Trigger search on debounced query change
+  useEffect(() => {
+    const performSearch = async () => {
+      const q = debouncedQuery.trim();
+      if (!q) {
+        setSearchResults({ users: [], teams: [] });
+        return;
+      }
+      setSearchLoading(true);
+      try {
+        const res = await api.get(`/admin/search?q=${encodeURIComponent(q)}`);
+        setSearchResults(res.data);
+      } catch (err) {
+        console.error("Failed to perform global search", err);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+    performSearch();
+  }, [debouncedQuery]);
 
   useEffect(() => {
     fetchReports();
@@ -197,6 +263,16 @@ export default function AdminDashboard() {
         >
           Analytics Dashboard <Sparkles size={14} className="text-[#1e3a8a] animate-pulse" />
         </button>
+        <button
+          onClick={() => setActiveTab('search')}
+          className={`py-3.5 px-6 font-bold text-sm uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'search' 
+              ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-blue-400' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Global Search <Search size={14} />
+        </button>
       </div>
 
       {/* Tab Contents */}
@@ -281,7 +357,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </motion.div>
-        ) : (
+        ) : activeTab === 'analytics' ? (
           <motion.div 
             key="analytics"
             initial={{ opacity: 0, y: 15 }}
@@ -548,6 +624,241 @@ export default function AdminDashboard() {
               </>
             )}
           </motion.div>
+        ) : (
+          <motion.div 
+            key="search"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* Search Input Bar */}
+            <div className="glass-panel p-5 flex items-center gap-3">
+              <Search className="text-slate-400 flex-shrink-0" size={20} />
+              <input
+                type="text"
+                placeholder="Search by student/mentor name, USN, team ID, team name, branch, or project title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                autoFocus
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            {searchLoading ? (
+              <div className="text-center py-12 text-slate-500 font-medium">
+                <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mx-auto mb-3"></div>
+                Searching database...
+              </div>
+            ) : (
+              <>
+                {/* Results columns */}
+                {debouncedQuery.trim() ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Column 1: Users */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <Users size={16} className="text-[#1e3a8a]" /> Users ({searchResults.users.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {searchResults.users.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic font-medium p-4 glass-panel text-center">No matching users found.</p>
+                        ) : (
+                          searchResults.users.map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => setSelectedUser(user)}
+                              className="glass-panel p-4 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-all cursor-pointer flex justify-between items-center border hover:border-slate-300 dark:hover:border-slate-700"
+                            >
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-sm text-slate-800 dark:text-slate-100">{user.full_name}</span>
+                                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                    user.is_mentor 
+                                      ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-100 dark:border-purple-900' 
+                                      : 'bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border-blue-100 dark:border-blue-900'
+                                  }`}>
+                                    {user.is_mentor ? 'Mentor' : 'Student'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold flex-wrap">
+                                  {user.is_mentor ? (
+                                    <span>Dept: {user.department}</span>
+                                  ) : (
+                                    <>
+                                      <span>USN: {user.usn}</span>
+                                      <span>•</span>
+                                      <span>Branch: {user.branch}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <ChevronRight className="text-slate-400" size={16} />
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Column 2: Teams */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <Layers size={16} className="text-[#1e3a8a]" /> Teams ({searchResults.teams.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {searchResults.teams.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic font-medium p-4 glass-panel text-center">No matching teams found.</p>
+                        ) : (
+                          searchResults.teams.map((team) => (
+                            <div
+                              key={team.id}
+                              onClick={() => navigate(`/my-teams/${team.id}`)}
+                              className="glass-panel p-4 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-all cursor-pointer flex justify-between items-center border hover:border-slate-300 dark:hover:border-slate-700"
+                            >
+                              <div className="space-y-1.5 flex-1 pr-4">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-extrabold text-sm text-slate-800 dark:text-slate-100">{team.name}</span>
+                                  <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 px-2 py-0.5 rounded-full">
+                                    ID: {team.id}
+                                  </span>
+                                </div>
+                                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                                  Topic: {team.project_topic}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                  Mentor: {team.mentor_name}
+                                </div>
+                              </div>
+                              <ChevronRight className="text-slate-400 flex-shrink-0" size={16} />
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-16 text-slate-400 font-semibold glass-panel p-10 max-w-sm mx-auto">
+                    <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                    Enter keywords above to query the database.
+                  </div>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User Inspector Modal */}
+      <AnimatePresence>
+        {selectedUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg glass-panel p-7 shadow-2xl relative"
+            >
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Modal Body */}
+              <div className="space-y-6">
+                <div>
+                  <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border mb-2 inline-block ${
+                    selectedUser.is_mentor 
+                      ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-100 dark:border-purple-900' 
+                      : 'bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border-blue-100 dark:border-blue-900'
+                  }`}>
+                    {selectedUser.is_mentor ? 'Mentor Profile' : 'Student Profile'}
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">{selectedUser.full_name}</h2>
+                  <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider mt-1.5">
+                    <Mail size={13} /> {selectedUser.email}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                  {selectedUser.is_mentor ? (
+                    <>
+                      <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Department</span>
+                        <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{selectedUser.department}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Designation / Post</span>
+                        <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{selectedUser.post}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">USN</span>
+                        <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{selectedUser.usn}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Branch</span>
+                        <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{selectedUser.branch}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Cycle</span>
+                        <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{selectedUser.cycle}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {selectedUser.bio && (
+                  <div className="border-l-4 border-indigo-500 bg-indigo-50/10 p-3.5 rounded-r-2xl border border-y-indigo-100/10 border-r-indigo-100/10">
+                    <span className="block text-[9px] font-bold text-indigo-500 uppercase tracking-widest mb-1">Onboarding Bio</span>
+                    <p className="text-slate-700 dark:text-slate-300 text-sm font-semibold leading-relaxed italic">"{selectedUser.bio}"</p>
+                  </div>
+                )}
+
+                {/* Group Details */}
+                {!selectedUser.is_mentor && (
+                  <div className="space-y-2">
+                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned Team Details</span>
+                    {selectedUser.group ? (
+                      <div
+                        onClick={() => {
+                          setSelectedUser(null);
+                          navigate(`/my-teams/${selectedUser.group!.id}`);
+                        }}
+                        className="glass-panel p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/35 transition cursor-pointer flex justify-between items-center"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{selectedUser.group.name}</span>
+                            <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900">
+                              ID: {selectedUser.group.id}
+                            </span>
+                          </div>
+                          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate">
+                            Topic: {selectedUser.group.project_topic}
+                          </div>
+                        </div>
+                        <ChevronRight className="text-slate-400" size={16} />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 font-medium italic">This student is not currently assigned to any team.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
