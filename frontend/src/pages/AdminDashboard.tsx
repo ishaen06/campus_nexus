@@ -23,7 +23,8 @@ import {
   GitMerge,
   Filter,
   Check,
-  Slash
+  Slash,
+  Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -127,7 +128,7 @@ interface TeamData {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search' | 'mentors' | 'teams'>('moderation');
+  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports'>('moderation');
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -345,6 +346,41 @@ export default function AdminDashboard() {
     }
   };
 
+  // Report Center trigger download
+  const handleDownloadReport = async (dataset: string, format: string) => {
+    try {
+      const response = await api.get(`/admin/reports/download?dataset=${dataset}&format=${format}`, {
+        responseType: 'blob'
+      });
+      
+      const extensionMap: Record<string, string> = {
+        csv: 'csv',
+        excel: 'xlsx',
+        pdf: 'pdf'
+      };
+      
+      const mimeMap: Record<string, string> = {
+        csv: 'text/csv',
+        excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        pdf: 'application/pdf'
+      };
+      
+      const blob = new Blob([response.data], { type: mimeMap[format] });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const dateStr = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `${dataset}_report_${dateStr}.${extensionMap[format]}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (err) {
+      console.error("Failed to download report", err);
+      alert("Failed to download report. Please check your admin permissions.");
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -491,7 +527,17 @@ export default function AdminDashboard() {
               : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
-          Teams Management <Users size={14} />
+          Teams <Users size={14} />
+        </button>
+        <button
+          onClick={() => setActiveTab('reports')}
+          className={`py-3.5 px-6 font-bold text-sm uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'reports' 
+              ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-blue-400' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Report Center <Download size={14} />
         </button>
       </div>
 
@@ -1136,7 +1182,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </motion.div>
-        ) : (
+        ) : activeTab === 'teams' ? (
           <motion.div 
             key="teams"
             initial={{ opacity: 0, y: 15 }}
@@ -1359,6 +1405,153 @@ export default function AdminDashboard() {
                 )}
               </div>
             )}
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="reports"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* Introduction Card */}
+            <div className="glass-panel p-6 bg-gradient-to-br from-[#1e3a8a]/5 to-indigo-600/5 border-[#1e3a8a]/10">
+              <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                <Download className="text-[#1e3a8a]" size={20} /> Administrative Report Center
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                Query the live database on-demand and download reports dynamically formatted as CSV files, Excel spreadsheets, or styled landscape PDFs. Reports always synchronize with latest MongoDB collections to prevent stale or duplicate logs.
+              </p>
+            </div>
+
+            {/* Grid of Report Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Card 1: Students */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
+                      <Users size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Directory</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Roster of all registered students, branch details, USNs, and assigned project teams.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('students', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('students', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('students', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 2: Mentors */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border border-purple-100 dark:border-purple-900 rounded-xl">
+                      <User size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Mentor Workload</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Directory of mentors, their departments, designations, and active approved team allocations.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('mentors', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('mentors', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('mentors', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 3: Team Members */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl">
+                      <Layers size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Team Roster Mapping</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Cross-referenced sheet linking each group name to its student members and their branches.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('teams', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 4: Marks */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 text-amber-650 dark:text-amber-400 border border-amber-100 dark:border-amber-900 rounded-xl">
+                      <Activity size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Evaluation Marks Summary</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Comprehensive Phase 1, Phase 2, Phase 3 grading and total marks allocated to students.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('marks', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 5: Projects */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                      <GitMerge size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Project Allocation</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">List of active team project titles, themes/topics, and their assigned mentors.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 6: Approvals */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-teal-50 dark:bg-teal-950/20 text-teal-650 dark:text-teal-400 border border-teal-100 dark:border-teal-900 rounded-xl">
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approvals & Feedback Log</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Tracking log of project theme approvals, rejection logs, and observations reasons.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('approvals', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('approvals', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('approvals', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 7: Events */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-405 border border-rose-100 dark:border-rose-900 rounded-xl">
+                      <Calendar size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Events Registry</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">List of scheduled campus hackathons, events, dates, locations, and total RSVP registration metrics.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleDownloadReport('events', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleDownloadReport('events', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleDownloadReport('events', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

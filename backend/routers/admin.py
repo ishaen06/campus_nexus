@@ -1,5 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from typing import List
+from io import BytesIO
+import pandas as pd
+from fpdf import FPDF
+from fpdf.fonts import FontFace
+from datetime import datetime
 
 from database_mongo import get_mongo_db, get_next_sequence_value
 from routers.users import get_current_user
@@ -524,30 +529,327 @@ def reject_project_by_admin(group_id: int, rejection_reason: str = "Rejected by 
     
     return {"detail": "Project rejected successfully"}
 
-@router.post("/groups/move-student")
-def move_student_between_teams(student_id: int, target_group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
-    student = db.users.find_one({"id": student_id})
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-        
-    # Remove student from any current group memberships
-    db.group_members.delete_many({"user_id": student_id})
-    
-    # If target group id is specified, add them
-    if target_group_id > 0:
-        target_group = db.group_chats.find_one({"id": target_group_id})
-        if not target_group:
-            raise HTTPException(status_code=404, detail="Target team not found")
-            
-        new_member_id = get_next_sequence_value("group_members")
-        db.group_members.insert_one({
-            "id": new_member_id,
-            "group_id": target_group_id,
-            "user_id": student_id
-        })
-        
     # Regenerate sheets
     regenerate_approved_teams_csv(db)
     regenerate_mentor_marks_csv(db)
     
     return {"detail": "Student moved successfully"}
+
+class BeautifulReportPDF(FPDF):
+    def __init__(self, title: str):
+        # Landscape
+        super().__init__(orientation="L", unit="mm", format="A4")
+        self.report_title = title
+        self.alias_nb_pages()
+        
+    def header(self):
+        # Top banner background
+        self.set_fill_color(30, 58, 138)  # #1e3a8a
+        self.rect(0, 0, 297, 15, 'F')
+        
+        self.set_y(4)
+        self.set_text_color(255, 255, 255)
+        self.set_font("helvetica", "B", 10)
+        self.cell(0, 5, "CAMPUS NEXUS - ACADEMIC REPORT CENTER", align="C", ln=True)
+        self.ln(10)
+        
+        self.set_text_color(30, 58, 138)
+        self.set_font("helvetica", "B", 14)
+        self.cell(0, 10, self.report_title, align="L", ln=True)
+        self.set_draw_color(30, 58, 138)
+        self.line(10, self.get_y(), 287, self.get_y())
+        self.ln(5)
+        
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("helvetica", "I", 8)
+        self.set_text_color(128, 128, 128)
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.cell(0, 10, f"Generated on {now_str}  |  Page {self.page_no()}/{{nb}}", align="C")
+
+def fetch_report_dataframe(dataset: str, db) -> tuple:
+    if dataset == "students":
+        students = list(db.users.find({
+            "is_mentor": {"$ne": True},
+            "is_admin": {"$ne": True},
+            "email": {"$ne": "ishaen.vihaan@gmail.com"}
+        }))
+        data = []
+        for s in students:
+            group_id = "N/A"
+            group_name = "N/A"
+            membership = db.group_members.find_one({"user_id": s["id"]})
+            if membership:
+                g = db.group_chats.find_one({"id": membership["group_id"]})
+                if g:
+                    group_id = str(g["id"])
+                    group_name = g.get("name") or "N/A"
+            data.append({
+                "Student ID": s["id"],
+                "Student Name": s.get("full_name") or "N/A",
+                "Email": s.get("email") or "N/A",
+                "USN": s.get("usn") or "N/A",
+                "Branch": s.get("branch") or "N/A",
+                "Cycle": s.get("cycle") or "N/A",
+                "Team ID": group_id,
+                "Team Name": group_name
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["Student ID", "Student Name", "Email", "USN", "Branch", "Cycle", "Team ID", "Team Name"])
+        return df, "Student List Report", (15, 45, 60, 25, 20, 15, 20, 77)
+
+    elif dataset == "mentors":
+        mentors = list(db.users.find({"is_mentor": True}))
+        data = []
+        for m in mentors:
+            count = db.group_chats.count_documents({
+                "mentor_email": {"$regex": f"^{m['email']}$", "$options": "i"},
+                "mentor_status": "APPROVED"
+            })
+            data.append({
+                "Mentor ID": m["id"],
+                "Mentor Name": m.get("full_name") or "N/A",
+                "Email": m.get("email") or "N/A",
+                "Department": m.get("department") or "N/A",
+                "Designation": m.get("post") or "N/A",
+                "Active Teams": count,
+                "Max Capacity": 25
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["Mentor ID", "Mentor Name", "Email", "Department", "Designation", "Active Teams", "Max Capacity"])
+        return df, "Mentor Directory Report", (15, 45, 65, 45, 57, 30, 20)
+
+    elif dataset == "teams":
+        teams = list(db.group_chats.find())
+        data = []
+        for t in teams:
+            member_recs = list(db.group_members.find({"group_id": t["id"]}))
+            member_ids = [r["user_id"] for r in member_recs]
+            
+            mentor_email = t.get("mentor_email")
+            mentor_id = None
+            if mentor_email:
+                m = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+                mentor_id = m["id"] if m else None
+                
+            student_ids = [uid for uid in member_ids if uid != mentor_id]
+            students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+            
+            for s in students:
+                data.append({
+                    "Team ID": t["id"],
+                    "Team Name": t.get("name") or "N/A",
+                    "Student ID": s["id"],
+                    "Student Name": s.get("full_name") or "N/A",
+                    "Student USN": s.get("usn") or "N/A",
+                    "Student Branch": s.get("branch") or "N/A",
+                    "Student Email": s.get("email") or "N/A"
+                })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["Team ID", "Team Name", "Student ID", "Student Name", "Student USN", "Student Branch", "Student Email"])
+        return df, "Team Roster Assignment Report", (20, 50, 25, 55, 30, 25, 72)
+
+    elif dataset == "marks":
+        students = list(db.users.find({
+            "is_mentor": {"$ne": True}, 
+            "is_admin": {"$ne": True},
+            "email": {"$ne": "ishaen.vihaan@gmail.com"}
+        }))
+        data = []
+        for s in students:
+            student_id = s.get("id")
+            usn = s.get("usn") or "N/A"
+            name = s.get("full_name") or "N/A"
+            branch = s.get("branch") or "N/A"
+            
+            group_id = "N/A"
+            group_name = "N/A"
+            group_doc = None
+            
+            membership = db.group_members.find_one({"user_id": student_id})
+            if membership:
+                group_doc = db.group_chats.find_one({"id": membership["group_id"]})
+                if group_doc:
+                    group_id = str(group_doc.get("id"))
+                    group_name = group_doc.get("name") or "N/A"
+                        
+            p1_marks = 0
+            p2_marks = 0
+            p3_marks = 0
+            
+            if group_doc:
+                eval_doc = db.evaluations.find_one({"group_id": group_doc.get("id"), "student_id": student_id})
+                if eval_doc:
+                    p1_det = eval_doc.get("phase1_detail_marks") or {}
+                    p1_marks = sum(int(float(v or 0)) for v in p1_det.values())
+                    
+                    p2_det = eval_doc.get("phase2_detail_marks") or {}
+                    p2_marks = sum(int(float(v or 0)) for v in p2_det.values())
+                    
+                    p3_det = eval_doc.get("phase3_detail_marks") or {}
+                    p3_marks = sum(int(float(v or 0)) for v in p3_det.values())
+                    
+            total_marks = p1_marks + p2_marks + p3_marks
+            data.append({
+                "USN": usn,
+                "Student Name": name,
+                "Branch": branch,
+                "Team ID": group_id,
+                "Team Name": group_name,
+                "Phase 1 Marks": p1_marks,
+                "Phase 2 Marks": p2_marks,
+                "Phase 3 Marks": p3_marks,
+                "Total Marks": total_marks
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["USN", "Student Name", "Branch", "Team ID", "Team Name", "Phase 1 Marks", "Phase 2 Marks", "Phase 3 Marks", "Total Marks"])
+        return df, "Student Performance Marks Report", (25, 45, 20, 20, 52, 28, 28, 28, 31)
+
+    elif dataset == "projects":
+        teams = list(db.group_chats.find())
+        data = []
+        for t in teams:
+            data.append({
+                "Team ID": t["id"],
+                "Team Name": t.get("name") or "N/A",
+                "Project Theme/Topic": t.get("project_topic") or "N/A",
+                "Assigned Mentor": t.get("mentor_name") or "N/A",
+                "Mentor Email": t.get("mentor_email") or "N/A",
+                "Approval Status": t.get("mentor_status") or "NOT_SUBMITTED"
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["Team ID", "Team Name", "Project Theme/Topic", "Assigned Mentor", "Mentor Email", "Approval Status"])
+        return df, "Project Themes & Topic Allocation Report", (20, 50, 77, 45, 55, 30)
+
+    elif dataset == "approvals":
+        teams = list(db.group_chats.find())
+        data = []
+        for t in teams:
+            data.append({
+                "Team ID": t["id"],
+                "Team Name": t.get("name") or "N/A",
+                "Project Theme": t.get("project_topic") or "N/A",
+                "Mentor Name": t.get("mentor_name") or "N/A",
+                "Approval Status": t.get("mentor_status") or "NOT_SUBMITTED",
+                "Rejection Reason": t.get("mentor_rejection_reason") or "N/A"
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["Team ID", "Team Name", "Project Theme", "Mentor Name", "Approval Status", "Rejection Reason"])
+        return df, "Project Approvals & Feedback Report", (20, 50, 77, 45, 35, 50)
+
+    elif dataset == "events":
+        events = list(db.events.find())
+        data = []
+        for e in events:
+            data.append({
+                "Event ID": e["id"],
+                "Event Title": e.get("title") or "N/A",
+                "Description": e.get("description") or "N/A",
+                "Date": e.get("date") or "N/A",
+                "Time": e.get("time") or "N/A",
+                "Venue": e.get("location") or "N/A",
+                "Total RSVPs": len(e.get("rsvps") or [])
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=["Event ID", "Event Title", "Description", "Date", "Time", "Venue", "Total RSVPs"])
+        return df, "Campus Events & Registration Report", (20, 50, 87, 25, 20, 55, 20)
+
+    else:
+        raise HTTPException(status_code=400, detail="Invalid dataset specified")
+
+@router.get("/reports/download")
+def download_admin_report(
+    dataset: str = Query(...), 
+    format: str = Query(...), 
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
+    df, report_title, col_widths = fetch_report_dataframe(dataset, db)
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    
+    if format == "csv":
+        csv_data = df.to_csv(index=False)
+        filename = f"{dataset}_report_{date_str}.csv"
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    elif format == "excel":
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name="Report", index=False)
+            
+            # Autofit column widths in Excel
+            workbook  = writer.book
+            worksheet = writer.sheets["Report"]
+            header_format = workbook.add_format({
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#1E3A8A',
+                'font_color': '#FFFFFF',
+                'border': 1
+            })
+            
+            for col_num, value in enumerate(df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+                max_len = max(
+                    df[value].astype(str).map(len).max(),
+                    len(value)
+                ) + 3
+                worksheet.set_column(col_num, col_num, min(max_len, 50))
+                
+        output.seek(0)
+        filename = f"{dataset}_report_{date_str}.xlsx"
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    elif format == "pdf":
+        pdf = BeautifulReportPDF(report_title)
+        pdf.add_page()
+        pdf.set_font("helvetica", size=8)
+        
+        headers = list(df.columns)
+        rows_data = [headers]
+        for idx, row in df.iterrows():
+            rows_data.append([str(val) for val in row.values])
+            
+        style = FontFace(color=(255, 255, 255), fill_color=(30, 58, 138), emphasis="BOLD")
+        
+        try:
+            with pdf.table(
+                col_widths=col_widths, 
+                headings_style=style,
+                cell_fill_color=(245, 247, 250),
+                cell_fill_mode="ROWS",
+                text_align="LEFT"
+            ) as table:
+                for r_idx, r_data in enumerate(rows_data):
+                    row = table.row()
+                    for cell_val in r_data:
+                        row.cell(cell_val)
+        except Exception as pdf_err:
+            raise HTTPException(status_code=500, detail=f"PDF formatting failed: {pdf_err}")
+            
+        pdf_bytes = pdf.output()
+        filename = f"{dataset}_report_{date_str}.pdf"
+        return Response(
+            content=bytes(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    else:
+        raise HTTPException(status_code=400, detail="Invalid format specified. Use csv, excel, or pdf.")
