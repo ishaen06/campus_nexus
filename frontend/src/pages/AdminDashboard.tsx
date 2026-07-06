@@ -138,6 +138,7 @@ export default function AdminDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
@@ -176,11 +177,14 @@ export default function AdminDashboard() {
   };
 
   const fetchAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
     try {
       const res = await api.get('/admin/analytics');
       setAnalytics(res.data || null);
     } catch (err: any) {
       console.error("Failed to load analytics data", err);
+      setAnalyticsError(err.response?.data?.detail || "Failed to load database metrics. Please ensure the backend server is running.");
     } finally {
       setAnalyticsLoading(false);
     }
@@ -610,10 +614,26 @@ export default function AdminDashboard() {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-8"
           >
-            {analyticsLoading || !analytics ? (
+             {analyticsLoading ? (
               <div className="text-center py-16 text-slate-500 font-medium">
                 <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mx-auto mb-4"></div>
                 Loading database metrics...
+              </div>
+            ) : analyticsError ? (
+              <div className="glass-panel p-8 text-center max-w-md mx-auto shadow-lg border-red-200/45 bg-red-50/5">
+                <AlertOctagon className="text-red-505 w-12 h-12 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-805 dark:text-white mb-2">Metrics Load Failed</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">{analyticsError}</p>
+                <button
+                  onClick={fetchAnalytics}
+                  className="bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-2.5 px-5 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer"
+                >
+                  Retry Connection
+                </button>
+              </div>
+            ) : !analytics ? (
+              <div className="text-center py-16 text-slate-400 font-semibold glass-panel p-10 max-w-sm mx-auto">
+                No analytics data returned.
               </div>
             ) : (
               <>
