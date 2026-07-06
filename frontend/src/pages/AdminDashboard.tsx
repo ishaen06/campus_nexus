@@ -20,7 +20,10 @@ import {
   X,
   UserPlus,
   Trash2,
-  GitMerge
+  GitMerge,
+  Filter,
+  Check,
+  Slash
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -105,9 +108,26 @@ interface UnassignedTeam {
   mentor_status: string;
 }
 
+interface TeamData {
+  id: number;
+  name: string;
+  project_topic: string;
+  mentor_name: string;
+  mentor_email: string;
+  mentor_status: string;
+  members: {
+    id: number;
+    full_name: string;
+    usn: string;
+    email: string;
+    branch: string;
+    cycle: string;
+  }[];
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search' | 'mentors'>('moderation');
+  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search' | 'mentors' | 'teams'>('moderation');
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +147,15 @@ export default function AdminDashboard() {
   const [mentorQuery, setMentorQuery] = useState('');
   const [mentorsLoading, setMentorsLoading] = useState(true);
   const [expandedMentorId, setExpandedMentorId] = useState<number | null>(null);
+
+  // Team management states
+  const [teams, setTeams] = useState<TeamData[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(true);
+  const [branchFilter, setBranchFilter] = useState('');
+  const [themeFilter, setThemeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [rejectingTeamId, setRejectingTeamId] = useState<number | null>(null);
+  const [rejectionReasonText, setRejectionReasonText] = useState('');
 
   const fetchReports = async () => {
     try {
@@ -163,6 +192,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchTeamsData = async () => {
+    setTeamsLoading(true);
+    try {
+      const res = await api.get('/admin/teams');
+      setTeams(res.data);
+    } catch (err) {
+      console.error("Failed to fetch teams data", err);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
   // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -196,6 +237,7 @@ export default function AdminDashboard() {
     fetchReports();
     fetchAnalytics();
     fetchMentorsData();
+    fetchTeamsData();
 
     // Auto-refresh analytics every 30 seconds
     const interval = setInterval(() => {
@@ -222,6 +264,7 @@ export default function AdminDashboard() {
       await api.post(`/admin/groups/${groupId}/assign-mentor?mentor_id=${mentorId}`);
       alert("Mentor assigned successfully.");
       fetchMentorsData();
+      fetchTeamsData();
       fetchAnalytics();
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to assign mentor.");
@@ -234,9 +277,71 @@ export default function AdminDashboard() {
       await api.post(`/admin/groups/${groupId}/remove-mentor`);
       alert("Mentor removed successfully.");
       fetchMentorsData();
+      fetchTeamsData();
       fetchAnalytics();
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to remove mentor.");
+    }
+  };
+
+  // Team Management updates
+  const handleApproveProject = async (groupId: number) => {
+    try {
+      await api.post(`/admin/groups/${groupId}/approve`);
+      alert("Project theme approved successfully.");
+      fetchTeamsData();
+      fetchMentorsData();
+      fetchAnalytics();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to approve project theme.");
+    }
+  };
+
+  const handleRejectProject = async (groupId: number) => {
+    if (!rejectionReasonText.trim()) {
+      alert("Please provide a rejection reason.");
+      return;
+    }
+    try {
+      await api.post(`/admin/groups/${groupId}/reject?rejection_reason=${encodeURIComponent(rejectionReasonText)}`);
+      alert("Project theme rejected.");
+      setRejectingTeamId(null);
+      setRejectionReasonText('');
+      fetchTeamsData();
+      fetchMentorsData();
+      fetchAnalytics();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to reject project theme.");
+    }
+  };
+
+  const handleDissolveTeam = async (groupId: number) => {
+    if (!window.confirm("CRITICAL WARNING: Are you sure you want to force-dissolve this team? This deletes the team chat, all messages, members list, and EVALUATIONS permanently!")) return;
+    try {
+      await api.post(`/admin/groups/${groupId}/dissolve`);
+      alert("Team has been dissolved successfully.");
+      fetchTeamsData();
+      fetchMentorsData();
+      fetchAnalytics();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to dissolve team.");
+    }
+  };
+
+  const handleMoveStudent = async (studentId: number, targetGroupId: number) => {
+    const confirmationMsg = targetGroupId === 0 
+      ? "Are you sure you want to remove this student from their team?"
+      : `Are you sure you want to move this student to Team ID: ${targetGroupId}?`;
+      
+    if (!window.confirm(confirmationMsg)) return;
+    try {
+      await api.post(`/admin/groups/move-student?student_id=${studentId}&target_group_id=${targetGroupId}`);
+      alert("Student updated successfully.");
+      fetchTeamsData();
+      fetchMentorsData();
+      fetchAnalytics();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to move student.");
     }
   };
 
@@ -258,6 +363,22 @@ export default function AdminDashboard() {
       <p className="text-gray-500 font-medium tracking-wide">Loading moderation center...</p>
     </div>
   );
+
+  // Filters computed lists
+  const allBranches = Array.from(new Set(
+    teams.flatMap(t => t.members.map(m => (m.branch || "N/A").trim().toUpperCase()))
+  )).filter(Boolean);
+
+  const allThemes = Array.from(new Set(
+    teams.map(t => (t.project_topic || "N/A").trim().toUpperCase())
+  )).filter(Boolean);
+
+  const filteredTeams = teams.filter(t => {
+    const matchesBranch = !branchFilter || t.members.some(m => (m.branch || "N/A").trim().toUpperCase() === branchFilter);
+    const matchesTheme = !themeFilter || (t.project_topic || "N/A").trim().toUpperCase() === themeFilter;
+    const matchesStatus = !statusFilter || t.mentor_status === statusFilter;
+    return matchesBranch && matchesTheme && matchesStatus;
+  });
 
   const filteredMentors = mentors.filter(m => 
     m.full_name.toLowerCase().includes(mentorQuery.toLowerCase()) ||
@@ -321,7 +442,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto whitespace-nowrap">
         <button
           onClick={() => setActiveTab('moderation')}
           className={`py-3.5 px-6 font-bold text-sm uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer ${
@@ -360,7 +481,17 @@ export default function AdminDashboard() {
               : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
-          Mentor Management <User size={14} />
+          Mentors <User size={14} />
+        </button>
+        <button
+          onClick={() => setActiveTab('teams')}
+          className={`py-3.5 px-6 font-bold text-sm uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'teams' 
+              ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-blue-400' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Teams Management <Users size={14} />
         </button>
       </div>
 
@@ -842,7 +973,7 @@ export default function AdminDashboard() {
               </>
             )}
           </motion.div>
-        ) : (
+        ) : activeTab === 'mentors' ? (
           <motion.div 
             key="mentors"
             initial={{ opacity: 0, y: 15 }}
@@ -1005,6 +1136,270 @@ export default function AdminDashboard() {
               </div>
             )}
           </motion.div>
+        ) : (
+          <motion.div 
+            key="teams"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* Filters Section */}
+            <div className="glass-panel p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Filter size={10} /> Branch
+                </label>
+                <select
+                  value={branchFilter}
+                  onChange={(e) => setBranchFilter(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                >
+                  <option value="">All Branches</option>
+                  {allBranches.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Layers size={10} /> Project Theme
+                </label>
+                <select
+                  value={themeFilter}
+                  onChange={(e) => setThemeFilter(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                >
+                  <option value="">All Themes / Topics</option>
+                  {allThemes.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <CheckCircle2 size={10} /> Approval Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="NOT_SUBMITTED">Draft / Not Submitted</option>
+                </select>
+              </div>
+            </div>
+
+            {teamsLoading ? (
+              <div className="text-center py-12 text-slate-500 font-medium">
+                <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mx-auto mb-3"></div>
+                Loading student teams...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredTeams.length === 0 ? (
+                  <p className="text-sm text-slate-400 italic font-medium p-8 glass-panel text-center">No teams match your filter criteria.</p>
+                ) : (
+                  filteredTeams.map((team) => (
+                    <div key={team.id} className="glass-panel p-6 space-y-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300">
+                      {/* Team Meta Header */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-850 pb-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">{team.name}</h3>
+                            <span className="text-[10px] font-black uppercase bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-full">
+                              ID: {team.id}
+                            </span>
+                            
+                            {/* Status Badge */}
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                              team.mentor_status === 'APPROVED'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900'
+                                : team.mentor_status === 'PENDING'
+                                ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-900'
+                                : team.mentor_status === 'REJECTED'
+                                ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-100 dark:border-rose-900'
+                                : 'bg-slate-50 dark:bg-slate-950/20 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
+                            }`}>
+                              {team.mentor_status || 'Draft'}
+                            </span>
+                          </div>
+                          
+                          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            Project Theme: <span className="font-extrabold text-slate-700 dark:text-slate-350">{team.project_topic || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Top action row: Approve/Reject, Dissolve */}
+                        <div className="flex flex-wrap gap-2.5 items-center">
+                          {team.mentor_status !== 'APPROVED' && (
+                            <button
+                              onClick={() => handleApproveProject(team.id)}
+                              className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-600 dark:text-emerald-400 px-4 py-2 text-xs font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Check size={13} /> Approve
+                            </button>
+                          )}
+                          
+                          {team.mentor_status !== 'REJECTED' && (
+                            <button
+                              onClick={() => {
+                                setRejectingTeamId(team.id);
+                                setRejectionReasonText('');
+                              }}
+                              className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 px-4 py-2 text-xs font-bold rounded-xl hover:bg-rose-600 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Slash size={13} /> Reject
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDissolveTeam(team.id)}
+                            className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 p-2.5 rounded-xl hover:bg-red-600 hover:text-white transition cursor-pointer"
+                            title="Force Dissolve Team"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Mentor block */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                        <div>
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Assigned Mentor</span>
+                          <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
+                            {team.mentor_name === 'N/A' ? 'No Mentor Assigned' : `${team.mentor_name} (${team.mentor_email})`}
+                          </span>
+                        </div>
+
+                        {/* Assign/Change mentor */}
+                        <div className="flex items-center gap-2">
+                          <UserPlus size={14} className="text-[#1e3a8a]" />
+                          <select
+                            value=""
+                            onChange={(e) => handleAssignMentor(team.id, Number(e.target.value))}
+                            className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+                          >
+                            <option value="" disabled>Change Mentor...</option>
+                            {mentors.map(m => (
+                              <option key={m.id} value={m.id}>
+                                {m.full_name} ({m.workload}/25)
+                              </option>
+                            ))}
+                          </select>
+                          
+                          {team.mentor_name !== 'N/A' && (
+                            <button
+                              onClick={() => handleRemoveMentor(team.id)}
+                              className="text-rose-600 hover:text-rose-500 font-bold text-xs uppercase tracking-wider cursor-pointer ml-1"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Student members roster */}
+                      <div className="space-y-3">
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-wider"> Roster & Student Transfers</span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs text-slate-500 dark:text-slate-400 border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100 dark:border-slate-850 text-slate-400 font-bold">
+                                <th className="pb-2">Name</th>
+                                <th className="pb-2">USN</th>
+                                <th className="pb-2">Branch</th>
+                                <th className="pb-2">Email</th>
+                                <th className="pb-2 text-right">Transfer Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {team.members.map((member) => (
+                                <tr key={member.id} className="border-b border-slate-55 dark:border-slate-900/20 last:border-none">
+                                  <td className="py-2.5 font-extrabold text-slate-800 dark:text-slate-200">{member.full_name}</td>
+                                  <td className="py-2.5">{member.usn}</td>
+                                  <td className="py-2.5 font-bold uppercase text-indigo-600 dark:text-blue-450">{member.branch}</td>
+                                  <td className="py-2.5">{member.email}</td>
+                                  <td className="py-2.5 text-right">
+                                    {/* Student transfer select */}
+                                    <select
+                                      value=""
+                                      onChange={(e) => handleMoveStudent(member.id, Number(e.target.value))}
+                                      className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-400 outline-none cursor-pointer"
+                                    >
+                                      <option value="" disabled>Move Student...</option>
+                                      <option value="0">Remove from Team (No Team)</option>
+                                      {teams.filter(other => other.id !== team.id).map(other => (
+                                        <option key={other.id} value={other.id}>
+                                          To: {other.name} (ID: {other.id})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                </tr>
+                              ))}
+                              
+                              {team.members.length === 0 && (
+                                <tr>
+                                  <td colSpan={5} className="py-3 text-center text-slate-400 italic">No students are currently in this team. Use the search tab or student rosters to transfer members here.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rejection Modal overlay */}
+      <AnimatePresence>
+        {rejectingTeamId !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md glass-panel p-6 shadow-2xl relative"
+            >
+              <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider mb-2">Reject Project Theme</h3>
+              <p className="text-xs text-slate-400 font-semibold mb-4 leading-relaxed">Provide a reason explaining why the current project topic or theme is being rejected. This notification will be visible to the team members.</p>
+              
+              <textarea
+                value={rejectionReasonText}
+                onChange={(e) => setRejectionReasonText(e.target.value)}
+                placeholder="Type rejection observations here (e.g. Duplicate project topic, needs scope adjustment...)"
+                rows={4}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none placeholder-slate-400 mb-5"
+              ></textarea>
+              
+              <div className="flex justify-end gap-2.5">
+                <button
+                  onClick={() => setRejectingTeamId(null)}
+                  className="px-4.5 py-2.5 font-bold text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleRejectProject(rejectingTeamId)}
+                  className="px-4.5 py-2.5 font-bold text-xs bg-rose-600 text-white rounded-xl hover:bg-rose-500 cursor-pointer"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

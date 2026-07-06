@@ -384,3 +384,170 @@ def remove_mentor_from_group(group_id: int, admin = Depends(get_admin_user), db 
     regenerate_mentor_marks_csv(db)
     
     return {"detail": "Mentor removed successfully"}
+
+@router.get("/teams")
+def get_admin_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    teams = list(db.group_chats.find())
+    results = []
+    
+    for t in teams:
+        # Resolve members
+        member_recs = list(db.group_members.find({"group_id": t["id"]}))
+        member_ids = [r["user_id"] for r in member_recs]
+        
+        # Resolve mentor id
+        mentor_email = t.get("mentor_email")
+        mentor_id = None
+        if mentor_email:
+            mentor = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+            mentor_id = mentor["id"] if mentor else None
+            
+        student_ids = [uid for uid in member_ids if uid != mentor_id]
+        students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+        
+        formatted_students = []
+        for s in students:
+            formatted_students.append({
+                "id": s["id"],
+                "full_name": s.get("full_name") or "N/A",
+                "usn": s.get("usn") or "N/A",
+                "email": s.get("email") or "N/A",
+                "branch": s.get("branch") or "N/A",
+                "cycle": s.get("cycle") or "N/A"
+            })
+            
+        results.append({
+            "id": t["id"],
+            "name": t.get("name") or "N/A",
+            "project_topic": t.get("project_topic") or "N/A",
+            "mentor_name": t.get("mentor_name") or "N/A",
+            "mentor_email": t.get("mentor_email") or "N/A",
+            "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED",
+            "members": formatted_students
+        })
+        
+    return results
+
+@router.post("/groups/{group_id}/dissolve")
+def dissolve_group_by_admin(group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    # Delete all messages, members, and the group itself
+    db.group_messages.delete_many({"group_id": group_id})
+    db.group_members.delete_many({"group_id": group_id})
+    db.group_chats.delete_one({"id": group_id})
+    
+    # Regenerate sheets after deletion
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    return {"detail": "Team dissolved successfully"}
+
+@router.post("/groups/{group_id}/approve")
+def approve_project_by_admin(group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    mentor_email = group.get("mentor_email")
+    if not mentor_email or mentor_email == "N/A":
+        raise HTTPException(status_code=400, detail="Cannot approve team. No mentor is assigned yet.")
+        
+    mentor = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+    if not mentor:
+        raise HTTPException(status_code=404, detail="Assigned mentor not found in users collection.")
+        
+    # Check 25 approved teams capacity
+    active_count = db.group_chats.count_documents({
+        "mentor_email": {"$regex": f"^{mentor_email}$", "$options": "i"},
+        "mentor_status": "APPROVED",
+        "id": {"$ne": group_id}
+    })
+    if active_count >= 25:
+        raise HTTPException(status_code=400, detail="Mentor has reached the maximum capacity of 25 approved teams.")
+        
+    # Update group chat status
+    db.group_chats.update_one(
+        {"id": group_id},
+        {"$set": {
+            "mentor_status": "APPROVED",
+            "mentor_token": None,
+            "mentor_rejection_reason": None,
+            "is_public": False
+        }}
+    )
+    
+    # Add mentor to group members
+    existing_membership = db.group_members.find_one({"group_id": group_id, "user_id": mentor["id"]})
+    if not existing_membership:
+        new_member_id = get_next_sequence_value("group_members")
+        db.group_members.insert_one({
+            "id": new_member_id,
+            "group_id": group_id,
+            "user_id": mentor["id"]
+        })
+        
+    # Regenerate sheets
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    return {"detail": "Project approved successfully"}
+
+@router.post("/groups/{group_id}/reject")
+def reject_project_by_admin(group_id: int, rejection_reason: str = "Rejected by administrator", admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    # Update group chat status to rejected
+    db.group_chats.update_one(
+        {"id": group_id},
+        {"$set": {
+            "mentor_status": "REJECTED",
+            "mentor_token": None,
+            "mentor_rejection_reason": rejection_reason
+        }}
+    )
+    
+    # Remove mentor from group members
+    mentor_email = group.get("mentor_email")
+    if mentor_email:
+        mentor = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+        if mentor:
+            db.group_members.delete_many({"group_id": group_id, "user_id": mentor["id"]})
+            
+    # Regenerate sheets
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    return {"detail": "Project rejected successfully"}
+
+@router.post("/groups/move-student")
+def move_student_between_teams(student_id: int, target_group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    student = db.users.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    # Remove student from any current group memberships
+    db.group_members.delete_many({"user_id": student_id})
+    
+    # If target group id is specified, add them
+    if target_group_id > 0:
+        target_group = db.group_chats.find_one({"id": target_group_id})
+        if not target_group:
+            raise HTTPException(status_code=404, detail="Target team not found")
+            
+        new_member_id = get_next_sequence_value("group_members")
+        db.group_members.insert_one({
+            "id": new_member_id,
+            "group_id": target_group_id,
+            "user_id": student_id
+        })
+        
+    # Regenerate sheets
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    return {"detail": "Student moved successfully"}
