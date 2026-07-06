@@ -593,6 +593,10 @@ async def disband_group_chat(group_id: int, current_user = Depends(get_current_u
     db.group_members.delete_many({"group_id": group_id})
     db.group_chats.delete_one({"id": group_id})
     
+    # Regenerate sheets after deletion
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
     return {"message": "Team disbanded successfully"}
 
 @router.put("/groups/{group_id}/toggle-leave", response_model=GroupChatResponse)
@@ -652,8 +656,10 @@ import shutil
 import uuid
 
 # Helper to sync approved team to CSV/Excel folder
-def sync_approved_team_to_csv(group: dict, db):
+def regenerate_approved_teams_csv(db):
     import csv
+    import os
+    from datetime import datetime
     
     file_dir = "teachers_excel"
     file_path = os.path.join(file_dir, "approved_teams.csv")
@@ -668,49 +674,139 @@ def sync_approved_team_to_csv(group: dict, db):
         "Member 5 Name", "Member 5 Email", "Member 5 USN", "Member 5 Cycle"
     ]
     
-    # Get all members
-    member_records = list(db.group_members.find({"group_id": group["id"]}))
-    member_ids = [m["user_id"] for m in member_records]
-    members = list(db.users.find({"id": {"$in": member_ids}})) if member_ids else []
-    
-    # Build members data
-    member_cols = []
-    for i in range(5):
-        if i < len(members):
-            m = members[i]
-            member_cols.extend([m.get("full_name"), m.get("email"), m.get("usn") or "N/A", m.get("cycle") or "N/A"])
-        else:
-            member_cols.extend(["", "", "", ""])
-            
-    approved_at_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    row_data = [
-        str(group["id"]), group["name"], group.get("project_topic") or "",
-        group.get("mentor_name") or "", group.get("mentor_email") or "", approved_at_str
-    ] + member_cols
-    
+    approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
     rows = []
-    updated = False
-    if os.path.exists(file_path):
-        with open(file_path, "r", newline="", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            try:
-                file_headers = next(reader)
-            except StopIteration:
-                file_headers = []
-            for row in reader:
-                if row and row[0] == str(group["id"]):
-                    rows.append(row_data)
-                    updated = True
-                else:
-                    rows.append(row)
-                    
-    if not updated:
+    
+    for group in approved_groups:
+        # Get all members
+        member_records = list(db.group_members.find({"group_id": group["id"]}))
+        member_ids = [m["user_id"] for m in member_records]
+        
+        # Exclude the mentor from member columns if they are in group_members
+        mentor_email = group.get("mentor_email")
+        if mentor_email:
+            mentor_user = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+            mentor_id = mentor_user["id"] if mentor_user else None
+        else:
+            mentor_id = None
+        
+        student_ids = [uid for uid in member_ids if uid != mentor_id]
+        students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+        
+        # Build member columns
+        member_cols = []
+        for i in range(5):
+            if i < len(students):
+                m = students[i]
+                member_cols.extend([
+                    m.get("full_name") or "",
+                    m.get("email") or "",
+                    m.get("usn") or "N/A",
+                    m.get("cycle") or "N/A"
+                ])
+            else:
+                member_cols.extend(["", "", "", ""])
+                
+        approved_at_str = group.get("approved_at") or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        
+        row_data = [
+            str(group["id"]), group["name"], group.get("project_topic") or "",
+            group.get("mentor_name") or "", group.get("mentor_email") or "", approved_at_str
+        ] + member_cols
         rows.append(row_data)
         
     with open(file_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(headers)
         writer.writerows(rows)
+
+def regenerate_mentor_marks_csv(db):
+    import csv
+    import os
+    
+    file_dir = "teachers_excel"
+    file_path = os.path.join(file_dir, "student_phase_marks.csv")
+    os.makedirs(file_dir, exist_ok=True)
+    
+    headers = [
+        "USN", "Student Name", "Student Email", "Branch", "Section", "Year of Study",
+        "Team ID", "Team Name", "Mentor Name",
+        "Phase 1 Marks", "Phase 1 Observations",
+        "Phase 2 Marks", "Phase 2 Observations",
+        "Phase 3 Marks", "Phase 3 Observations",
+        "Total Marks"
+    ]
+    
+    students = list(db.users.find({
+        "is_mentor": {"$ne": True}, 
+        "is_admin": {"$ne": True},
+        "email": {"$ne": "ishaen.vihaan@gmail.com"}
+    }))
+    
+    rows = []
+    for s in students:
+        student_id = s.get("id")
+        usn = s.get("usn") or "N/A"
+        name = s.get("full_name") or "N/A"
+        email = s.get("email") or "N/A"
+        branch = s.get("branch") or "N/A"
+        section = s.get("section") or "N/A"
+        year = s.get("year_of_study") or "N/A"
+        
+        group_id = "N/A"
+        group_name = "N/A"
+        mentor_name = "N/A"
+        group_doc = None
+        
+        membership = db.group_members.find_one({"user_id": student_id})
+        if membership:
+            group_doc = db.group_chats.find_one({"id": membership["group_id"]})
+            if group_doc:
+                group_id = str(group_doc.get("id"))
+                group_name = group_doc.get("name") or "N/A"
+                mentor_name = group_doc.get("mentor_name") or "N/A"
+                    
+        p1_marks = 0
+        p1_obs = ""
+        p2_marks = 0
+        p2_obs = ""
+        p3_marks = 0
+        p3_obs = ""
+        
+        if group_doc:
+            eval_doc = db.evaluations.find_one({"group_id": group_doc.get("id"), "student_id": student_id})
+            if eval_doc:
+                p1_det = eval_doc.get("phase1_detail_marks") or {}
+                p1_marks = sum(int(float(v or 0)) for v in p1_det.values())
+                p1_obs = eval_doc.get("phase1_observations") or ""
+                
+                p2_det = eval_doc.get("phase2_detail_marks") or {}
+                p2_marks = sum(int(float(v or 0)) for v in p2_det.values())
+                p2_obs = eval_doc.get("phase2_observations") or ""
+                
+                p3_det = eval_doc.get("phase3_detail_marks") or {}
+                p3_marks = sum(int(float(v or 0)) for v in p3_det.values())
+                p3_obs = eval_doc.get("phase3_observations") or ""
+                
+        total_marks = p1_marks + p2_marks + p3_marks
+        
+        row = [
+            usn, name, email, branch, section, year,
+            group_id, group_name, mentor_name,
+            p1_marks, p1_obs,
+            p2_marks, p2_obs,
+            p3_marks, p3_obs,
+            total_marks
+        ]
+        rows.append(row)
+        
+    with open(file_path, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        writer.writerows(rows)
+
+def sync_approved_team_to_csv(group: dict, db):
+    regenerate_approved_teams_csv(db)
 
 # Update Project Details (Topic, Mentor Name, Mentor Email)
 @router.put("/groups/{group_id}/project-details", response_model=GroupChatResponse)
@@ -789,6 +885,8 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
     
     if update_fields:
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
+        regenerate_approved_teams_csv(db)
+        regenerate_mentor_marks_csv(db)
     
     updated_group = db.group_chats.find_one({"id": group_id})
     return build_group_response(updated_group, db, current_user)
@@ -1162,6 +1260,11 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
         raise HTTPException(status_code=400, detail="Invalid action. Use APPROVE or REJECT.")
         
     db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
+    
+    # Regenerate spreadsheets to reflect approval/rejection state
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
     updated_group = db.group_chats.find_one({"id": group_id})
     return populate_group_response(updated_group, db, current_user)
 
@@ -1293,6 +1396,9 @@ def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = De
         
     if update_fields:
         db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
+    
+    # Regenerate marks sheet after saving
+    regenerate_mentor_marks_csv(db)
         
     updated_group = db.group_chats.find_one({"id": group_id})
     return populate_group_response(updated_group, db, current_user)
