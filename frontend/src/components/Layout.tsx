@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, ShieldAlert, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -140,9 +140,16 @@ export default function Layout() {
       item.name !== 'Project Dashboard'
     );
     
-    const hasAdminLink = navItems.some(item => item.name === 'Admin');
+    const hasAdminLink = navItems.some(item => item.name === 'Moderation Logs');
     if (!hasAdminLink) {
-      navItems.push({ name: 'Admin', path: '/admin', icon: ShieldAlert, danger: true } as any);
+      navItems.push(
+        { name: 'Moderation Logs', path: '/admin?tab=moderation', icon: AlertOctagon, danger: true } as any,
+        { name: 'Analytics', path: '/admin?tab=analytics', icon: BarChart3, danger: true } as any,
+        { name: 'Global Search', path: '/admin?tab=search', icon: Search, danger: true } as any,
+        { name: 'Mentors', path: '/admin?tab=mentors', icon: UserIcon, danger: true } as any,
+        { name: 'Teams', path: '/admin?tab=teams', icon: Users, danger: true } as any,
+        { name: 'Report Center', path: '/admin?tab=reports', icon: Download, danger: true } as any
+      );
     }
   }
 
@@ -161,63 +168,32 @@ export default function Layout() {
 
         <div className="flex-1 px-4 space-y-2 mt-4">
           {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
+            const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
+            const isActive = item.path.includes('?tab=')
+              ? location.pathname === '/admin' && item.path.endsWith(`?tab=${queryTab}`)
+              : location.pathname.startsWith(item.path);
             const Icon = item.icon;
             const danger = (item as any).danger;
-            const showSubtabs = item.name === 'Admin' && isActive;
             
             return (
-              <div key={item.name} className="space-y-1">
-                <Link
-                  to={item.name === 'Admin' ? "/admin?tab=moderation" : item.path}
-                  className={cn(
-                    "flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 font-medium",
-                    isActive 
-                      ? (danger ? "bg-red-500/10 text-red-400" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400")
-                      : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100")
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={20} className={cn(isActive && !danger && "text-indigo-400")} strokeWidth={isActive ? 2.5 : 2} />
-                    {item.name}
-                  </div>
-                  {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                    <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
-                  )}
-                </Link>
-                
-                {showSubtabs && (
-                  <div className="pl-4 space-y-1 border-l border-white/10 ml-6 mt-1.5 mb-2">
-                    {[
-                      { name: 'Moderation Logs', tab: 'moderation', icon: AlertOctagon },
-                      { name: 'Analytics', tab: 'analytics', icon: BarChart3 },
-                      { name: 'Global Search', tab: 'search', icon: Search },
-                      { name: 'Mentors', tab: 'mentors', icon: UserIcon },
-                      { name: 'Teams', tab: 'teams', icon: Users },
-                      { name: 'Report Center', tab: 'reports', icon: Download }
-                    ].map((sub) => {
-                      const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
-                      const isSubActive = queryTab === sub.tab;
-                      const SubIcon = sub.icon;
-                      return (
-                        <Link
-                          key={sub.tab}
-                          to={`/admin?tab=${sub.tab}`}
-                          className={cn(
-                            "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200",
-                            isSubActive
-                              ? "bg-slate-900 text-indigo-405 font-bold shadow-sm shadow-indigo-950/20 border border-white/5"
-                              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                          )}
-                        >
-                          <SubIcon size={14} strokeWidth={isSubActive ? 2.5 : 2} className={cn(isSubActive && "text-indigo-400")} />
-                          {sub.name}
-                        </Link>
-                      );
-                    })}
-                  </div>
+              <Link
+                key={item.name}
+                to={item.path}
+                className={cn(
+                  "flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 font-medium",
+                  isActive 
+                    ? (danger ? "bg-red-500/10 text-red-400" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400")
+                    : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100")
                 )}
-              </div>
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={20} className={cn(isActive && !danger && "text-indigo-400")} strokeWidth={isActive ? 2.5 : 2} />
+                  {item.name}
+                </div>
+                {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
+                )}
+              </Link>
             );
           })}
         </div>
@@ -304,26 +280,31 @@ export default function Layout() {
       {/* Mobile Bottom Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-950/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2 px-6">
         <div className="flex justify-between items-center pb-2">
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={cn(
-                  "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
-                  isActive ? "text-indigo-400 scale-110" : "text-slate-400 hover:text-slate-200"
-                )}
-              >
-                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[10px] font-medium opacity-0 hidden">{item.name}</span>
-                {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                  <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
-                )}
-              </Link>
-            );
-          })}
+          {navItems
+            .filter(item => !isAdmin || item.name === 'Notifications' || item.name === 'Moderation Logs' || item.name === 'Profile' || item.name === 'My Profile')
+            .map((item) => {
+              const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
+              const isActive = item.path.includes('?tab=')
+                ? location.pathname === '/admin' && item.path.endsWith(`?tab=${queryTab}`)
+                : location.pathname.startsWith(item.path);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.name === 'Moderation Logs' && isAdmin ? '/admin?tab=moderation' : item.path}
+                  className={cn(
+                    "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
+                    isActive ? "text-indigo-400 scale-110" : "text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-[10px] font-medium opacity-0 hidden">{item.name}</span>
+                  {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                    <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                  )}
+                </Link>
+              );
+            })}
           <button
             onClick={toggleTheme}
             className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
