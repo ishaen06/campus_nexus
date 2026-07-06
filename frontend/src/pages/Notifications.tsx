@@ -209,7 +209,7 @@ export default function Notifications() {
         {isAdmin && (
           <button
             onClick={() => setIsComposing(true)}
-            className="flex items-center justify-center gap-3 bg-gradient-to-r from-red-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 text-white font-bold py-3.5 px-6 rounded-2xl transition shadow-lg shadow-indigo-600/10 cursor-pointer text-xs uppercase tracking-wider"
+            className="flex items-center justify-center gap-3 bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-3.5 px-6 rounded-2xl transition shadow-lg shadow-indigo-600/10 cursor-pointer text-xs uppercase tracking-wider"
           >
             <Plus size={16} />
             Compose Post
