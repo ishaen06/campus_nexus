@@ -17,7 +17,10 @@ import {
   Search,
   Mail,
   ChevronRight,
-  X
+  X,
+  UserPlus,
+  Trash2,
+  GitMerge
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -75,9 +78,36 @@ interface MatchedTeam {
   members: string[];
 }
 
+interface MentorData {
+  id: number;
+  full_name: string;
+  email: string;
+  department: string;
+  post: string;
+  bio: string;
+  workload: number;
+  assigned_teams: {
+    id: number;
+    name: string;
+    project_topic: string;
+    mentor_status: string;
+    students: string[];
+  }[];
+  assigned_students: string[];
+}
+
+interface UnassignedTeam {
+  id: number;
+  name: string;
+  project_topic: string;
+  mentor_name: string;
+  mentor_email: string;
+  mentor_status: string;
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search'>('moderation');
+  const [activeTab, setActiveTab] = useState<'moderation' | 'analytics' | 'search' | 'mentors'>('moderation');
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +120,13 @@ export default function AdminDashboard() {
   const [searchResults, setSearchResults] = useState<{ users: MatchedUser[]; teams: MatchedTeam[] }>({ users: [], teams: [] });
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<MatchedUser | null>(null);
+
+  // Mentor management states
+  const [mentors, setMentors] = useState<MentorData[]>([]);
+  const [allTeams, setAllTeams] = useState<UnassignedTeam[]>([]);
+  const [mentorQuery, setMentorQuery] = useState('');
+  const [mentorsLoading, setMentorsLoading] = useState(true);
+  const [expandedMentorId, setExpandedMentorId] = useState<number | null>(null);
 
   const fetchReports = async () => {
     try {
@@ -110,6 +147,19 @@ export default function AdminDashboard() {
       console.error("Failed to load analytics data", err);
     } finally {
       setAnalyticsLoading(false);
+    }
+  };
+
+  const fetchMentorsData = async () => {
+    try {
+      const res = await api.get('/admin/mentors');
+      setMentors(res.data);
+      const resTeams = await api.get('/admin/unassigned-teams');
+      setAllTeams(resTeams.data);
+    } catch (err) {
+      console.error("Failed to fetch mentor management data", err);
+    } finally {
+      setMentorsLoading(false);
     }
   };
 
@@ -145,6 +195,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchReports();
     fetchAnalytics();
+    fetchMentorsData();
 
     // Auto-refresh analytics every 30 seconds
     const interval = setInterval(() => {
@@ -166,6 +217,29 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAssignMentor = async (groupId: number, mentorId: number) => {
+    try {
+      await api.post(`/admin/groups/${groupId}/assign-mentor?mentor_id=${mentorId}`);
+      alert("Mentor assigned successfully.");
+      fetchMentorsData();
+      fetchAnalytics();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to assign mentor.");
+    }
+  };
+
+  const handleRemoveMentor = async (groupId: number) => {
+    if (!window.confirm("Are you sure you want to remove the mentor from this project?")) return;
+    try {
+      await api.post(`/admin/groups/${groupId}/remove-mentor`);
+      alert("Mentor removed successfully.");
+      fetchMentorsData();
+      fetchAnalytics();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to remove mentor.");
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -183,6 +257,11 @@ export default function AdminDashboard() {
       <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mb-4"></div>
       <p className="text-gray-500 font-medium tracking-wide">Loading moderation center...</p>
     </div>
+  );
+
+  const filteredMentors = mentors.filter(m => 
+    m.full_name.toLowerCase().includes(mentorQuery.toLowerCase()) ||
+    m.department.toLowerCase().includes(mentorQuery.toLowerCase())
   );
 
   return (
@@ -272,6 +351,16 @@ export default function AdminDashboard() {
           }`}
         >
           Global Search <Search size={14} />
+        </button>
+        <button
+          onClick={() => setActiveTab('mentors')}
+          className={`py-3.5 px-6 font-bold text-sm uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'mentors' 
+              ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-blue-400' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Mentor Management <User size={14} />
         </button>
       </div>
 
@@ -624,7 +713,7 @@ export default function AdminDashboard() {
               </>
             )}
           </motion.div>
-        ) : (
+        ) : activeTab === 'search' ? (
           <motion.div 
             key="search"
             initial={{ opacity: 0, y: 15 }}
@@ -751,6 +840,169 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="mentors"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* Search filter for Mentors */}
+            <div className="glass-panel p-5 flex items-center gap-3">
+              <Search className="text-slate-400 flex-shrink-0" size={20} />
+              <input
+                type="text"
+                placeholder="Filter mentors by name or department..."
+                value={mentorQuery}
+                onChange={(e) => setMentorQuery(e.target.value)}
+                className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400"
+              />
+            </div>
+
+            {mentorsLoading ? (
+              <div className="text-center py-12 text-slate-500 font-medium">
+                <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mx-auto mb-3"></div>
+                Loading mentors workload...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredMentors.length === 0 ? (
+                  <p className="text-sm text-slate-400 italic font-medium p-8 glass-panel text-center">No mentors matched your filter.</p>
+                ) : (
+                  filteredMentors.map((mentor) => {
+                    const isExpanded = expandedMentorId === mentor.id;
+                    const workloadPercent = Math.min((mentor.workload / 25) * 100, 100);
+                    return (
+                      <div key={mentor.id} className="glass-panel overflow-hidden border border-slate-200 dark:border-slate-800/80">
+                        {/* Header Row */}
+                        <div 
+                          onClick={() => setExpandedMentorId(isExpanded ? null : mentor.id)}
+                          className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-100/30 dark:hover:bg-slate-900/10 transition-all duration-200"
+                        >
+                          <div className="space-y-1">
+                            <h3 className="font-extrabold text-base text-slate-800 dark:text-slate-100">{mentor.full_name}</h3>
+                            <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold flex-wrap">
+                              <span>Post: {mentor.post}</span>
+                              <span>•</span>
+                              <span>Dept: {mentor.department}</span>
+                              <span>•</span>
+                              <span>Email: {mentor.email}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-6 flex-shrink-0">
+                            {/* Workload Progress */}
+                            <div className="text-right space-y-1">
+                              <span className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">Workload Capacity</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 bg-slate-100 dark:bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-200/40 dark:border-slate-800/40">
+                                  <div style={{ width: `${workloadPercent}%` }} className="h-full bg-indigo-600 rounded-full"></div>
+                                </div>
+                                <span className="text-xs font-black text-slate-700 dark:text-slate-300">{mentor.workload} / 25 teams</span>
+                              </div>
+                            </div>
+                            <ChevronRight className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} size={18} />
+                          </div>
+                        </div>
+
+                        {/* Expandable Details Section */}
+                        {isExpanded && (
+                          <div className="bg-slate-50/50 dark:bg-slate-900/10 p-5 border-t border-slate-200/50 dark:border-slate-800/50 space-y-5">
+                            {/* Bio if available */}
+                            {mentor.bio && (
+                              <div className="text-xs text-slate-500 font-medium italic">
+                                "{mentor.bio}"
+                              </div>
+                            )}
+
+                            {/* Assigned Teams grid */}
+                            <div className="space-y-3.5">
+                              <div className="flex justify-between items-center border-b border-slate-200/60 dark:border-slate-800/60 pb-2">
+                                <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                                  <Layers size={13} /> Assigned Teams ({mentor.assigned_teams.length})
+                                </h4>
+
+                                {/* Assign new team select dropdown */}
+                                <div className="flex items-center gap-2">
+                                  <UserPlus size={14} className="text-[#1e3a8a]" />
+                                  <select
+                                    value=""
+                                    onChange={(e) => handleAssignMentor(Number(e.target.value), mentor.id)}
+                                    className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
+                                  >
+                                    <option value="" disabled>+ Assign / Transfer Team...</option>
+                                    {allTeams.map((team) => (
+                                      <option key={team.id} value={team.id}>
+                                        {team.name} (ID: {team.id} - Current Mentor: {team.mentor_name})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {mentor.assigned_teams.length === 0 ? (
+                                <p className="text-xs text-slate-400 font-medium italic">This mentor has no active team assignments.</p>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {mentor.assigned_teams.map((team) => (
+                                    <div key={team.id} className="bg-white dark:bg-slate-950/20 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 flex flex-col justify-between gap-4">
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                          <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{team.name}</span>
+                                          <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-950">
+                                            ID: {team.id}
+                                          </span>
+                                        </div>
+                                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                                          Topic: {team.project_topic}
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                          Students: {team.students.join(', ') || 'None'}
+                                        </div>
+                                      </div>
+
+                                      {/* Controls next to team card */}
+                                      <div className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-850 pt-3">
+                                        {/* Reassign select */}
+                                        <div className="flex items-center gap-1">
+                                          <GitMerge size={12} className="text-slate-400" />
+                                          <select
+                                            value=""
+                                            onChange={(e) => handleAssignMentor(team.id, Number(e.target.value))}
+                                            className="bg-transparent border-none text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 outline-none cursor-pointer"
+                                          >
+                                            <option value="" disabled>Reassign Mentor...</option>
+                                            {mentors.filter(other => other.id !== mentor.id).map(other => (
+                                              <option key={other.id} value={other.id}>
+                                                {other.full_name} ({other.workload}/25)
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+
+                                        {/* Remove button */}
+                                        <button
+                                          onClick={() => handleRemoveMentor(team.id)}
+                                          className="text-rose-600 hover:text-rose-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <Trash2 size={12} /> Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </motion.div>
         )}

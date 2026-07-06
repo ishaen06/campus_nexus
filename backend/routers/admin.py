@@ -236,3 +236,151 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
         "users": formatted_users,
         "teams": formatted_teams
     }
+
+@router.get("/mentors")
+def get_admin_mentors(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    mentors = list(db.users.find({"is_mentor": True}))
+    results = []
+    
+    for m in mentors:
+        email = m.get("email")
+        name = m.get("full_name") or email
+        
+        # Query assigned teams for this mentor
+        teams = list(db.group_chats.find({"mentor_email": {"$regex": f"^{email}$", "$options": "i"}}))
+        formatted_teams = []
+        all_student_names = []
+        
+        for t in teams:
+            # Get members
+            member_recs = list(db.group_members.find({"group_id": t["id"]}))
+            member_ids = [r["user_id"] for r in member_recs]
+            
+            # Resolve mentor id
+            mentor_user = db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+            mentor_id = mentor_user["id"] if mentor_user else None
+            
+            student_ids = [uid for uid in member_ids if uid != mentor_id]
+            students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+            student_names = [s.get("full_name") or "N/A" for s in students]
+            
+            all_student_names.extend(student_names)
+            
+            formatted_teams.append({
+                "id": t["id"],
+                "name": t.get("name") or "N/A",
+                "project_topic": t.get("project_topic") or "N/A",
+                "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED",
+                "students": student_names
+            })
+            
+        results.append({
+            "id": m["id"],
+            "full_name": name,
+            "email": email,
+            "department": m.get("department") or "N/A",
+            "post": m.get("post") or "N/A",
+            "bio": m.get("bio") or "",
+            "workload": len([t for t in teams if t.get("mentor_status") == "APPROVED"]),
+            "assigned_teams": formatted_teams,
+            "assigned_students": list(set(all_student_names))
+        })
+        
+    return results
+
+@router.get("/unassigned-teams")
+def get_unassigned_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    teams = list(db.group_chats.find())
+    results = []
+    for t in teams:
+        results.append({
+            "id": t["id"],
+            "name": t.get("name") or "N/A",
+            "project_topic": t.get("project_topic") or "N/A",
+            "mentor_name": t.get("mentor_name") or "N/A",
+            "mentor_email": t.get("mentor_email") or "N/A",
+            "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED"
+        })
+    return results
+
+@router.post("/groups/{group_id}/assign-mentor")
+def assign_mentor_to_group(group_id: int, mentor_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    mentor = db.users.find_one({"id": mentor_id, "is_mentor": True})
+    if not mentor:
+        raise HTTPException(status_code=404, detail="Mentor not found")
+        
+    # Check workload limit (25 approved teams)
+    active_count = db.group_chats.count_documents({
+        "mentor_email": {"$regex": f"^{mentor['email']}$", "$options": "i"},
+        "mentor_status": "APPROVED",
+        "id": {"$ne": group_id}
+    })
+    
+    if active_count >= 25:
+        raise HTTPException(status_code=400, detail="Mentor has reached the maximum capacity of 25 approved teams.")
+        
+    # If the group already has an assigned mentor, remove them from group_members
+    current_mentor_email = group.get("mentor_email")
+    if current_mentor_email:
+        old_mentor = db.users.find_one({"email": {"$regex": f"^{current_mentor_email}$", "$options": "i"}})
+        if old_mentor:
+            db.group_members.delete_many({"group_id": group_id, "user_id": old_mentor["id"]})
+            
+    # Update group chat document
+    db.group_chats.update_one(
+        {"id": group_id},
+        {"$set": {
+            "mentor_name": mentor.get("full_name") or mentor["email"],
+            "mentor_email": mentor["email"],
+            "mentor_status": "APPROVED"
+        }}
+    )
+    
+    # Add mentor to group_members if not present
+    existing_membership = db.group_members.find_one({"group_id": group_id, "user_id": mentor["id"]})
+    if not existing_membership:
+        new_member_id = get_next_sequence_value("group_members")
+        db.group_members.insert_one({
+            "id": new_member_id,
+            "group_id": group_id,
+            "user_id": mentor["id"]
+        })
+        
+    # Regenerate spreadsheet CSV exports
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    return {"detail": "Mentor assigned successfully"}
+
+@router.post("/groups/{group_id}/remove-mentor")
+def remove_mentor_from_group(group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    # Remove mentor from group_members
+    mentor_email = group.get("mentor_email")
+    if mentor_email:
+        mentor = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+        if mentor:
+            db.group_members.delete_many({"group_id": group_id, "user_id": mentor["id"]})
+            
+    # Reset group chat fields
+    db.group_chats.update_one(
+        {"id": group_id},
+        {"$set": {
+            "mentor_name": "N/A",
+            "mentor_email": "N/A",
+            "mentor_status": "NOT_SUBMITTED"
+        }}
+    )
+    
+    # Regenerate spreadsheet CSV exports
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    return {"detail": "Mentor removed successfully"}
