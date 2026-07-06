@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, ShieldAlert, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell } from 'lucide-react';
+import { Compass, Users, FolderGit, ShieldAlert, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -164,25 +164,60 @@ export default function Layout() {
             const isActive = location.pathname.startsWith(item.path);
             const Icon = item.icon;
             const danger = (item as any).danger;
+            const showSubtabs = item.name === 'Admin' && isActive;
+            
             return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={cn(
-                  "flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 font-medium",
-                  isActive 
-                    ? (danger ? "bg-red-500/10 text-red-400" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400")
-                    : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100")
+              <div key={item.name} className="space-y-1">
+                <Link
+                  to={item.name === 'Admin' ? "/admin?tab=moderation" : item.path}
+                  className={cn(
+                    "flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 font-medium",
+                    isActive 
+                      ? (danger ? "bg-red-500/10 text-red-400" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400")
+                      : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100")
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={20} className={cn(isActive && !danger && "text-indigo-400")} strokeWidth={isActive ? 2.5 : 2} />
+                    {item.name}
+                  </div>
+                  {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                    <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
+                  )}
+                </Link>
+                
+                {showSubtabs && (
+                  <div className="pl-4 space-y-1 border-l border-white/10 ml-6 mt-1.5 mb-2">
+                    {[
+                      { name: 'Moderation Logs', tab: 'moderation', icon: AlertOctagon },
+                      { name: 'Analytics', tab: 'analytics', icon: BarChart3 },
+                      { name: 'Global Search', tab: 'search', icon: Search },
+                      { name: 'Mentors', tab: 'mentors', icon: UserIcon },
+                      { name: 'Teams', tab: 'teams', icon: Users },
+                      { name: 'Report Center', tab: 'reports', icon: Download }
+                    ].map((sub) => {
+                      const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
+                      const isSubActive = queryTab === sub.tab;
+                      const SubIcon = sub.icon;
+                      return (
+                        <Link
+                          key={sub.tab}
+                          to={`/admin?tab=${sub.tab}`}
+                          className={cn(
+                            "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200",
+                            isSubActive
+                              ? "bg-slate-900 text-indigo-405 font-bold shadow-sm shadow-indigo-950/20 border border-white/5"
+                              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                          )}
+                        >
+                          <SubIcon size={14} strokeWidth={isSubActive ? 2.5 : 2} className={cn(isSubActive && "text-indigo-400")} />
+                          {sub.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon size={20} className={cn(isActive && !danger && "text-indigo-400")} strokeWidth={isActive ? 2.5 : 2} />
-                  {item.name}
-                </div>
-                {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
-                )}
-              </Link>
+              </div>
             );
           })}
         </div>
