@@ -455,49 +455,51 @@ export default function AdminDashboard() {
           </p>
         </div>
         
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={async () => {
-              try {
-                const res = await api.get('/admin/download-approved-teams', { responseType: 'blob' });
-                const url = window.URL.createObjectURL(new Blob([res.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'approved_teams.csv');
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode?.removeChild(link);
-              } catch (err) {
-                console.error("Failed to download teams CSV", err);
-                alert("Failed to download spreadsheet.");
-              }
-            }}
-            className="bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
-          >
-            Download Teams
-          </button>
-          
-          <button
-            onClick={async () => {
-              try {
-                const res = await api.get('/admin/download-student-marks', { responseType: 'blob' });
-                const url = window.URL.createObjectURL(new Blob([res.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'student_phase_marks.csv');
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode?.removeChild(link);
-              } catch (err) {
-                console.error("Failed to download student marks CSV", err);
-                alert("Failed to download marks spreadsheet.");
-              }
-            }}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-emerald-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
-          >
-            Download Marks
-          </button>
-        </div>
+        {activeTab === 'reports' && (
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={async () => {
+                try {
+                  const res = await api.get('/admin/download-approved-teams', { responseType: 'blob' });
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.setAttribute('download', 'approved_teams.csv');
+                  document.body.appendChild(link);
+                  link.click();
+                  link.parentNode?.removeChild(link);
+                } catch (err) {
+                  console.error("Failed to download teams CSV", err);
+                  alert("Failed to download spreadsheet.");
+                }
+              }}
+              className="bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+            >
+              Download Teams
+            </button>
+            
+            <button
+              onClick={async () => {
+                try {
+                  const res = await api.get('/admin/download-student-marks', { responseType: 'blob' });
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.setAttribute('download', 'student_phase_marks.csv');
+                  document.body.appendChild(link);
+                  link.click();
+                  link.parentNode?.removeChild(link);
+                } catch (err) {
+                  console.error("Failed to download student marks CSV", err);
+                  alert("Failed to download marks spreadsheet.");
+                }
+              }}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-emerald-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+            >
+              Download Marks
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile-only horizontal tab bar (hidden on desktop screens where Layout sidebar controls tabs) */}
