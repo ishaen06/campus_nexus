@@ -640,7 +640,7 @@ export default function AdminDashboard() {
             ) : (
               <>
                 {/* 1. Gradient Stat Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
                     className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
@@ -667,7 +667,7 @@ export default function AdminDashboard() {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-2 sm:col-span-1"
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
                     style={{ background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
@@ -682,7 +682,7 @@ export default function AdminDashboard() {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-2 sm:col-span-1"
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
                     style={{ background: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
@@ -694,18 +694,7 @@ export default function AdminDashboard() {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-1"
-                    style={{ background: 'linear-gradient(135deg, #0e7490 0%, #22d3ee 100%)' }}
-                  >
-                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-                    <Calendar size={24} className="mb-3 opacity-90" />
-                    <div className="text-3xl font-black">{analytics.counts.total_events}</div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Total Events</div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-1"
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
                     style={{ background: 'linear-gradient(135deg, #9f1239 0%, #f43f5e 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
@@ -895,52 +884,7 @@ export default function AdminDashboard() {
                     </div>
                   </motion.div>
 
-                  {/* Event Registration Leaderboard */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                    className="glass-panel p-6 space-y-5 col-span-1 md:col-span-2"
-                  >
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
-                        <Calendar size={14} className="text-white" />
-                      </div>
-                      Event Registration Leaderboard
-                    </h3>
-                    <div className="space-y-3">
-                      {Object.keys(analytics.event_registrations || {}).length === 0 ? (
-                        <div className="text-center py-8 text-slate-400">
-                          <Calendar size={36} className="mx-auto mb-3 opacity-30" />
-                          <p className="text-sm font-semibold">No events posted yet.</p>
-                        </div>
-                      ) : (
-                        Object.entries(analytics.event_registrations || {})
-                          .sort((a, b) => b[1] - a[1])
-                          .map(([title, rsvps], rank) => {
-                            const medalColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700'];
-                            const bgColors = [
-                              'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200/60 dark:border-yellow-900/50',
-                              'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/50',
-                              'bg-amber-50 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/50',
-                            ];
-                            return (
-                              <div key={title} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all hover:scale-[1.01] ${bgColors[rank] || 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/40'}`}>
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
-                                  rank < 3 ? medalColors[rank] : 'text-slate-400'
-                                } ${
-                                  rank < 3 ? 'bg-white dark:bg-slate-900/60 shadow-sm' : 'bg-slate-100 dark:bg-slate-800'
-                                }`}>
-                                  #{rank + 1}
-                                </div>
-                                <div className="flex-1 font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{title}</div>
-                                <div className="flex-shrink-0 text-xs font-black text-[#1e3a8a] dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-blue-900">
-                                  {rsvps} RSVP{rsvps !== 1 ? 's' : ''}
-                                </div>
-                              </div>
-                            );
-                          })
-                      )}
-                    </div>
-                  </motion.div>
+
                 </div>
               </>
             )}
@@ -1589,23 +1533,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Card 7: Events */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-rose-50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-455 border border-rose-100 dark:border-rose-900 rounded-xl">
-                      <Calendar size={18} />
-                    </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Events Registry</h3>
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">List of scheduled campus hackathons, events, dates, locations, and total RSVP registration metrics.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('events', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('events', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('events', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
             </div>
           </motion.div>
         )}
