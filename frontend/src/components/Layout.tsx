@@ -143,12 +143,12 @@ export default function Layout() {
     const hasAdminLink = navItems.some(item => item.name === 'Moderation Logs');
     if (!hasAdminLink) {
       navItems.push(
-        { name: 'Moderation Logs', path: '/admin?tab=moderation', icon: AlertOctagon, danger: true } as any,
-        { name: 'Analytics', path: '/admin?tab=analytics', icon: BarChart3, danger: true } as any,
-        { name: 'Global Search', path: '/admin?tab=search', icon: Search, danger: true } as any,
-        { name: 'Mentors', path: '/admin?tab=mentors', icon: UserIcon, danger: true } as any,
-        { name: 'Teams', path: '/admin?tab=teams', icon: Users, danger: true } as any,
-        { name: 'Report Center', path: '/admin?tab=reports', icon: Download, danger: true } as any
+        { name: 'Moderation Logs', path: '/admin?tab=moderation', icon: AlertOctagon } as any,
+        { name: 'Analytics', path: '/admin?tab=analytics', icon: BarChart3 } as any,
+        { name: 'Global Search', path: '/admin?tab=search', icon: Search } as any,
+        { name: 'Mentors', path: '/admin?tab=mentors', icon: UserIcon } as any,
+        { name: 'Teams', path: '/admin?tab=teams', icon: Users } as any,
+        { name: 'Report Center', path: '/admin?tab=reports', icon: Download } as any
       );
     }
   }

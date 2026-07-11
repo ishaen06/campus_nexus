@@ -644,7 +644,7 @@ export default function AdminDashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
                     className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
                     <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
@@ -656,7 +656,7 @@ export default function AdminDashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                     className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
                     <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
@@ -668,7 +668,7 @@ export default function AdminDashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
                     className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
                     <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
@@ -683,7 +683,7 @@ export default function AdminDashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                     className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
                     <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
@@ -695,7 +695,7 @@ export default function AdminDashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
                     className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #9f1239 0%, #f43f5e 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
                   >
                     <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
                     <MessageSquare size={24} className="mb-3 opacity-90" />
@@ -712,7 +712,7 @@ export default function AdminDashboard() {
                     className="glass-panel p-6 space-y-5"
                   >
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
                         <BarChart3 size={14} className="text-white" />
                       </div>
                       Students by Branch
@@ -724,7 +724,6 @@ export default function AdminDashboard() {
                         Object.entries(analytics.students_by_branch || {}).map(([branch, count], i) => {
                           const maxVal = Math.max(...Object.values(analytics.students_by_branch || {}), 1);
                           const percentage = (count / maxVal) * 100;
-                          const colors = ['from-blue-500 to-blue-700', 'from-indigo-500 to-indigo-700', 'from-violet-500 to-violet-700', 'from-sky-500 to-sky-700'];
                           return (
                             <div key={branch} className="space-y-1.5">
                               <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -736,7 +735,7 @@ export default function AdminDashboard() {
                                   initial={{ width: 0 }}
                                   animate={{ width: `${percentage}%` }}
                                   transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
-                                  className={`h-full bg-gradient-to-r ${colors[i % colors.length]} rounded-full`}
+                                  className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-500 rounded-full"
                                 />
                               </div>
                             </div>
@@ -752,7 +751,7 @@ export default function AdminDashboard() {
                     className="glass-panel p-6 space-y-5"
                   >
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
                         <Layers size={14} className="text-white" />
                       </div>
                       Teams by Department
@@ -764,7 +763,6 @@ export default function AdminDashboard() {
                         Object.entries(analytics.teams_by_department || {}).map(([dept, count], i) => {
                           const maxVal = Math.max(...Object.values(analytics.teams_by_department || {}), 1);
                           const percentage = (count / maxVal) * 100;
-                          const colors = ['from-purple-500 to-indigo-700', 'from-violet-500 to-purple-700', 'from-fuchsia-500 to-violet-700', 'from-pink-500 to-fuchsia-700'];
                           return (
                             <div key={dept} className="space-y-1.5">
                               <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -776,7 +774,7 @@ export default function AdminDashboard() {
                                   initial={{ width: 0 }}
                                   animate={{ width: `${percentage}%` }}
                                   transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
-                                  className={`h-full bg-gradient-to-r ${colors[i % colors.length]} rounded-full`}
+                                  className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-500 rounded-full"
                                 />
                               </div>
                             </div>
@@ -792,7 +790,7 @@ export default function AdminDashboard() {
                     className="glass-panel p-6 space-y-5"
                   >
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
                         <Activity size={14} className="text-white" />
                       </div>
                       Mentor Workload
@@ -808,17 +806,17 @@ export default function AdminDashboard() {
                             <div key={name} className="space-y-1.5">
                               <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <span className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${isHigh ? 'bg-rose-500' : 'bg-indigo-500'}`} />
+                                  <div className={`w-2 h-2 rounded-full ${isHigh ? 'bg-rose-500' : 'bg-[#1e3a8a]'}`} />
                                   {name}
                                 </span>
-                                <span className={`font-extrabold ${isHigh ? 'text-rose-500' : 'text-indigo-500'}`}>{count} / 25</span>
+                                <span className={`font-extrabold ${isHigh ? 'text-rose-500' : 'text-[#1e3a8a] dark:text-blue-400'}`}>{count} / 25</span>
                               </div>
                               <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${percentage}%` }}
                                   transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
-                                  className={`h-full rounded-full ${isHigh ? 'bg-gradient-to-r from-rose-500 to-rose-700' : 'bg-gradient-to-r from-indigo-500 to-indigo-700'}`}
+                                  className={`h-full rounded-full ${isHigh ? 'bg-gradient-to-r from-rose-500 to-rose-700' : 'bg-gradient-to-r from-[#1e3a8a] to-blue-500'}`}
                                 />
                               </div>
                             </div>
@@ -1413,16 +1411,6 @@ export default function AdminDashboard() {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Introduction Card */}
-            <div className="glass-panel p-6 bg-gradient-to-br from-[#1e3a8a]/5 to-indigo-600/5 border-[#1e3a8a]/10">
-              <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1 flex items-center gap-2">
-                <Download className="text-[#1e3a8a]" size={20} /> Administrative Report Center
-              </h2>
-              <p className="text-xs text-slate-505 dark:text-slate-400 font-semibold leading-relaxed">
-                Query the live database on-demand and download reports dynamically formatted as CSV files, Excel spreadsheets, or styled landscape PDFs. Reports always synchronize with latest MongoDB collections to prevent stale or duplicate logs.
-              </p>
-            </div>
-
             {/* Grid of Report Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 1: Students */}
