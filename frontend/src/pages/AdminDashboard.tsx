@@ -609,22 +609,22 @@ export default function AdminDashboard() {
             )}
           </motion.div>
         ) : activeTab === 'analytics' ? (
-          <motion.div 
+          <motion.div
             key="analytics"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             className="space-y-8"
           >
-             {analyticsLoading ? (
+            {analyticsLoading ? (
               <div className="text-center py-16 text-slate-500 font-medium">
                 <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mx-auto mb-4"></div>
                 Loading database metrics...
               </div>
             ) : analyticsError ? (
-              <div className="glass-panel p-8 text-center max-w-md mx-auto shadow-lg border-red-200/45 bg-red-50/5">
-                <AlertOctagon className="text-red-505 w-12 h-12 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-805 dark:text-white mb-2">Metrics Load Failed</h3>
+              <div className="glass-panel p-8 text-center max-w-md mx-auto shadow-lg">
+                <AlertOctagon className="text-red-500 w-12 h-12 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Metrics Load Failed</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">{analyticsError}</p>
                 <button
                   onClick={fetchAnalytics}
@@ -639,254 +639,308 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-                {/* 1. Counts Summary Cards */}
+                {/* 1. Gradient Stat Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="glass-panel p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300">
-                    <div className="p-3.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 text-blue-600 dark:text-blue-400 rounded-2xl">
-                      <Users size={22} />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Students</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">{analytics.counts.total_students}</span>
-                    </div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
+                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)' }}
+                  >
+                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
+                    <Users size={24} className="mb-3 opacity-90" />
+                    <div className="text-3xl font-black">{analytics.counts.total_students}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Students</div>
+                  </motion.div>
 
-                  <div className="glass-panel p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300">
-                    <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-2xl">
-                      <User size={22} />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mentors</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">{analytics.counts.total_mentors}</span>
-                    </div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
+                    style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%)' }}
+                  >
+                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
+                    <User size={24} className="mb-3 opacity-90" />
+                    <div className="text-3xl font-black">{analytics.counts.total_mentors}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Mentors</div>
+                  </motion.div>
 
-                  <div className="glass-panel p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 col-span-2 sm:col-span-1">
-                    <div className="p-3.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900 text-purple-600 dark:text-purple-400 rounded-2xl">
-                      <Layers size={22} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-2 sm:col-span-1"
+                    style={{ background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)' }}
+                  >
+                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
+                    <Layers size={24} className="mb-3 opacity-90" />
+                    <div className="text-3xl font-black">
+                      {analytics.counts.approved_teams}
+                      <span className="text-base font-semibold opacity-70 ml-1">/ {analytics.counts.total_teams}</span>
                     </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Approved / Total Teams</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">
-                        {analytics.counts.approved_teams} <span className="text-sm font-semibold text-slate-400">/ {analytics.counts.total_teams}</span>
-                      </span>
-                    </div>
-                  </div>
+                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Approved / Total Teams</div>
+                  </motion.div>
 
-                  <div className="glass-panel p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 col-span-2 sm:col-span-1">
-                    <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 text-amber-600 dark:text-amber-400 rounded-2xl">
-                      <Clock size={22} />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Teams</span>
-                      <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{analytics.counts.pending_teams}</span>
-                    </div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-2 sm:col-span-1"
+                    style={{ background: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)' }}
+                  >
+                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
+                    <Clock size={24} className="mb-3 opacity-90" />
+                    <div className="text-3xl font-black">{analytics.counts.pending_teams}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Pending Teams</div>
+                  </motion.div>
 
-                  <div className="glass-panel p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 col-span-1">
-                    <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 text-emerald-600 dark:text-emerald-400 rounded-2xl">
-                      <Calendar size={22} />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Events</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">{analytics.counts.total_events}</span>
-                    </div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-1"
+                    style={{ background: 'linear-gradient(135deg, #0e7490 0%, #22d3ee 100%)' }}
+                  >
+                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                    <Calendar size={24} className="mb-3 opacity-90" />
+                    <div className="text-3xl font-black">{analytics.counts.total_events}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Total Events</div>
+                  </motion.div>
 
-                  <div className="glass-panel p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 col-span-1">
-                    <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 text-rose-600 dark:text-rose-400 rounded-2xl">
-                      <MessageSquare size={22} />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Notifs Sent</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">{analytics.counts.total_notifications}</span>
-                    </div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg col-span-1"
+                    style={{ background: 'linear-gradient(135deg, #9f1239 0%, #f43f5e 100%)' }}
+                  >
+                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                    <MessageSquare size={24} className="mb-3 opacity-90" />
+                    <div className="text-3xl font-black">{analytics.counts.total_notifications}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Notifications Sent</div>
+                  </motion.div>
                 </div>
 
                 {/* 2. Charts Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Students by Branch (Bar Chart) */}
-                  <div className="glass-panel p-6 space-y-6">
-                    <h3 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <BarChart3 size={16} className="text-[#1e3a8a]" /> Students by Branch
+                  {/* Students by Branch */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                    className="glass-panel p-6 space-y-5"
+                  >
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+                        <BarChart3 size={14} className="text-white" />
+                      </div>
+                      Students by Branch
                     </h3>
-                    <div className="space-y-4 pt-2">
+                    <div className="space-y-4">
                       {Object.keys(analytics.students_by_branch || {}).length === 0 ? (
-                        <p className="text-sm text-slate-400 font-medium italic">No student branch data available.</p>
+                        <p className="text-sm text-slate-400 font-medium italic text-center py-4">No student branch data available.</p>
                       ) : (
-                        Object.entries(analytics.students_by_branch || {}).map(([branch, count]) => {
+                        Object.entries(analytics.students_by_branch || {}).map(([branch, count], i) => {
                           const maxVal = Math.max(...Object.values(analytics.students_by_branch || {}), 1);
                           const percentage = (count / maxVal) * 100;
+                          const colors = ['from-blue-500 to-blue-700', 'from-indigo-500 to-indigo-700', 'from-violet-500 to-violet-700', 'from-sky-500 to-sky-700'];
                           return (
-                            <div key={branch} className="space-y-1">
-                              <div className="flex justify-between text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                            <div key={branch} className="space-y-1.5">
+                              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <span>{branch}</span>
-                                <span>{count} student(s)</span>
+                                <span className="text-slate-500">{count} student{count !== 1 ? 's' : ''}</span>
                               </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-900/50 rounded-full h-3.5 overflow-hidden border border-slate-200/40 dark:border-slate-800/40">
-                                <motion.div 
+                              <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
+                                <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${percentage}%` }}
-                                  transition={{ type: "spring", stiffness: 80, delay: 0.1 }}
-                                  className="h-full bg-gradient-to-r from-blue-500 to-[#1e3a8a] rounded-full"
-                                ></motion.div>
+                                  transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
+                                  className={`h-full bg-gradient-to-r ${colors[i % colors.length]} rounded-full`}
+                                />
                               </div>
                             </div>
                           );
                         })
                       )}
                     </div>
-                  </div>
+                  </motion.div>
 
-                  {/* Teams by Department (Bar Chart) */}
-                  <div className="glass-panel p-6 space-y-6">
-                    <h3 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <Layers size={16} className="text-[#1e3a8a]" /> Teams by Department
+                  {/* Teams by Department */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                    className="glass-panel p-6 space-y-5"
+                  >
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center">
+                        <Layers size={14} className="text-white" />
+                      </div>
+                      Teams by Department
                     </h3>
-                    <div className="space-y-4 pt-2">
+                    <div className="space-y-4">
                       {Object.keys(analytics.teams_by_department || {}).length === 0 ? (
-                        <p className="text-sm text-slate-400 font-medium italic">No department workload data available.</p>
+                        <p className="text-sm text-slate-400 font-medium italic text-center py-4">No department data available.</p>
                       ) : (
-                        Object.entries(analytics.teams_by_department || {}).map(([dept, count]) => {
+                        Object.entries(analytics.teams_by_department || {}).map(([dept, count], i) => {
                           const maxVal = Math.max(...Object.values(analytics.teams_by_department || {}), 1);
                           const percentage = (count / maxVal) * 100;
+                          const colors = ['from-purple-500 to-indigo-700', 'from-violet-500 to-purple-700', 'from-fuchsia-500 to-violet-700', 'from-pink-500 to-fuchsia-700'];
                           return (
-                            <div key={dept} className="space-y-1">
-                              <div className="flex justify-between text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                            <div key={dept} className="space-y-1.5">
+                              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <span>{dept}</span>
-                                <span>{count} team(s)</span>
+                                <span className="text-slate-500">{count} team{count !== 1 ? 's' : ''}</span>
                               </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-900/50 rounded-full h-3.5 overflow-hidden border border-slate-200/40 dark:border-slate-800/40">
-                                <motion.div 
+                              <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
+                                <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${percentage}%` }}
-                                  transition={{ type: "spring", stiffness: 80, delay: 0.2 }}
-                                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-700 rounded-full"
-                                ></motion.div>
+                                  transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
+                                  className={`h-full bg-gradient-to-r ${colors[i % colors.length]} rounded-full`}
+                                />
                               </div>
                             </div>
                           );
                         })
                       )}
                     </div>
-                  </div>
+                  </motion.div>
 
-                  {/* Mentor Workload (Horizontal Lists) */}
-                  <div className="glass-panel p-6 space-y-6">
-                    <h3 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <Activity size={16} className="text-indigo-600" /> Mentor Workload (Approved Teams)
+                  {/* Mentor Workload */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="glass-panel p-6 space-y-5"
+                  >
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+                        <Activity size={14} className="text-white" />
+                      </div>
+                      Mentor Workload
                     </h3>
-                    <div className="space-y-4 pt-2">
+                    <div className="space-y-4">
                       {Object.keys(analytics.mentor_workload || {}).length === 0 ? (
-                        <p className="text-sm text-slate-400 font-medium italic">No mentors with active approved teams.</p>
+                        <p className="text-sm text-slate-400 font-medium italic text-center py-4">No mentors with approved teams yet.</p>
                       ) : (
-                        Object.entries(analytics.mentor_workload || {}).map(([name, count]) => {
+                        Object.entries(analytics.mentor_workload || {}).map(([name, count], i) => {
                           const percentage = Math.min((count / 25) * 100, 100);
+                          const isHigh = percentage > 70;
                           return (
                             <div key={name} className="space-y-1.5">
                               <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <span className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                  <div className={`w-2 h-2 rounded-full ${isHigh ? 'bg-rose-500' : 'bg-indigo-500'}`} />
                                   {name}
                                 </span>
-                                <span className="font-extrabold">{count} / 25 teams</span>
+                                <span className={`font-extrabold ${isHigh ? 'text-rose-500' : 'text-indigo-500'}`}>{count} / 25</span>
                               </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-900/50 rounded-full h-3 overflow-hidden border border-slate-200/40 dark:border-slate-800/40">
-                                <motion.div 
+                              <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
+                                <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${percentage}%` }}
-                                  transition={{ type: "spring", stiffness: 80 }}
-                                  className="h-full bg-indigo-600 rounded-full"
-                                ></motion.div>
+                                  transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
+                                  className={`h-full rounded-full ${isHigh ? 'bg-gradient-to-r from-rose-500 to-rose-700' : 'bg-gradient-to-r from-indigo-500 to-indigo-700'}`}
+                                />
                               </div>
                             </div>
                           );
                         })
                       )}
                     </div>
-                  </div>
+                  </motion.div>
 
-                  {/* Project Approval Status (Segmented block representation) */}
-                  <div className="glass-panel p-6 space-y-6">
-                    <h3 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <CheckCircle2 size={16} className="text-emerald-600" /> Project Approval Status
+                  {/* Project Approval Status */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                    className="glass-panel p-6 space-y-5"
+                  >
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 size={14} className="text-white" />
+                      </div>
+                      Project Approval Status
                     </h3>
-                    <div className="space-y-4 pt-2">
-                      <div className="h-6 w-full rounded-2xl overflow-hidden flex border border-slate-200/40 dark:border-slate-800/40 bg-slate-100 dark:bg-slate-900/50">
+                    <div className="space-y-5">
+                      <div className="h-8 w-full rounded-2xl overflow-hidden flex gap-0.5 bg-slate-100 dark:bg-slate-800/60">
                         {Object.entries(analytics.project_approval_status || {}).map(([status, count]) => {
                           const total = Object.values(analytics.project_approval_status || {}).reduce((a, b) => a + b, 0) || 1;
-                          const percentage = (count / total) * 100;
-                          if (percentage === 0) return null;
+                          const pct = (count / total) * 100;
+                          if (pct === 0) return null;
                           const colorMap: Record<string, string> = {
-                            APPROVED: "bg-emerald-500",
-                            PENDING: "bg-amber-500",
-                            REJECTED: "bg-rose-500",
-                            "NOT SUBMITTED": "bg-slate-400"
+                            APPROVED: 'bg-gradient-to-r from-emerald-500 to-emerald-600',
+                            PENDING: 'bg-gradient-to-r from-amber-400 to-amber-500',
+                            REJECTED: 'bg-gradient-to-r from-rose-500 to-rose-600',
+                            'NOT SUBMITTED': 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700',
                           };
                           return (
                             <motion.div
                               key={status}
                               initial={{ flexGrow: 0 }}
-                              animate={{ flexGrow: percentage }}
-                              transition={{ duration: 0.5 }}
-                              style={{ width: `${percentage}%` }}
-                              className={`h-full ${colorMap[status] || "bg-slate-400"} hover:brightness-105 transition-all cursor-pointer`}
+                              animate={{ flexGrow: pct }}
+                              transition={{ duration: 0.6, ease: 'easeOut' }}
+                              style={{ width: `${pct}%` }}
+                              className={`h-full ${colorMap[status] || 'bg-slate-400'} first:rounded-l-2xl last:rounded-r-2xl`}
                               title={`${status}: ${count}`}
-                            ></motion.div>
+                            />
                           );
                         })}
                       </div>
-
-                      {/* Legend */}
-                      <div className="grid grid-cols-2 gap-3 pt-2 text-xs font-bold text-slate-600 dark:text-slate-400">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                          <span>Approved: {analytics.project_approval_status?.APPROVED || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                          <span>Pending: {analytics.project_approval_status?.PENDING || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                          <span>Rejected: {analytics.project_approval_status?.REJECTED || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                          <span>Draft: {analytics.project_approval_status?.["NOT SUBMITTED"] || 0}</span>
-                        </div>
+                      {/* Legend grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { label: 'Approved', key: 'APPROVED', color: 'bg-emerald-500', text: 'text-emerald-600' },
+                          { label: 'Pending', key: 'PENDING', color: 'bg-amber-400', text: 'text-amber-600' },
+                          { label: 'Rejected', key: 'REJECTED', color: 'bg-rose-500', text: 'text-rose-600' },
+                          { label: 'Draft', key: 'NOT SUBMITTED', color: 'bg-slate-400', text: 'text-slate-500' },
+                        ].map(({ label, key, color, text }) => (
+                          <div key={key} className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl px-3 py-2.5">
+                            <div className={`w-3 h-3 rounded-full ${color} flex-shrink-0`} />
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{label}</span>
+                            <span className={`ml-auto text-sm font-black ${text}`}>
+                              {(analytics.project_approval_status as Record<string, number>)?.[key] ?? 0}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
 
-                  {/* Event Registrations (List leaderboard) */}
-                  <div className="glass-panel p-6 space-y-6 col-span-1 md:col-span-2">
-                    <h3 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <Calendar size={16} className="text-[#1e3a8a]" /> Event Registration Leaderboard
+                  {/* Event Registration Leaderboard */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                    className="glass-panel p-6 space-y-5 col-span-1 md:col-span-2"
+                  >
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
+                        <Calendar size={14} className="text-white" />
+                      </div>
+                      Event Registration Leaderboard
                     </h3>
-                    <div className="space-y-3.5 pt-2">
+                    <div className="space-y-3">
                       {Object.keys(analytics.event_registrations || {}).length === 0 ? (
-                        <p className="text-sm text-slate-400 font-medium italic">No events posted yet.</p>
+                        <div className="text-center py-8 text-slate-400">
+                          <Calendar size={36} className="mx-auto mb-3 opacity-30" />
+                          <p className="text-sm font-semibold">No events posted yet.</p>
+                        </div>
                       ) : (
                         Object.entries(analytics.event_registrations || {})
                           .sort((a, b) => b[1] - a[1])
-                          .map(([title, rsvps], rank) => (
-                            <div key={title} className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/35 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40 hover:scale-[1.005] transition-all">
-                              <div className="w-7 h-7 rounded-xl bg-[#1e3a8a] text-white flex items-center justify-center font-black text-xs">
-                                #{rank + 1}
+                          .map(([title, rsvps], rank) => {
+                            const medalColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700'];
+                            const bgColors = [
+                              'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200/60 dark:border-yellow-900/50',
+                              'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/50',
+                              'bg-amber-50 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/50',
+                            ];
+                            return (
+                              <div key={title} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all hover:scale-[1.01] ${bgColors[rank] || 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/40'}`}>
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
+                                  rank < 3 ? medalColors[rank] : 'text-slate-400'
+                                } ${
+                                  rank < 3 ? 'bg-white dark:bg-slate-900/60 shadow-sm' : 'bg-slate-100 dark:bg-slate-800'
+                                }`}>
+                                  #{rank + 1}
+                                </div>
+                                <div className="flex-1 font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{title}</div>
+                                <div className="flex-shrink-0 text-xs font-black text-[#1e3a8a] dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-blue-900">
+                                  {rsvps} RSVP{rsvps !== 1 ? 's' : ''}
+                                </div>
                               </div>
-                              <div className="flex-1 font-bold text-sm text-slate-800 dark:text-slate-200">
-                                {title}
-                              </div>
-                              <div className="text-xs font-black text-[#1e3a8a] dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-blue-900">
-                                {rsvps} RSVP(s)
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
               </>
             )}
