@@ -740,7 +740,7 @@ def regenerate_mentor_marks_csv(db):
     students = list(db.users.find({
         "is_mentor": {"$ne": True}, 
         "is_admin": {"$ne": True},
-        "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"]}
+        "email": {"$ne": "ishaen.vihaan@gmail.com"}
     }))
     
     rows = []

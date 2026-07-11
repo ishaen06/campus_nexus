@@ -59,16 +59,16 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             "year_of_study": None,
             "hashed_password": "",  # No password needed for Google OAuth
             "cycle": None,
-            "is_mentor": True if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"] else None,      # Default admin as mentor role so they see dashboard
-            "department": "Admin Office" if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"] else None,
-            "post": "Chief Administrator" if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"] else None,
+            "is_mentor": True if email == "ishaen.vihaan@gmail.com" else None,      # Default admin as mentor role so they see dashboard
+            "department": "Admin Office" if email == "ishaen.vihaan@gmail.com" else None,
+            "post": "Chief Administrator" if email == "ishaen.vihaan@gmail.com" else None,
             "is_verified": True,     # Google emails are pre-verified
-            "is_admin": True if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"] else False,
+            "is_admin": True if email == "ishaen.vihaan@gmail.com" else False,
             "is_banned": False,
-            "bio": "Platform Administrator account." if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"] else "",
+            "bio": "Platform Administrator account." if email == "ishaen.vihaan@gmail.com" else "",
             "interests": [],
             "goals": [],
-            "avatar_config": avatar_config or ({"emoji": "🛡️", "bg": 2} if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"] else None)
+            "avatar_config": avatar_config or ({"emoji": "🛡️", "bg": 2} if email == "ishaen.vihaan@gmail.com" else None)
         }
         db.users.insert_one(user)
     else:
@@ -78,7 +78,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             update_fields["is_verified"] = True
             user["is_verified"] = True
             
-        if email in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"]:
+        if email == "ishaen.vihaan@gmail.com":
             if not user.get("is_admin", False):
                 update_fields["is_admin"] = True
                 user["is_admin"] = True
