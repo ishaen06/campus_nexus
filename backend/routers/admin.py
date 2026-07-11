@@ -14,7 +14,7 @@ router = APIRouter()
 
 def get_admin_user(current_user = Depends(get_current_user)):
     email = (current_user.get("email") or "").lower().strip()
-    if not current_user.get("is_admin", False) and email != "ishaen.vihaan@gmail.com":
+    if not current_user.get("is_admin", False) and email not in ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"]:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
@@ -66,7 +66,7 @@ def download_student_marks(admin = Depends(get_admin_user), db = Depends(get_mon
 @router.get("/analytics")
 def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     # 1. Basic Counts
-    total_students = db.users.count_documents({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}})
+    total_students = db.users.count_documents({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"]}})
     total_mentors = db.users.count_documents({"is_mentor": True})
     total_teams = db.group_chats.count_documents({})
     approved_teams = db.group_chats.count_documents({"mentor_status": "APPROVED"})
@@ -76,7 +76,7 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
     
     # 2. Students by Branch (normalized)
     branch_counts = {}
-    for s in db.users.find({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}):
+    for s in db.users.find({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"]}}):
         branch = (s.get("branch") or "N/A").strip().upper()
         branch_counts[branch] = branch_counts.get(branch, 0) + 1
         
@@ -164,7 +164,7 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
             {"email": {"$regex": q, "$options": "i"}},
             {"department": {"$regex": q, "$options": "i"}}
         ],
-        "email": {"$ne": "ishaen.vihaan@gmail.com"} # Exclude admin from search results
+        "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaensbethur.cs25@rvce.edu.in"]} # Exclude admins from search results
     }
     
     users = list(db.users.find(user_query).limit(50))
