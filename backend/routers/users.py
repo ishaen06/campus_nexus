@@ -46,8 +46,16 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
     # Determine role (either currently in DB or being set now)
     is_mentor = current_user.get("is_mentor")
     
+    # Strictly assign as student if email ends with @rvce.edu.in
+    user_email = current_user.get("email", "").lower().strip()
+    if user_email.endswith("@rvce.edu.in"):
+        if profile_data.is_mentor is True:
+            raise HTTPException(status_code=400, detail="Users with @rvce.edu.in email addresses are strictly assigned as students and cannot choose the mentor role.")
+        is_mentor = False
+        update_data["is_mentor"] = False
+    
     # If role is not set yet in DB, allow setting it once
-    if is_mentor is None:
+    elif is_mentor is None:
         if profile_data.is_mentor is not None:
             is_mentor = profile_data.is_mentor
             update_data["is_mentor"] = is_mentor

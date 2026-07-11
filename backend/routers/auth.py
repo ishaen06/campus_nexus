@@ -59,7 +59,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             "year_of_study": None,
             "hashed_password": "",  # No password needed for Google OAuth
             "cycle": None,
-            "is_mentor": True if email == "ishaen.vihaan@gmail.com" else None,      # Default admin as mentor role so they see dashboard
+            "is_mentor": False if email.endswith("@rvce.edu.in") else (True if email == "ishaen.vihaan@gmail.com" else None),      # Default admin as mentor role so they see dashboard, rvce emails strictly as students
             "department": "Admin Office" if email == "ishaen.vihaan@gmail.com" else None,
             "post": "Chief Administrator" if email == "ishaen.vihaan@gmail.com" else None,
             "is_verified": True,     # Google emails are pre-verified

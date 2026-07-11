@@ -41,7 +41,9 @@ export default function ProfileSetup() {
   useEffect(() => {
     api.get('/users/me').then(res => {
       setFullName(res.data.full_name || '');
-      const userIsMentor = res.data.is_mentor;
+      const userEmail = (res.data.email || '').toLowerCase().trim();
+      const isRvce = userEmail.endsWith('@rvce.edu.in');
+      const userIsMentor = isRvce ? false : res.data.is_mentor;
       
       if (userIsMentor !== null && userIsMentor !== undefined) {
         setIsMentor(userIsMentor);
