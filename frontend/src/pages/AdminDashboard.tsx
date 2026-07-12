@@ -502,29 +502,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Mobile-only horizontal tab bar (hidden on desktop screens where Layout sidebar controls tabs) */}
-      <div className="md:hidden flex border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto whitespace-nowrap gap-2">
-        {[
-          { label: 'Analytics', tab: 'analytics' },
-          { label: 'Search', tab: 'search' },
-          { label: 'Mentors', tab: 'mentors' },
-          { label: 'Teams', tab: 'teams' },
-          { label: 'Reports', tab: 'reports' },
-          { label: 'Moderation', tab: 'moderation' }
-        ].map(item => (
-          <button
-            key={item.tab}
-            onClick={() => setActiveTab(item.tab as any)}
-            className={`py-2 px-4.5 font-bold text-xs uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer ${
-              activeTab === item.tab 
-                ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-indigo-400 font-extrabold' 
-                : 'border-transparent text-slate-400 hover:text-slate-600 bg-transparent'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+
 
       {/* Render Active Tab Panel */}
       <AnimatePresence mode="wait">

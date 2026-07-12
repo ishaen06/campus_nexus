@@ -176,13 +176,16 @@ export default function Layout() {
   
   if (isAdmin) {
     // Admin should only have access to Notifications, Admin panel, and Profile
+    const profileItem = navItems.find(item => item.name === 'Profile');
+
     navItems = navItems.filter(item => 
       item.name !== 'Dashboard' && 
       item.name !== 'My Teams' && 
       item.name !== 'My Team' && 
       item.name !== 'Chats' && 
       item.name !== 'Discovery' && 
-      item.name !== 'Project Dashboard'
+      item.name !== 'Project Dashboard' &&
+      item.name !== 'Profile'
     );
     
     const hasAdminLink = navItems.some(item => item.name === 'Moderation Logs');
@@ -195,6 +198,10 @@ export default function Layout() {
         { name: 'Report Center', path: '/admin?tab=reports', icon: Download } as any,
         { name: 'Moderation Logs', path: '/admin?tab=moderation', icon: AlertOctagon } as any
       );
+    }
+
+    if (profileItem) {
+      navItems.push(profileItem);
     }
   }
 
@@ -323,10 +330,10 @@ export default function Layout() {
       </nav>
 
       {/* Mobile Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-950/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2 px-6">
-        <div className="flex justify-between items-center pb-2">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-950/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2 overflow-x-auto whitespace-nowrap" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        <style dangerouslySetInnerHTML={{ __html: `nav::-webkit-scrollbar { display: none; }` }} />
+        <div className="flex justify-between items-center pb-2 px-6 gap-3 min-w-max">
           {navItems
-            .filter(item => !isAdmin || item.name === 'Notifications' || item.name === 'Moderation Logs' || item.name === 'Profile' || item.name === 'My Profile')
             .map((item) => {
               const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
               const isActive = item.path.includes('?tab=')
