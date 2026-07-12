@@ -505,12 +505,12 @@ export default function AdminDashboard() {
       {/* Mobile-only horizontal tab bar (hidden on desktop screens where Layout sidebar controls tabs) */}
       <div className="md:hidden flex border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto whitespace-nowrap gap-2">
         {[
-          { label: 'Moderation', tab: 'moderation' },
           { label: 'Analytics', tab: 'analytics' },
           { label: 'Search', tab: 'search' },
           { label: 'Mentors', tab: 'mentors' },
           { label: 'Teams', tab: 'teams' },
-          { label: 'Reports', tab: 'reports' }
+          { label: 'Reports', tab: 'reports' },
+          { label: 'Moderation', tab: 'moderation' }
         ].map(item => (
           <button
             key={item.tab}
