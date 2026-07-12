@@ -69,7 +69,7 @@ export default function Layout() {
         
         if (userIsAdmin) {
           if (location.pathname === '/mentor-dashboard' || location.pathname === '/discovery' || location.pathname === '/' || location.pathname === '/profile-setup') {
-            navigate('/admin');
+            navigate('/admin/analytics');
           }
           return;
         }
@@ -191,12 +191,12 @@ export default function Layout() {
     const hasAdminLink = navItems.some(item => item.name === 'Moderation Logs');
     if (!hasAdminLink) {
       navItems.push(
-        { name: 'Analytics', path: '/admin?tab=analytics', icon: BarChart3 } as any,
-        { name: 'Global Search', path: '/admin?tab=search', icon: Search } as any,
-        { name: 'Mentors', path: '/admin?tab=mentors', icon: UserIcon } as any,
-        { name: 'Teams', path: '/admin?tab=teams', icon: Users } as any,
-        { name: 'Report Center', path: '/admin?tab=reports', icon: Download } as any,
-        { name: 'Moderation Logs', path: '/admin?tab=moderation', icon: AlertOctagon } as any
+        { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 } as any,
+        { name: 'Global Search', path: '/admin/search', icon: Search } as any,
+        { name: 'Mentors', path: '/admin/mentors', icon: UserIcon } as any,
+        { name: 'Teams', path: '/admin/teams', icon: Users } as any,
+        { name: 'Report Center', path: '/admin/reports', icon: Download } as any,
+        { name: 'Moderation Logs', path: '/admin/moderation', icon: AlertOctagon } as any
       );
     }
 
@@ -220,9 +220,8 @@ export default function Layout() {
 
         <div className="flex-1 px-4 space-y-2 mt-4">
           {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
-            const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
-            const isActive = item.path.includes('?tab=')
-              ? location.pathname === '/admin' && item.path.endsWith(`?tab=${queryTab}`)
+            const isActive = item.path.startsWith('/admin')
+              ? location.pathname === item.path
               : location.pathname.startsWith(item.path);
             const Icon = item.icon;
             const danger = (item as any).danger;
@@ -335,15 +334,14 @@ export default function Layout() {
         <div className="flex justify-between items-center pb-2 px-6 gap-3 min-w-max">
           {navItems
             .map((item) => {
-              const queryTab = new URLSearchParams(location.search).get('tab') || 'moderation';
-              const isActive = item.path.includes('?tab=')
-                ? location.pathname === '/admin' && item.path.endsWith(`?tab=${queryTab}`)
+              const isActive = item.path.startsWith('/admin')
+                ? location.pathname === item.path
                 : location.pathname.startsWith(item.path);
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
-                  to={item.name === 'Moderation Logs' && isAdmin ? '/admin?tab=moderation' : item.path}
+                  to={item.path}
                   className={cn(
                     "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
                     isActive ? "text-indigo-400 scale-110" : "text-slate-400 hover:text-slate-200"

@@ -25,7 +25,7 @@ import {
   Slash,
   Download
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface Report {
   id: number;
@@ -125,15 +125,13 @@ interface TeamData {
   }[];
 }
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+  tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports';
+}
+
+export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Read active tab from search params (defaulting to moderation)
-  const activeTab = (searchParams.get('tab') as 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports') || 'moderation';
-  const setActiveTab = (tab: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports') => {
-    setSearchParams({ tab });
-  };
+  const activeTab = tab || 'moderation';
 
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);

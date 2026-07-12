@@ -85,7 +85,7 @@ export default function Login() {
       
       if (isUserAdmin) {
         localStorage.setItem('adminLastVerified', Date.now().toString());
-        navigate('/admin');
+        navigate('/admin/analytics');
       } else if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
         navigate('/profile-setup');
       } else if (meRes.data.is_mentor) {
