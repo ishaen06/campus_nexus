@@ -10,6 +10,12 @@ from database_mongo import get_mongo_db, get_next_sequence_value
 from routers.users import get_current_user
 from routers.chat import regenerate_approved_teams_csv, regenerate_mentor_marks_csv
 
+from pydantic import BaseModel
+import os
+
+class AdminReauthRequest(BaseModel):
+    password: str
+
 router = APIRouter()
 
 def get_admin_user(current_user = Depends(get_current_user)):
@@ -17,6 +23,15 @@ def get_admin_user(current_user = Depends(get_current_user)):
     if not current_user.get("is_admin", False) and email != "ishaen.vihaan@gmail.com":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+@router.post("/verify-reauth")
+def verify_reauth(payload: AdminReauthRequest, admin = Depends(get_admin_user)):
+    from utils import load_env
+    load_env()
+    expected_password = os.getenv("ADMIN_PASSWORD", "admin123")
+    if payload.password != expected_password:
+        raise HTTPException(status_code=401, detail="Invalid admin security password")
+    return {"status": "ok"}
 
 @router.get("/reports", response_model=List[dict])
 def get_reports(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):

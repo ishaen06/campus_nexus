@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import Logo from './Logo';
 import Avatar from './Avatar';
+import { motion } from 'framer-motion';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -19,6 +20,12 @@ export default function Layout() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [dropdownTimeout, setDropdownTimeout] = useState<any>(null);
+  
+  // Admin lock states
+  const [isLocked, setIsLocked] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [lockError, setLockError] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   const handleMouseEnterProfile = () => {
     if (dropdownTimeout) {
@@ -109,7 +116,45 @@ export default function Layout() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('adminLastVerified');
     navigate('/login');
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    // Set first verification time if not set
+    if (!localStorage.getItem('adminLastVerified')) {
+      localStorage.setItem('adminLastVerified', Date.now().toString());
+    }
+
+    const interval = setInterval(() => {
+      const lastVerified = Number(localStorage.getItem('adminLastVerified') || Date.now());
+      const elapsed = Date.now() - lastVerified;
+      if (elapsed > 15 * 60 * 1000) { // 15 minutes
+        setIsLocked(true);
+      }
+    }, 5000); // Check status every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPassword) return;
+    setVerifying(true);
+    setLockError('');
+    try {
+      await api.post('/admin/verify-reauth', { password: adminPassword });
+      localStorage.setItem('adminLastVerified', Date.now().toString());
+      setIsLocked(false);
+      setAdminPassword('');
+      setLockError('');
+    } catch (err: any) {
+      setLockError(err.response?.data?.detail || 'Invalid admin security password');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   let navItems = isMentor
@@ -318,6 +363,59 @@ export default function Layout() {
       <main className="flex-1 md:ml-64 relative min-h-screen">
         <Outlet />
       </main>
+
+      {/* Admin lock overlay */}
+      {isLocked && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-2xl p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md w-full bg-slate-900 border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <Logo size={48} />
+            </div>
+            
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-black text-white tracking-tight">Admin Session Locked</h2>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                For security, please enter the admin password to unlock your session.
+              </p>
+            </div>
+            
+            <form onSubmit={handleUnlock} className="w-full space-y-4">
+              <div>
+                <input
+                  type="password"
+                  placeholder="Enter admin password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-950 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-indigo-500 transition"
+                  autoFocus
+                />
+                {lockError && (
+                  <p className="text-xs text-rose-500 font-bold mt-2 text-left">{lockError}</p>
+                )}
+              </div>
+              
+              <button
+                type="submit"
+                disabled={verifying}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 text-white font-extrabold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
+              >
+                {verifying ? 'Unlocking...' : 'Unlock Session'}
+              </button>
+            </form>
+            
+            <button
+              onClick={handleLogout}
+              className="text-xs font-bold text-slate-500 hover:text-slate-300 transition cursor-pointer"
+            >
+              Log out of account
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
