@@ -85,6 +85,13 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             if not user.get("is_mentor", False):
                 update_fields["is_mentor"] = True
                 user["is_mentor"] = True
+        elif email.endswith("@rvce.edu.in"):
+            if user.get("is_admin") is not False:
+                update_fields["is_admin"] = False
+                user["is_admin"] = False
+            if user.get("is_mentor") is not False:
+                update_fields["is_mentor"] = False
+                user["is_mentor"] = False
                 
         if update_fields:
             db.users.update_one({"email": email}, {"$set": update_fields})
