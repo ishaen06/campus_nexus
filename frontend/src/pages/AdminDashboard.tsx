@@ -22,8 +22,7 @@ import {
   GitMerge,
   Filter,
   Check,
-  Slash,
-  Download
+  Slash
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -435,13 +434,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
+            {activeTab !== 'reports' && <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />}
             {activeTab === 'moderation' && "Moderation Logs"}
             {activeTab === 'analytics' && "Analytics Dashboard"}
             {activeTab === 'search' && "Global Database Search"}
             {activeTab === 'mentors' && "Mentor Workloads"}
             {activeTab === 'teams' && "Teams & Project Roster"}
-            {activeTab === 'reports' && "Report Center"}
           </h1>
           <p className="text-slate-500 text-sm font-semibold mt-1">
             {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
@@ -449,7 +447,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             {activeTab === 'search' && "Query users, mentors, and student groups across the database."}
             {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
             {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
-            {activeTab === 'reports' && "Export dynamic database records to Excel, PDF, or CSV on-demand."}
           </p>
         </div>
         
@@ -1389,24 +1386,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
           >
             {/* Grid of Report Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Card 1: Students */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-blue-50 dark:bg-blue-955/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
-                      <Users size={18} />
-                    </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Directory</h3>
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Roster of all registered students, branch details, USNs, and assigned project teams.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('students', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('students', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('students', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
-
               {/* Card 2: Mentors */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
@@ -1476,24 +1455,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <button onClick={() => handleDownloadReport('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
                   <button onClick={() => handleDownloadReport('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
                   <button onClick={() => handleDownloadReport('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
-
-              {/* Card 6: Approvals */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-teal-50 dark:bg-teal-955/20 text-teal-650 dark:text-teal-400 border border-teal-100 dark:border-teal-900 rounded-xl">
-                      <CheckCircle2 size={18} />
-                    </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approvals & Feedback Log</h3>
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Tracking log of project theme approvals, rejection logs, and observations reasons.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('approvals', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('approvals', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('approvals', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
