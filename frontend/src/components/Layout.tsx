@@ -226,19 +226,32 @@ export default function Layout() {
             const Icon = item.icon;
             const danger = (item as any).danger;
             
+            const isAdminPath = item.path.startsWith('/admin');
             return (
               <Link
                 key={item.name}
                 to={item.path}
                 className={cn(
-                  "flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 font-medium",
-                  isActive 
-                    ? (danger ? "bg-red-500/10 text-red-400" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400")
-                    : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100")
+                  "flex items-center justify-between px-4 py-3 transition-all duration-300 font-medium",
+                  isAdminPath
+                    ? (isActive
+                        ? "border-l-4 border-[#1e3a8a] dark:border-blue-500 text-[#1e3a8a] dark:text-blue-400 bg-[#1e3a8a]/5 dark:bg-blue-950/20 rounded-none pl-3 font-semibold"
+                        : "border-l-4 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100/30 dark:hover:bg-slate-900/30 hover:text-slate-900 dark:hover:text-slate-100 rounded-none pl-3"
+                      )
+                    : (isActive
+                        ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl pl-4" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl pl-4")
+                        : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl pl-4" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl pl-4")
+                      )
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <Icon size={20} className={cn(isActive && !danger && "text-indigo-400")} strokeWidth={isActive ? 2.5 : 2} />
+                  <Icon 
+                    size={20} 
+                    className={cn(
+                      isActive && !danger && (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400" : "text-indigo-400")
+                    )} 
+                    strokeWidth={isActive ? 2.5 : 2} 
+                  />
                   {item.name}
                 </div>
                 {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
@@ -338,13 +351,16 @@ export default function Layout() {
                 ? location.pathname === item.path
                 : location.pathname.startsWith(item.path);
               const Icon = item.icon;
+              const isAdminPath = item.path.startsWith('/admin');
               return (
                 <Link
                   key={item.name}
                   to={item.path}
                   className={cn(
                     "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
-                    isActive ? "text-indigo-400 scale-110" : "text-slate-400 hover:text-slate-200"
+                    isActive 
+                      ? (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400 scale-110" : "text-indigo-400 scale-110") 
+                      : "text-slate-400 hover:text-slate-200"
                   )}
                 >
                   <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
