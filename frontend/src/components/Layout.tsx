@@ -269,7 +269,7 @@ export default function Layout() {
               src="/rvce_logo_header.png"
               alt="RV College of Engineering"
               className="w-full object-contain dark:invert dark:brightness-90"
-              style={{ mixBlendMode: 'multiply', maxHeight: '56px' }}
+              style={{ mixBlendMode: 'multiply', maxHeight: '90px' }}
             />
           </div>
 
