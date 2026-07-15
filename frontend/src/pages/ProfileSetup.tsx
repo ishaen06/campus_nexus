@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { Sparkles, Search, X } from 'lucide-react';
+import { Sparkles, Camera, X } from 'lucide-react';
 import Avatar from '../components/Avatar';
-import type { AvatarConfig } from '../components/Avatar';
 import Logo from '../components/Logo';
-import { EMOJI_CATEGORIES, searchEmojis } from '../utils/emojis';
 
 const INTERESTS_LIST = [
   "Startups", "Entrepreneurship", "Artificial Intelligence", "Robotics",
@@ -32,10 +30,9 @@ export default function ProfileSetup() {
   const [bio, setBio] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
-  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>({ emoji: '👨‍💻', bg: 0 });
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const [activeCategory, setActiveCategory] = useState('Smileys');
-  const [emojiSearch, setEmojiSearch] = useState('');
   const [showSkip, setShowSkip] = useState(false);
 
   useEffect(() => {
@@ -75,8 +72,8 @@ export default function ProfileSetup() {
       setBio(res.data.bio || '');
       setInterests(res.data.interests || []);
       setGoals(res.data.goals || []);
-      if (res.data.avatar_config) {
-        setAvatarConfig(res.data.avatar_config);
+      if (res.data.profile_photo) {
+        setProfilePhoto(res.data.profile_photo);
       }
     }).catch(() => {
       navigate('/login');
@@ -122,7 +119,7 @@ export default function ProfileSetup() {
         bio,
         interests: isMentor ? [] : interests,
         goals: isMentor ? [] : goals,
-        avatar_config: avatarConfig,
+        profile_photo: profilePhoto,
         usn: isMentor ? null : usn.toUpperCase(),
         branch: isMentor ? null : branch,
         cycle: isMentor ? 'P' : cycle,
@@ -192,142 +189,75 @@ export default function ProfileSetup() {
         
         <form onSubmit={handleSave} className="space-y-8">
           {/* Avatar Setup Preview & Builder */}
-          <div className="flex flex-col md:flex-row gap-6 items-stretch bg-slate-50 dark:bg-slate-900/45 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
-            {/* Left preview box */}
-            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl md:w-1/4 shrink-0">
-              <div className="w-24 h-24 rounded-full border-[6px] border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-slate-100 dark:bg-slate-950 flex items-center justify-center">
-                <Avatar config={avatarConfig} name={fullName} size={84} />
+          <div className="flex flex-col md:flex-row gap-6 items-center bg-slate-50 dark:bg-slate-900/45 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
+            {/* Hidden file input */}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const img = new Image();
+                  img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX = 400;
+                    const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    setProfilePhoto(canvas.toDataURL('image/jpeg', 0.82));
+                  };
+                  img.src = ev.target?.result as string;
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+              }}
+            />
+
+            {/* Left preview box / Profile Photo upload circle */}
+            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl md:w-1/3 shrink-0">
+              <div
+                onClick={() => photoInputRef.current?.click()}
+                className="w-28 h-28 rounded-full border-[6px] border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-slate-100 dark:bg-slate-950 flex items-center justify-center relative group cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-all"
+                title="Upload profile photo"
+              >
+                <Avatar config={profilePhoto ? { photo: profilePhoto } : null} name={fullName} size={100} />
+                <div className="absolute inset-0 bg-black/50 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 gap-1">
+                  <Camera className="text-white" size={20} />
+                  <span className="text-white text-[9px] font-bold tracking-wide">Upload Photo</span>
+                </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-3">Preview</span>
+              
+              {profilePhoto && (
+                <button
+                  type="button"
+                  onClick={() => setProfilePhoto(null)}
+                  className="mt-3 flex items-center gap-1 text-[11px] text-rose-500 hover:text-rose-455 font-bold transition-colors cursor-pointer"
+                >
+                  <X size={12} /> Remove Photo
+                </button>
+              )}
             </div>
 
-            {/* Right options box */}
-            <div className="flex-1 w-full p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2">
-                <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400 animate-pulse" /> Set Your Profile Picture
+            {/* Right instruction details */}
+            <div className="flex-1 w-full p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-2 text-left">
+              <h3 className="text-sm font-bold text-slate-805 dark:text-slate-200 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                <Sparkles size={16} className="text-indigo-650 dark:text-indigo-400 animate-pulse" /> Profile Picture Setup
               </h3>
-              
-              {/* Background selector */}
-              <div className="text-left">
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Background Gradient</label>
-                <div className="flex gap-2 flex-wrap">
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <button
-                      key={i} type="button"
-                      onClick={() => setAvatarConfig(prev => ({ ...prev, bg: i }))}
-                      className={`w-7 h-7 rounded-full border transition-all cursor-pointer ${
-                        avatarConfig.bg === i ? 'border-indigo-600 scale-110 shadow animate-fade-in' : 'border-transparent opacity-75'
-                      }`}
-                      style={{
-                        background: i === 0 ? "linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%)" :
-                                    i === 1 ? "linear-gradient(135deg, #fca5a5 0%, #f87171 100%)" :
-                                    i === 2 ? "linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)" :
-                                    i === 3 ? "linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%)" :
-                                    i === 4 ? "linear-gradient(135deg, #c084fc 0%, #a855f7 100%)" :
-                                              "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)"
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Searchable and Categorized Emoji Picker */}
-              <div className="space-y-3">
-                {/* Search input */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="w-full glass-input rounded-xl px-3 py-2 pl-9 text-xs focus:outline-none transition-all text-slate-900 dark:text-white font-semibold"
-                    placeholder="Search emojis (e.g. smile, heart, code, animal)..."
-                    value={emojiSearch}
-                    onChange={(e) => setEmojiSearch(e.target.value)}
-                  />
-                  <div className="absolute left-3 top-2.5 text-slate-400">
-                    <Search size={14} />
-                  </div>
-                  {emojiSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setEmojiSearch('')}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Category tabs */}
-                {!emojiSearch && (
-                  <div className="flex gap-1.5 justify-between pb-1.5">
-                    {EMOJI_CATEGORIES.map(cat => (
-                      <button
-                        key={cat.name}
-                        type="button"
-                        onClick={() => setActiveCategory(cat.name)}
-                        title={cat.name}
-                        className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg transition-all border cursor-pointer ${
-                          activeCategory === cat.name
-                            ? 'bg-indigo-650/20 dark:bg-indigo-600/30 border-indigo-500 text-indigo-755 dark:text-slate-100 shadow'
-                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400'
-                        }`}
-                      >
-                        <span>{cat.icon}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Grid */}
-                <div className="grid grid-cols-7 gap-1.5 max-h-[100px] overflow-y-auto pr-1 no-scrollbar text-left">
-                  {(() => {
-                    const displayedEmojis = emojiSearch 
-                      ? searchEmojis(emojiSearch)
-                      : (EMOJI_CATEGORIES.find(c => c.name === activeCategory)?.emojis || []);
-                    
-                    if (displayedEmojis.length > 0) {
-                      return displayedEmojis.map(em => (
-                        <button
-                          key={em}
-                          type="button"
-                          onClick={() => setAvatarConfig(prev => ({ ...prev, emoji: em }))}
-                          className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg transition-all hover:scale-110 active:scale-95 cursor-pointer border ${
-                            avatarConfig.emoji === em
-                              ? 'bg-indigo-650/25 dark:bg-indigo-650/35 border-indigo-500 shadow scale-105'
-                              : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-100'
-                          }`}
-                        >
-                          {em}
-                        </button>
-                      ));
-                    } else {
-                      return (
-                        <div className="col-span-7 py-4 text-center text-[10px] text-slate-400 font-bold">
-                          No matching emojis found
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-
-                {/* Manual Type Custom */}
-                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 p-2 rounded-xl text-left">
-                  <div className="flex-1">
-                    <span className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Or Paste Custom Emoji</span>
-                    <p className="text-[9px] text-slate-400 dark:text-slate-500">Enter a specific emoji character from your keyboard.</p>
-                  </div>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    className="w-9 h-9 glass-input rounded-lg text-center text-lg focus:outline-none transition-all text-slate-900 dark:text-white font-bold border border-slate-200 dark:border-slate-700"
-                    value={avatarConfig.emoji || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setAvatarConfig(prev => ({ ...prev, emoji: val }));
-                    }}
-                    placeholder="😎"
-                  />
-                </div>
-              </div>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                Upload a professional profile photo. If no photo is uploaded, your avatar will default to your initials on a clean gradient background.
+              </p>
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="mt-2 text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+              >
+                <Camera size={14} /> Choose Image File...
+              </button>
             </div>
           </div>
 
