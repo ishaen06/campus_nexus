@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -26,6 +26,18 @@ export default function Layout() {
   const [adminPassword, setAdminPassword] = useState('');
   const [lockError, setLockError] = useState('');
   const [verifying, setVerifying] = useState(false);
+
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const handleMouseEnterProfile = () => {
     if (dropdownTimeout) {
@@ -208,14 +220,44 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
       {/* Desktop Sidebar */}
-      <nav className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50">
-        <div className="p-6">
-          <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
-            <Logo size={44} showText={false} />
-            <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              Campus Nexus
-            </span>
-          </Link>
+      <nav className={cn(
+        "hidden md:flex flex-col fixed left-0 top-0 h-screen bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50 transition-all duration-300",
+        isCollapsed ? "w-20" : "w-64"
+      )}>
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            {!isCollapsed && (
+              <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
+                <Logo size={44} showText={false} />
+                <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Campus Nexus
+                </span>
+              </Link>
+            )}
+            {isCollapsed && (
+              <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="mx-auto">
+                <Logo size={36} showText={false} />
+              </Link>
+            )}
+            {!isCollapsed && (
+              <button
+                onClick={toggleSidebar}
+                className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-slate-100 hover:bg-white/10 transition cursor-pointer"
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            )}
+          </div>
+          {isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="mx-auto p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-slate-100 hover:bg-white/10 transition cursor-pointer"
+              title="Expand Sidebar"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 px-4 space-y-2 mt-4">
@@ -231,20 +273,22 @@ export default function Layout() {
               <Link
                 key={item.name}
                 to={item.path}
+                title={isCollapsed ? item.name : undefined}
                 className={cn(
-                  "flex items-center justify-between px-4 py-3 transition-all duration-300 font-medium",
+                  "flex items-center transition-all duration-300 font-medium",
+                  isCollapsed ? "justify-center p-3 rounded-xl mx-auto w-12" : "justify-between px-4 py-3",
                   isAdminPath
                     ? (isActive
                         ? "border-l-4 border-[#1e3a8a] dark:border-blue-500 text-[#1e3a8a] dark:text-blue-400 bg-[#1e3a8a]/5 dark:bg-blue-950/20 rounded-none pl-3 font-semibold"
                         : "border-l-4 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100/30 dark:hover:bg-slate-900/30 hover:text-slate-900 dark:hover:text-slate-100 rounded-none pl-3"
                       )
                     : (isActive
-                        ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl pl-4" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl pl-4")
-                        : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl pl-4" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl pl-4")
+                        ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl")
+                        : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl")
                       )
                 )}
               >
-                <div className="flex items-center gap-3">
+                <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
                   <Icon 
                     size={20} 
                     className={cn(
@@ -252,10 +296,13 @@ export default function Layout() {
                     )} 
                     strokeWidth={isActive ? 2.5 : 2} 
                   />
-                  {item.name}
+                  {!isCollapsed && item.name}
                 </div>
-                {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                {!isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
                   <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
+                )}
+                {isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                 )}
               </Link>
             );
@@ -264,14 +311,16 @@ export default function Layout() {
 
         <div className="p-4 border-t border-white/10 space-y-3">
           {/* RVCE Logo */}
-          <div className="flex items-center justify-center w-full pb-1">
-            <img
-              src="/rvce_logo_header.png"
-              alt="RV College of Engineering"
-              className="w-full object-contain dark:invert dark:brightness-90"
-              style={{ mixBlendMode: 'multiply', maxHeight: '90px' }}
-            />
-          </div>
+          {!isCollapsed && (
+            <div className="flex items-center justify-center w-full pb-1">
+              <img
+                src="/rvce_logo_header.png"
+                alt="RV College of Engineering"
+                className="w-full object-contain dark:invert dark:brightness-90"
+                style={{ mixBlendMode: 'multiply', maxHeight: '90px' }}
+              />
+            </div>
+          )}
 
           {/* Profile Card */}
           <div 
@@ -280,7 +329,10 @@ export default function Layout() {
             onMouseLeave={handleMouseLeaveProfile}
           >
             {showProfileDropdown && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-100/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-50">
+              <div className={cn(
+                "absolute bg-slate-105/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-50",
+                isCollapsed ? "left-full bottom-0 ml-2 w-40" : "bottom-full left-0 right-0 mb-2"
+              )}>
                 <button
                   onClick={() => {
                     setShowProfileDropdown(false);
@@ -304,55 +356,73 @@ export default function Layout() {
               </div>
             )}
 
-            <div
-              className="flex items-center justify-between w-full p-2.5 bg-slate-100/50 dark:bg-slate-900/40 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 border border-slate-200/60 dark:border-white/10 rounded-xl transition-all duration-300 text-left group backdrop-blur-md cursor-default"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={36} />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                    {currentUser?.full_name || 'Loading...'}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-                    {currentUser?.is_mentor ? `${currentUser.post || 'Mentor'} (${currentUser.department || 'N/A'})` : getStudentSub(currentUser)}
-                  </p>
-                </div>
+            {isCollapsed ? (
+              <div className="flex items-center justify-center w-full py-1 cursor-pointer">
+                <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={38} />
               </div>
-              <ChevronDown size={16} className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0 ml-2" />
-            </div>
+            ) : (
+              <div
+                className="flex items-center justify-between w-full p-2.5 bg-slate-100/50 dark:bg-slate-900/40 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 border border-slate-200/60 dark:border-white/10 rounded-xl transition-all duration-300 text-left group backdrop-blur-md cursor-default"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={36} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                      {currentUser?.full_name || 'Loading...'}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                      {currentUser?.is_mentor ? `${currentUser.post || 'Mentor'} (${currentUser.department || 'N/A'})` : getStudentSub(currentUser)}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown size={16} className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0 ml-2" />
+              </div>
+            )}
           </div>
 
           <div className="h-px bg-white/5" />
 
           {/* Theme Toggle Switch */}
-          <div className="flex items-center justify-between px-2 py-1">
-            <div className="flex items-center gap-3">
-              <Sun size={20} className="text-slate-500 dark:text-slate-400" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Light Mode
-              </span>
+          {isCollapsed ? (
+            <div className="flex items-center justify-center py-1">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-slate-100 hover:bg-white/10 transition cursor-pointer"
+                title="Toggle Light/Dark Theme"
+              >
+                {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
             </div>
-            
-            <button
-              onClick={toggleTheme}
-              className={cn(
-                "w-11 h-6 rounded-full relative transition-colors duration-300 focus:outline-none cursor-pointer",
-                theme === 'light' ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-800"
-              )}
-            >
-              <span
+          ) : (
+            <div className="flex items-center justify-between px-2 py-1">
+              <div className="flex items-center gap-3">
+                <Sun size={20} className="text-slate-500 dark:text-slate-400" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Light Mode
+                </span>
+              </div>
+              
+              <button
+                onClick={toggleTheme}
                 className={cn(
-                  "w-4 h-4 rounded-full bg-white absolute top-1 transition-all duration-300 shadow-sm",
-                  theme === 'light' ? "left-6" : "left-1"
+                  "w-11 h-6 rounded-full relative transition-colors duration-300 focus:outline-none cursor-pointer",
+                  theme === 'light' ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-800"
                 )}
-              />
-            </button>
-          </div>
+              >
+                <span
+                  className={cn(
+                    "w-4 h-4 rounded-full bg-white absolute top-1 transition-all duration-300 shadow-sm",
+                    theme === 'light' ? "left-6" : "left-1"
+                  )}
+                />
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Mobile Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-950/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2 overflow-x-auto whitespace-nowrap" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-955/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2 overflow-x-auto whitespace-nowrap" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
         <style dangerouslySetInnerHTML={{ __html: `nav::-webkit-scrollbar { display: none; }` }} />
         <div className="flex justify-between items-center pb-2 px-6 gap-3 min-w-max">
           {navItems
@@ -391,7 +461,10 @@ export default function Layout() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 md:ml-64 relative min-h-screen">
+      <main className={cn(
+        "flex-1 relative min-h-screen transition-all duration-300",
+        isCollapsed ? "md:ml-20" : "md:ml-64"
+      )}>
         <Outlet />
       </main>
 
