@@ -312,15 +312,6 @@ export default function ProfileEdit() {
       >
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-        {/* RVCE Logo - top left of cover */}
-        <div className="absolute top-4 left-4 z-10">
-          <img
-            src="/rvce_logo_header.png"
-            alt="RV College of Engineering"
-            className="h-10 md:h-12 object-contain"
-            style={{ filter: 'brightness(0) invert(1)', opacity: 0.9 }}
-          />
-        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8 -mt-24 relative z-20">
