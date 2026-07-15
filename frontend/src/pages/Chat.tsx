@@ -154,7 +154,7 @@ export default function Chat() {
               className="flex items-center gap-3 cursor-pointer hover:opacity-85 transition-opacity"
             >
               <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 border border-white/40 flex items-center justify-center">
-                <Avatar config={chatPartner.avatar_config} name={chatPartner.full_name} size={38} />
+                <Avatar config={chatPartner.profile_photo ? { photo: chatPartner.profile_photo } : null} name={chatPartner.full_name} size={38} />
               </div>
               <div className="flex flex-col">
                 <h2 className="text-[15px] font-bold text-gray-900 tracking-tight leading-none">{chatPartner.full_name}</h2>

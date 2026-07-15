@@ -14,7 +14,7 @@ class UserResponse(BaseModel):
     bio: Optional[str] = None
     interests: Optional[List[str]] = None
     goals: Optional[List[str]] = None
-    avatar_config: Optional[dict] = None
+    profile_photo: Optional[str] = None
     is_admin: bool = False
     is_mentor: Optional[bool] = None
     is_banned: bool = False
@@ -37,7 +37,7 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = None
     interests: Optional[List[str]] = None
     goals: Optional[List[str]] = None
-    avatar_config: Optional[dict] = None
+    profile_photo: Optional[str] = None
     is_mentor: Optional[bool] = None
     cycle: Optional[str] = None
     department: Optional[str] = None

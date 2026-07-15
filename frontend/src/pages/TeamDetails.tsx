@@ -29,7 +29,7 @@ interface MemberItem {
   usn?: string | null;
   branch?: string | null;
   cycle?: string | null;
-  avatar_config?: any;
+  profile_photo?: string;
 }
 
 interface TeamItem {
@@ -149,7 +149,7 @@ export default function TeamDetails() {
               const isAdmin = member.id === team.created_by;
               return (
                 <div key={member.id} className="py-4.5 flex gap-4 items-center border-b border-slate-100 dark:border-slate-800/40">
-                  <Avatar config={member.avatar_config || { emoji: '👨‍💻', bg: 0 }} name={member.full_name} size={40} />
+                  <Avatar config={member.profile_photo ? { photo: member.profile_photo } : null} name={member.full_name} size={40} />
                   <div className="min-w-0 flex-1 text-left">
                     <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       {member.full_name}

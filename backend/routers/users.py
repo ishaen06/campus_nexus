@@ -118,8 +118,8 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
 
     if profile_data.bio is not None:
         update_data["bio"] = profile_data.bio
-    if profile_data.avatar_config is not None:
-        update_data["avatar_config"] = profile_data.avatar_config
+    if profile_data.profile_photo is not None:
+        update_data["profile_photo"] = profile_data.profile_photo
         
     if update_data:
         db.users.update_one({"id": current_user["id"]}, {"$set": update_data})

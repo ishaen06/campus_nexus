@@ -308,7 +308,7 @@ export default function Layout() {
               className="flex items-center justify-between w-full p-2.5 bg-slate-100/50 dark:bg-slate-900/40 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 border border-slate-200/60 dark:border-white/10 rounded-xl transition-all duration-300 text-left group backdrop-blur-md cursor-default"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <Avatar config={currentUser?.avatar_config} name={currentUser?.full_name || ''} size={36} />
+                <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={36} />
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
                     {currentUser?.full_name || 'Loading...'}

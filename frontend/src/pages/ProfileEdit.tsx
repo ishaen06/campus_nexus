@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Search } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Camera, X } from 'lucide-react';
 import Avatar from '../components/Avatar';
-import type { AvatarConfig } from '../components/Avatar';
-import { EMOJI_CATEGORIES, searchEmojis } from '../utils/emojis';
 
 const INTERESTS_LIST = [
   "Startups", "Entrepreneurship", "Artificial Intelligence", "Robotics",
@@ -27,15 +25,13 @@ export default function ProfileEdit() {
   const [bio, setBio] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
-  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>({ emoji: '👨‍💻', bg: 0 });
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('Smileys');
-  const [emojiSearch, setEmojiSearch] = useState('');
   const [isMentor, setIsMentor] = useState(false);
   const [department, setDepartment] = useState('');
   const [post, setPost] = useState('');
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1000, y: -1000, active: false });
@@ -224,8 +220,8 @@ export default function ProfileEdit() {
       setPost(res.data.post || '');
       setInterests(res.data.interests || []);
       setGoals(res.data.goals || []);
-      if (res.data.avatar_config) {
-        setAvatarConfig(res.data.avatar_config);
+      if (res.data.profile_photo) {
+        setProfilePhoto(res.data.profile_photo);
       }
       setLoading(false);
     }).catch(err => {
@@ -269,10 +265,10 @@ export default function ProfileEdit() {
         cycle: isMentor ? null : cycle,
         department: isMentor ? department : null,
         post: isMentor ? post : null,
-        bio, 
-        interests: isMentor ? null : interests, 
+        bio,
+        interests: isMentor ? null : interests,
         goals: isMentor ? null : goals,
-        avatar_config: avatarConfig
+        profile_photo: profilePhoto
       });
       alert('Profile updated successfully!');
     } catch (err: any) {
@@ -324,16 +320,57 @@ export default function ProfileEdit() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-panel p-6 flex flex-col items-center text-center"
             >
-              <div 
-                onClick={() => setShowAvatarModal(true)}
+              {/* Hidden file input */}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      const MAX = 400;
+                      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+                      canvas.width = img.width * scale;
+                      canvas.height = img.height * scale;
+                      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+                      setProfilePhoto(canvas.toDataURL('image/jpeg', 0.82));
+                    };
+                    img.src = ev.target?.result as string;
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = '';
+                }}
+              />
+
+              {/* Profile photo circle */}
+              <div
+                onClick={() => photoInputRef.current?.click()}
                 className="w-32 h-32 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center relative group cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-all"
-                title="Customize Avatar"
+                title="Upload profile photo"
               >
-                <Avatar config={avatarConfig} name={fullName} size={120} />
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <Sparkles className="text-white" size={24} />
+                <Avatar config={profilePhoto ? { photo: profilePhoto } : null} name={fullName} size={120} />
+                <div className="absolute inset-0 bg-black/50 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 gap-1">
+                  <Camera className="text-white" size={22} />
+                  <span className="text-white text-[10px] font-bold tracking-wide">Change Photo</span>
                 </div>
               </div>
+
+              {/* Remove photo button */}
+              {profilePhoto && (
+                <button
+                  type="button"
+                  onClick={() => setProfilePhoto(null)}
+                  className="mt-2 flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 font-semibold transition-colors cursor-pointer"
+                >
+                  <X size={12} /> Remove photo
+                </button>
+              )}
               <h1 className="text-2xl font-black text-gray-900 mt-4 tracking-tight">{fullName}</h1>
               <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mt-1">
                 {isMentor ? 'Mentor' : `${branch} • Year ${year}`}
@@ -525,10 +562,10 @@ export default function ProfileEdit() {
         </div>
       </div>
 
-      {/* Avatar Customize Modal */}
-      <AnimatePresence>
-        {showAvatarModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    </div>
+  );
+}
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

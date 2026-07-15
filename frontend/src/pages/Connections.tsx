@@ -20,7 +20,7 @@ interface ConnectionItem {
     bio?: string | null;
     interests?: string[] | null;
     goals?: string[] | null;
-    avatar_config?: any | null;
+    profile_photo?: string | null;
     is_online?: boolean;
     department?: string | null;
     post?: string | null;
@@ -185,7 +185,7 @@ export default function Connections() {
                         onClick={(e) => openProfilePreview(conn.other_user, e)}
                         className="w-12 h-12 rounded-full overflow-hidden bg-slate-200/50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 shadow-sm cursor-pointer hover:scale-105 transition-transform"
                       >
-                        <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={44} />
+                        <Avatar config={conn.other_user.profile_photo ? { photo: conn.other_user.profile_photo } : null} name={conn.other_user.full_name} size={44} />
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{conn.other_user.full_name}</h3>
@@ -285,7 +285,7 @@ export default function Connections() {
                       {/* Avatar preview trigger */}
                       <div className="relative shrink-0" onClick={(e) => openProfilePreview(conn.other_user, e)}>
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200/50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center hover:scale-105 transition-transform shadow-sm">
-                          <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={48} />
+                          <Avatar config={conn.other_user.profile_photo ? { photo: conn.other_user.profile_photo } : null} name={conn.other_user.full_name} size={48} />
                         </div>
                         {isOnline && (
                           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm z-20"></div>
@@ -394,7 +394,7 @@ export default function Connections() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={36} />
+                            <Avatar config={conn.other_user.profile_photo ? { photo: conn.other_user.profile_photo } : null} name={conn.other_user.full_name} size={36} />
                             <div className="text-left">
                               <p className="text-sm font-bold text-slate-900 dark:text-white">{conn.other_user.full_name}</p>
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">

@@ -18,7 +18,7 @@ interface ConnectionItem {
     bio?: string | null;
     interests?: string[] | null;
     goals?: string[] | null;
-    avatar_config?: any | null;
+    profile_photo?: string | null;
     department?: string | null;
     post?: string | null;
   };
@@ -428,7 +428,7 @@ export default function MyTeam() {
                               className="py-4.5 px-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/20 cursor-pointer transition-all rounded-xl"
                             >
                               <div className="flex items-center gap-3">
-                                <Avatar config={member.avatar_config} name={member.full_name} size={40} />
+                                <Avatar config={member.profile_photo ? { photo: member.profile_photo } : null} name={member.full_name} size={40} />
                                 <div className="flex flex-col">
                                   <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{member.full_name}</span>
                                   <div className="flex items-center gap-2 mt-1">
@@ -611,7 +611,7 @@ export default function MyTeam() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar config={conn.other_user.avatar_config} name={conn.other_user.full_name} size={36} />
+                            <Avatar config={conn.other_user.profile_photo ? { photo: conn.other_user.profile_photo } : null} name={conn.other_user.full_name} size={36} />
                             <div className="text-left">
                               <p className="text-sm font-bold text-slate-900 dark:text-white">{conn.other_user.full_name}</p>
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">

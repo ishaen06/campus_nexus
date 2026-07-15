@@ -191,12 +191,12 @@ export default function GroupChat() {
     return '';
   };
 
-  const getAvatarConfigOfUser = (uid: number) => {
+  const getProfilePhotoOfUser = (uid: number) => {
     const existing = groupDetails?.members?.find((m: any) => m.id === uid);
-    if (existing) return existing.avatar_config;
+    if (existing) return existing.profile_photo;
     
     const conn = connections.find((c: any) => c.other_user.id === uid);
-    if (conn) return conn.other_user.avatar_config;
+    if (conn) return conn.other_user.profile_photo;
     
     return null;
   };
@@ -520,7 +520,7 @@ export default function GroupChat() {
                     const name = getUserName(uid);
                     const branch = getBranchOfUser(uid);
                     const cycle = getCycleOfUser(uid);
-                    const avatarConfig = getAvatarConfigOfUser(uid);
+                    const profilePhoto = getProfilePhotoOfUser(uid);
                     const isMemberAdmin = uid === groupDetails?.created_by;
                     const isCurrentUserAdmin = groupDetails?.created_by === userId;
 
@@ -528,8 +528,8 @@ export default function GroupChat() {
                       <div key={uid} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 rounded-xl">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-750 overflow-hidden flex items-center justify-center">
-                            {avatarConfig ? (
-                              <Avatar config={avatarConfig} className="w-full h-full" />
+                            {profilePhoto ? (
+                              <Avatar config={{ photo: profilePhoto }} className="w-full h-full" />
                             ) : (
                               <Users size={16} className="text-slate-400" />
                             )}
@@ -588,8 +588,8 @@ export default function GroupChat() {
                           <div key={u.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 rounded-xl">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-750 overflow-hidden flex items-center justify-center">
-                                {u.avatar_config ? (
-                                  <Avatar config={u.avatar_config} className="w-full h-full" />
+                                {u.profile_photo ? (
+                                  <Avatar config={{ photo: u.profile_photo }} className="w-full h-full" />
                                 ) : (
                                   <Users size={16} className="text-slate-400" />
                                 )}

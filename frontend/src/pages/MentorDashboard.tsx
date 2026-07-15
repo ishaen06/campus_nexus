@@ -18,7 +18,7 @@ interface MemberItem {
   usn?: string | null;
   branch?: string | null;
   cycle?: string | null;
-  avatar_config?: any;
+  profile_photo?: string;
 }
 
 interface TeamItem {
@@ -239,7 +239,7 @@ export default function MentorDashboard() {
                       return (
                         <div key={member.id} className="bg-white/5 dark:bg-slate-950/20 border border-white/5 rounded-xl p-2.5 flex gap-3.5 items-center">
                           <div className="w-9 h-9 rounded-full border border-white/80 shadow-md overflow-hidden bg-white/20 flex items-center justify-center shrink-0">
-                            <Avatar config={member.avatar_config || { emoji: '👨‍💻', bg: 0 }} name={member.full_name} size={30} />
+                            <Avatar config={member.profile_photo ? { photo: member.profile_photo } : null} name={member.full_name} size={30} />
                           </div>
                           <div className="min-w-0">
                             <span className="text-xs font-bold text-slate-900 dark:text-white truncate block flex items-center gap-1.5">

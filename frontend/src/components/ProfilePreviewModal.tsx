@@ -13,7 +13,7 @@ interface ProfilePreviewModalProps {
     bio?: string | null;
     interests?: string[] | null;
     goals?: string[] | null;
-    avatar_config?: any | null;
+    profile_photo?: string | null;
     is_mentor?: boolean | null;
     usn?: string | null;
     department?: string | null;
@@ -63,7 +63,7 @@ export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePr
                 {/* Avatar position offset */}
                 <div className="flex justify-between items-end -mt-14 mb-4">
                   <div className="w-24 h-24 rounded-full border-[6px] border-white dark:border-[#1e1e24] shadow-xl overflow-hidden bg-white/20 flex items-center justify-center">
-                    <Avatar config={user.avatar_config} name={user.full_name} size={84} />
+                    <Avatar config={user.profile_photo ? { photo: user.profile_photo } : null} name={user.full_name} size={84} />
                   </div>
                 </div>
 

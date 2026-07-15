@@ -12,7 +12,7 @@ interface MemberItem {
   usn?: string | null;
   branch?: string | null;
   cycle?: string | null;
-  avatar_config?: any;
+  profile_photo?: string;
 }
 
 interface TeamItem {
@@ -132,7 +132,7 @@ export default function MyTeams() {
                       title={m.full_name}
                     >
                       <Avatar 
-                        config={m.avatar_config || { emoji: '👨‍💻', bg: 0 }} 
+                        config={m.profile_photo ? { photo: m.profile_photo } : null} 
                         name={m.full_name} 
                         size={32} 
                         className="ring-2 ring-white dark:ring-slate-950 shadow-sm"

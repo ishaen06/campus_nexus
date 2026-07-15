@@ -14,7 +14,7 @@ interface UserProfile {
   bio: string;
   interests: string[];
   goals: string[];
-  avatar_config?: any;
+  profile_photo?: string;
   is_online?: boolean;
   is_mentor?: boolean;
   department?: string;
@@ -407,7 +407,7 @@ export default function Discovery() {
                                       title={`${member.full_name} (${member.branch} • Cycle: ${member.cycle})`}
                                     >
                                       <Avatar 
-                                        config={member.avatar_config} 
+                                        config={member.profile_photo ? { photo: member.profile_photo } : null} 
                                         name={member.full_name} 
                                         size={36} 
                                         className="ring-2 ring-white dark:ring-slate-950 shadow-sm"
@@ -526,7 +526,7 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
            )}
            <div className="w-32 h-32 relative">
               <div className="w-full h-full rounded-full overflow-hidden bg-white/20 border-[6px] border-white/50 backdrop-blur-sm shadow-xl flex items-center justify-center">
-                 <Avatar config={(user as any).avatar_config} name={user.full_name} size={120} />
+                 <Avatar config={(user as any).profile_photo ? { photo: (user as any).profile_photo } : null} name={user.full_name} size={120} />
               </div>
               {user.is_online && (
                 <div className="absolute bottom-1.5 right-1.5 w-[22px] h-[22px] bg-green-500 border-[3px] border-white dark:border-slate-950 rounded-full z-20 shadow-md"></div>
