@@ -902,6 +902,36 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
     else:
         raise HTTPException(status_code=400, detail="Invalid dataset specified")
 
+@router.get("/reports/preview")
+def preview_admin_report(
+    dataset: str = Query(...), 
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
+    df, report_title, col_widths = fetch_report_dataframe(dataset, db)
+    preview_df = df.head(10)
+    preview_df = preview_df.astype(object).where(pd.notnull(preview_df), None)
+    records = preview_df.to_dict(orient="records")
+    
+    safe_records = []
+    for r in records:
+        safe_row = {}
+        for k, v in r.items():
+            if v is None:
+                safe_row[k] = ""
+            elif isinstance(v, datetime):
+                safe_row[k] = v.isoformat()
+            else:
+                safe_row[k] = str(v)
+        safe_records.append(safe_row)
+        
+    return {
+        "title": report_title,
+        "columns": list(df.columns),
+        "preview": safe_records,
+        "total_rows": len(df)
+    }
+
 @router.get("/reports/download")
 def download_admin_report(
     dataset: str = Query(...), 

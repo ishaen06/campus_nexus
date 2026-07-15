@@ -181,6 +181,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [rejectingTeamId, setRejectingTeamId] = useState<number | null>(null);
   const [rejectionReasonText, setRejectionReasonText] = useState('');
 
+  // Report Preview states
+  const [previewDataset, setPreviewDataset] = useState<string | null>(null);
+  const [previewFormat, setPreviewFormat] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<{ title: string; columns: string[]; preview: any[]; total_rows: number } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   const fetchReports = async () => {
     try {
       const res = await api.get('/admin/reports');
@@ -405,6 +411,24 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     } catch (err) {
       console.error("Failed to download report", err);
       alert("Failed to download report. Please check your admin permissions.");
+    }
+  };
+
+  const handleTriggerPreview = async (dataset: string, format: string) => {
+    setPreviewDataset(dataset);
+    setPreviewFormat(format);
+    setPreviewLoading(true);
+    try {
+      const res = await api.get(`/admin/reports/preview?dataset=${dataset}`);
+      setPreviewData(res.data);
+    } catch (err) {
+      console.error("Failed to load report preview", err);
+      alert("Failed to load report preview. Opening direct download...");
+      handleDownloadReport(dataset, format);
+      setPreviewDataset(null);
+      setPreviewFormat(null);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -1422,9 +1446,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Full master spreadsheet of approved teams, project topics, mentors, and all individual student member details.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('approved_teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('approved_teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('approved_teams', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('approved_teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('approved_teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('approved_teams', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1440,9 +1464,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Complete breakdown of Phase 1, 2, and 3 marks, total scores, sections, year of study, and specific mentor observations.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('student_marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('student_marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('student_marks', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('student_marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('student_marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('student_marks', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1458,9 +1482,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Directory of mentors, their departments, designations, and active approved team allocations.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('mentors', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('mentors', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('mentors', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('mentors', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('mentors', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('mentors', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1476,9 +1500,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Cross-referenced sheet linking each group name to its student members and their branches.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('teams', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('teams', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1494,9 +1518,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Comprehensive Phase 1, Phase 2, Phase 3 grading and total marks allocated to students.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('marks', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('marks', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1512,9 +1536,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">List of active team project titles, themes/topics, and their assigned mentors.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleDownloadReport('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleDownloadReport('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleDownloadReport('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
             </div>
@@ -1665,6 +1689,129 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     )}
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Report Preview Loading Overlay */}
+      {previewLoading && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="glass-panel p-8 text-center max-w-sm shadow-2xl flex flex-col items-center gap-4"
+          >
+            <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-white">Generating Preview</h4>
+              <p className="text-xs text-slate-405 font-semibold">Fetching dataset records from database...</p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Report Preview Modal */}
+      <AnimatePresence>
+        {previewData && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-5xl glass-panel p-6 shadow-2xl relative flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-800"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setPreviewData(null);
+                  setPreviewDataset(null);
+                  setPreviewFormat(null);
+                }}
+                className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Title & Total Rows */}
+              <div className="mb-4 pr-8">
+                <h3 className="text-lg font-black text-slate-805 dark:text-white uppercase tracking-wider">{previewData.title}</h3>
+                <p className="text-xs text-slate-400 font-semibold mt-1">
+                  Preview showing the first 10 rows of {previewData.total_rows} total rows inside this dataset.
+                </p>
+              </div>
+
+              {/* Table Container */}
+              <div className="flex-1 overflow-auto border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 no-scrollbar mb-6">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                      {previewData.columns.map((col, idx) => (
+                        <th key={idx} className="p-3 font-bold text-slate-700 dark:text-slate-205 whitespace-nowrap uppercase tracking-wider text-[10px] border-r border-slate-200/60 dark:border-slate-800/60 last:border-r-0">
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.preview.map((row, rIdx) => (
+                      <tr 
+                        key={rIdx} 
+                        className="border-b border-slate-100 dark:border-slate-900 last:border-0 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-colors"
+                      >
+                        {previewData.columns.map((col, cIdx) => (
+                          <td key={cIdx} className="p-3 text-slate-600 dark:text-slate-350 font-semibold max-w-[200px] truncate border-r border-slate-100 dark:border-slate-900 last:border-r-0" title={row[col]}>
+                            {row[col]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-150 dark:border-slate-800">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                  <span>Target Format:</span>
+                  <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider ${
+                    previewFormat === 'csv' ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350" :
+                    previewFormat === 'excel' ? "bg-emerald-50 dark:bg-emerald-955/20 text-emerald-700 dark:text-emerald-400" :
+                    "bg-rose-50 dark:bg-rose-955/20 text-rose-700 dark:text-rose-400"
+                  }`}>
+                    {previewFormat}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    onClick={() => {
+                      setPreviewData(null);
+                      setPreviewDataset(null);
+                      setPreviewFormat(null);
+                    }}
+                    className="flex-1 sm:flex-initial bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2.5 px-5 rounded-xl text-xs uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (previewDataset && previewFormat) {
+                        handleDownloadReport(previewDataset, previewFormat);
+                      }
+                      setPreviewData(null);
+                      setPreviewDataset(null);
+                      setPreviewFormat(null);
+                    }}
+                    className={`flex-1 sm:flex-initial font-extrabold py-2.5 px-6 rounded-xl text-xs uppercase tracking-wider cursor-pointer text-white shadow-lg transition-all ${
+                      previewFormat === 'csv' ? "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20" :
+                      previewFormat === 'excel' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20" :
+                      "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
+                    }`}
+                  >
+                    Confirm & Download
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
