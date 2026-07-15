@@ -229,8 +229,8 @@ export default function Layout() {
             {!isCollapsed && (
               <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
                 <Logo size={44} showText={false} />
-                <span className="text-xl font-bold text-slate-900 dark:text-slate-105 tracking-tight">
-                  <span className="text-[#1e3a8a] dark:text-blue-400">Campus</span> Nexus
+                <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  <span className="text-[#1e3a8a] dark:text-[#3b82f6]">Campus</span> Nexus
                 </span>
               </Link>
             )}
@@ -316,8 +316,8 @@ export default function Layout() {
               <img
                 src="/rvce_logo_header.png"
                 alt="RV College of Engineering"
-                className="w-full object-contain dark:invert dark:brightness-90"
-                style={{ mixBlendMode: 'multiply', maxHeight: '90px' }}
+                className="w-full object-contain dark:invert dark:brightness-200"
+                style={{ mixBlendMode: theme === 'dark' ? 'screen' : 'multiply', maxHeight: '90px' }}
               />
             </div>
           )}
@@ -330,7 +330,7 @@ export default function Layout() {
           >
             {showProfileDropdown && (
               <div className={cn(
-                "absolute bg-slate-105/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-50",
+                "absolute bg-slate-100/95 dark:bg-slate-950/90 border border-slate-200/80 dark:border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-50",
                 isCollapsed ? "left-full bottom-0 ml-2 w-40" : "bottom-full left-0 right-0 mb-2"
               )}>
                 <button

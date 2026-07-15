@@ -1273,7 +1273,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   filteredTeams.map((team) => (
                     <div key={team.id} className="glass-panel p-6 space-y-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300">
                       {/* Team Meta Header */}
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-105 dark:border-slate-850 pb-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-850 pb-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">{team.name}</h3>
