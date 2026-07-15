@@ -413,9 +413,15 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     ...(teams || []).flatMap(t => (t.members || []).map(m => (m.branch || "N/A").trim().toUpperCase()))
   ])).filter(Boolean).sort();
 
-  const allThemes = Array.from(new Set(
-    (teams || []).map(t => (t.project_topic || "N/A").trim().toUpperCase())
-  )).filter(Boolean);
+  const allThemes = [
+    "Agriculture, Livestock & Rural Development",
+    "Education, Skilling & Student-Centric Solutions",
+    "Health, Wellness & Traditional Medicine",
+    "Urban Development, Mobility & Smart Cities",
+    "Sustainability & Environment",
+    "Emerging Technology, Innovation & Industry 4.0",
+    "Ocean, Marine & Aerospace Technologies"
+  ];
 
   const filteredTeams = (teams || []).filter(t => {
     const matchesBranch = !branchFilter || (t.members || []).some(m => (m.branch || "N/A").trim().toUpperCase() === branchFilter);
@@ -435,13 +441,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
+            {activeTab !== 'reports' && <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />}
             {activeTab === 'moderation' && "Moderation Logs"}
             {activeTab === 'analytics' && "Analytics Dashboard"}
             {activeTab === 'search' && "Global Database Search"}
             {activeTab === 'mentors' && "Mentor Workloads"}
             {activeTab === 'teams' && "Teams & Project Roster"}
-            {activeTab === 'reports' && "Report Center"}
           </h1>
           <p className="text-slate-500 text-sm font-semibold mt-1">
             {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
@@ -1191,7 +1196,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 >
                   <option value="">All Themes / Topics</option>
                   {allThemes.map(t => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t.toUpperCase()}>{t}</option>
                   ))}
                 </select>
               </div>
