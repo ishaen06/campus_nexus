@@ -230,7 +230,7 @@ export default function Layout() {
               <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
                 <Logo size={44} showText={false} />
                 <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Campus Nexus
+                  Campus <span className="text-[#1e3a8a] dark:text-blue-400">Nexus</span>
                 </span>
               </Link>
             )}
