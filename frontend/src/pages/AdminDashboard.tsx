@@ -1567,20 +1567,23 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           setSelectedUser(null);
                           navigate(`/my-teams/${selectedUser.group!.id}`);
                         }}
-                        className="glass-panel p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-905/35 transition cursor-pointer flex justify-between items-center"
+                        className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 hover:border-indigo-100 dark:hover:border-indigo-900/40 transition cursor-pointer flex justify-between items-center group/tile"
                       >
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{selectedUser.group.name}</span>
+                            <span className="font-extrabold text-sm text-slate-900 dark:text-white group-hover/tile:text-indigo-600 dark:group-hover/tile:text-indigo-400 transition-colors">{selectedUser.group.name}</span>
                             <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900">
                               ID: {selectedUser.group.id}
                             </span>
                           </div>
-                          <div className="text-xs font-semibold text-slate-505 dark:text-slate-400 mt-1 truncate">
-                            Topic: {selectedUser.group.project_topic}
+                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">Topic:</span>
+                            <span className="text-slate-700 dark:text-slate-355 font-semibold">{selectedUser.group.project_topic}</span>
                           </div>
                         </div>
-                        <ChevronRight className="text-slate-400" size={16} />
+                        <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-800/80 flex items-center justify-center text-slate-400 group-hover/tile:text-indigo-600 dark:group-hover/tile:text-indigo-400 group-hover/tile:translate-x-0.5 transition-all">
+                          <ChevronRight size={16} />
+                        </div>
                       </div>
                     ) : (
                       <p className="text-xs text-slate-405 font-medium italic">This student is not currently assigned to any team.</p>
