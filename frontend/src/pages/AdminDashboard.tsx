@@ -1141,24 +1141,34 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                               {(mentor.assigned_teams || []).length === 0 ? (
                                 <p className="text-xs text-slate-400 font-medium italic">This mentor has no active team assignments.</p>
                               ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-4">
                                   {(mentor.assigned_teams || []).map((team) => (
                                     <div key={team.id} className="bg-white dark:bg-slate-950/20 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 flex flex-col justify-between gap-4">
-                                      <div className="space-y-2">
+                                      <div className="space-y-3">
                                         <div className="flex items-center justify-between gap-2 flex-wrap">
                                           <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{team.name}</span>
-                                          <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-950">
+                                          <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-950">
                                             ID: {team.id}
                                           </span>
                                         </div>
                                         <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
                                           Topic: {team.project_topic}
                                         </div>
-                                        <div className="text-[10px] text-slate-405 font-bold uppercase tracking-wider">
-                                          Students: {(team.students || []).join(', ') || 'None'}
+                                        <div className="space-y-1.5 pt-1">
+                                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-wider block">Students</span>
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {(team.students || []).length === 0 ? (
+                                              <span className="text-[10px] text-slate-400 italic">No students assigned</span>
+                                            ) : (
+                                              (team.students || []).map((student, idx) => (
+                                                <span key={idx} className="bg-slate-55 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[10px] font-extrabold text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg">
+                                                  {student}
+                                                </span>
+                                              ))
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
-
                                       {/* Controls next to team card */}
                                       <div className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-850 pt-3">
                                         {/* Reassign select */}
