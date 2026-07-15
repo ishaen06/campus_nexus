@@ -283,9 +283,6 @@ export default function Discovery() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="glass-panel p-10 text-center w-full shadow-2xl flex flex-col items-center justify-center"
               >
-                <div className="w-20 h-20 bg-gray-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                  <span className="text-4xl">🏜️</span>
-                </div>
                 <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No profiles found</h3>
                 <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">No profiles match your cycle or branch filters. Try clearing filters or checking back later.</p>
                 <button 
