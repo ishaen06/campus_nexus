@@ -145,6 +145,25 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [searchResults, setSearchResults] = useState<{ users: MatchedUser[]; teams: MatchedTeam[] }>({ users: [], teams: [] });
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<MatchedUser | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('recent_searches');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addRecentSearch = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setRecentSearches(prev => {
+      const filtered = prev.filter(q => q.toLowerCase() !== trimmed.toLowerCase());
+      const updated = [trimmed, ...filtered].slice(0, 7);
+      localStorage.setItem('recent_searches', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Mentor management states
   const [mentors, setMentors] = useState<MentorData[]>([]);
@@ -232,6 +251,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       try {
         const res = await api.get(`/admin/search?q=${encodeURIComponent(q)}`);
         setSearchResults(res.data || { users: [], teams: [] });
+        addRecentSearch(q);
       } catch (err) {
         console.error("Failed to perform global search", err);
       } finally {
@@ -930,9 +950,54 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-16 text-slate-400 font-semibold glass-panel p-10 max-w-sm mx-auto">
-                    <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    Enter keywords above to query the database.
+                  <div className="space-y-6 max-w-md mx-auto">
+                    {recentSearches.length > 0 && (
+                      <div className="glass-panel p-6 border border-slate-200 dark:border-slate-800">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xs font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <Clock size={14} className="text-indigo-500" /> Recent Searches
+                          </h3>
+                          <button
+                            onClick={() => {
+                              setRecentSearches([]);
+                              localStorage.removeItem('recent_searches');
+                            }}
+                            className="text-[10px] font-black text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 uppercase tracking-wider cursor-pointer transition-colors"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {recentSearches.map((term, index) => (
+                            <div
+                              key={index}
+                              className="group flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/40 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-800/80 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              onClick={() => setSearchQuery(term)}
+                            >
+                              <span>{term}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRecentSearches(prev => {
+                                    const updated = prev.filter((_, i) => i !== index);
+                                    localStorage.setItem('recent_searches', JSON.stringify(updated));
+                                    return updated;
+                                  });
+                                }}
+                                className="text-slate-400 hover:text-rose-500 transition-colors rounded p-0.5"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-center py-16 text-slate-400 font-semibold glass-panel p-10">
+                      <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                      Enter keywords above to query the database.
+                    </div>
                   </div>
                 )}
               </>
