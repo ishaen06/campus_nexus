@@ -316,8 +316,12 @@ export default function Layout() {
               <img
                 src="/rvce_logo_header.png"
                 alt="RV College of Engineering"
-                className="w-full object-contain dark:invert dark:brightness-200"
-                style={{ mixBlendMode: theme === 'dark' ? 'screen' : 'multiply', maxHeight: '90px' }}
+                className="w-full object-contain"
+                style={{
+                  filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none',
+                  mixBlendMode: theme === 'dark' ? 'screen' : 'multiply',
+                  maxHeight: '90px'
+                }}
               />
             </div>
           )}
@@ -480,8 +484,11 @@ export default function Layout() {
               <img
                 src="/rvce_logo_header.png"
                 alt="RV College of Engineering Logo"
-                className="w-10 h-10 object-contain invert brightness-200"
-                style={{ mixBlendMode: 'screen' }}
+                className="w-10 h-10 object-contain"
+                style={{
+                  filter: 'brightness(0) invert(1)',
+                  mixBlendMode: 'screen'
+                }}
               />
             </div>
             
