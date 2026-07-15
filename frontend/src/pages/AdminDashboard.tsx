@@ -575,15 +575,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </div>
             ) : (
               <>
-                {/* 1. Gradient Stat Cards */}
+                {/* 1. Plain Indigo Blue Stat Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
                   >
-                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
                     <Users size={24} className="mb-3 opacity-90" />
                     <div className="text-3xl font-black">{analytics.counts.total_students}</div>
                     <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Students</div>
@@ -591,11 +588,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
                   >
-                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
                     <User size={24} className="mb-3 opacity-90" />
                     <div className="text-3xl font-black">{analytics.counts.total_mentors}</div>
                     <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Mentors</div>
@@ -603,11 +597,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
                   >
-                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
                     <Layers size={24} className="mb-3 opacity-90" />
                     <div className="text-3xl font-black">
                       {analytics.counts.approved_teams}
@@ -618,11 +609,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
                   >
-                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-                    <div className="absolute bottom-0 left-0 w-14 h-14 rounded-full bg-white/10 translate-y-5 -translate-x-5" />
                     <Clock size={24} className="mb-3 opacity-90" />
                     <div className="text-3xl font-black">{analytics.counts.pending_teams}</div>
                     <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Pending Teams</div>
@@ -630,10 +618,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}
+                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
                   >
-                    <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
                     <MessageSquare size={24} className="mb-3 opacity-90" />
                     <div className="text-3xl font-black">{analytics.counts.total_notifications}</div>
                     <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Notifications Sent</div>
