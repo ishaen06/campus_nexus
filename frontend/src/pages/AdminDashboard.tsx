@@ -1438,7 +1438,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-blue-50 dark:bg-blue-955/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
+                    <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
                       <Users size={18} />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approved Teams Export</h3>
@@ -1447,8 +1447,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
                   <button onClick={() => handleTriggerPreview('approved_teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('approved_teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('approved_teams', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('approved_teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('approved_teams', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1456,7 +1456,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
                       <CheckCircle2 size={18} />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Marks & Observations</h3>
@@ -1465,8 +1465,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
                   <button onClick={() => handleTriggerPreview('student_marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('student_marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('student_marks', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('student_marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('student_marks', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1474,7 +1474,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-purple-50 dark:bg-purple-955/20 text-purple-650 dark:text-purple-400 border border-purple-100 dark:border-purple-900 rounded-xl">
+                    <div className="p-2.5 bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border border-purple-100 dark:border-purple-900 rounded-xl">
                       <User size={18} />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Mentor Workload</h3>
@@ -1483,8 +1483,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
                   <button onClick={() => handleTriggerPreview('mentors', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('mentors', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('mentors', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('mentors', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('mentors', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1492,7 +1492,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-indigo-50 dark:bg-indigo-955/20 text-indigo-655 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl">
+                    <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-655 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl">
                       <Layers size={18} />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Team Roster Mapping</h3>
@@ -1501,8 +1501,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
                   <button onClick={() => handleTriggerPreview('teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('teams', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('teams', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1510,7 +1510,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-50 dark:bg-amber-955/20 text-amber-655 dark:text-amber-400 border border-amber-100 dark:border-amber-900 rounded-xl">
+                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 text-amber-655 dark:text-amber-400 border border-amber-100 dark:border-amber-900 rounded-xl">
                       <Activity size={18} />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Evaluation Marks Summary</h3>
@@ -1519,8 +1519,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
                   <button onClick={() => handleTriggerPreview('marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('marks', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('marks', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
 
@@ -1528,7 +1528,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
                       <GitMerge size={18} />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Project Allocation</h3>
@@ -1537,8 +1537,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
                   <button onClick={() => handleTriggerPreview('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                  <button onClick={() => handleTriggerPreview('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
                 </div>
               </div>
             </div>
@@ -1610,8 +1610,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 <div>
                   <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border mb-2 inline-block ${
                     selectedUser.is_mentor 
-                      ? 'bg-purple-50 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400 border-purple-100 dark:border-purple-900' 
-                      : 'bg-blue-50 dark:bg-blue-955/20 text-[#1e3a8a] dark:text-blue-400 border-blue-100 dark:border-blue-900'
+                      ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-100 dark:border-purple-900' 
+                      : 'bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border-blue-100 dark:border-blue-900'
                   }`}>
                     {selectedUser.is_mentor ? 'Mentor Profile' : 'Student Profile'}
                   </span>
@@ -1780,8 +1780,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <span>Target Format:</span>
                   <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider ${
                     previewFormat === 'csv' ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350" :
-                    previewFormat === 'excel' ? "bg-emerald-50 dark:bg-emerald-955/20 text-emerald-700 dark:text-emerald-400" :
-                    "bg-rose-50 dark:bg-rose-955/20 text-rose-700 dark:text-rose-400"
+                    previewFormat === 'excel' ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400" :
+                    "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400"
                   }`}>
                     {previewFormat}
                   </span>
