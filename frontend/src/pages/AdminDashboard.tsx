@@ -1551,10 +1551,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         {rejectingTeamId !== null && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-955/40 backdrop-blur-sm">
             <motion.div
+              role="dialog"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md glass-panel p-6 shadow-2xl relative"
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-2xl relative"
             >
               <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider mb-2">Reject Project Theme</h3>
               <p className="text-xs text-slate-400 font-semibold mb-4 leading-relaxed">Provide a reason explaining why the current project topic or theme is being rejected. This notification will be visible to the team members.</p>
@@ -1591,10 +1592,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         {selectedUser && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-955/40 backdrop-blur-sm">
             <motion.div
+              role="dialog"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-lg glass-panel p-7 shadow-2xl relative"
+              className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-7 rounded-3xl shadow-2xl relative"
             >
               <button
                 onClick={() => setSelectedUser(null)}
@@ -1717,10 +1719,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         {previewData && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
             <motion.div
+              role="dialog"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-5xl glass-panel p-6 shadow-2xl relative flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-800"
+              className="w-full max-w-5xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl relative flex flex-col max-h-[85vh]"
             >
               {/* Close Button */}
               <button
