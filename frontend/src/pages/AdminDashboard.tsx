@@ -437,72 +437,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4 md:px-8 space-y-8">
-      {/* Header section with context-aware Title, Subtitle and quick download controls */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            {activeTab !== 'reports' && <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />}
-            {activeTab === 'moderation' && "Moderation Logs"}
-            {activeTab === 'analytics' && "Analytics Dashboard"}
-            {activeTab === 'search' && "Global Database Search"}
-            {activeTab === 'mentors' && "Mentor Workloads"}
-            {activeTab === 'teams' && "Teams & Project Roster"}
-          </h1>
-          <p className="text-slate-500 text-sm font-semibold mt-1">
-            {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
-            {activeTab === 'analytics' && "Real-time statistics, registrations, approvals, and workloads."}
-            {activeTab === 'search' && "Query users, mentors, and student groups across the database."}
-            {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
-            {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
-          </p>
-        </div>
-        
-        {activeTab === 'reports' && (
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={async () => {
-                try {
-                  const res = await api.get('/admin/download-approved-teams', { responseType: 'blob' });
-                  const url = window.URL.createObjectURL(new Blob([res.data]));
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.setAttribute('download', 'approved_teams.csv');
-                  document.body.appendChild(link);
-                  link.click();
-                  link.parentNode?.removeChild(link);
-                } catch (err) {
-                  console.error("Failed to download teams CSV", err);
-                  alert("Failed to download spreadsheet.");
-                }
-              }}
-              className="bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
-            >
-              Download Teams
-            </button>
-            
-            <button
-              onClick={async () => {
-                try {
-                  const res = await api.get('/admin/download-student-marks', { responseType: 'blob' });
-                  const url = window.URL.createObjectURL(new Blob([res.data]));
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.setAttribute('download', 'student_phase_marks.csv');
-                  document.body.appendChild(link);
-                  link.click();
-                  link.parentNode?.removeChild(link);
-                } catch (err) {
-                  console.error("Failed to download student marks CSV", err);
-                  alert("Failed to download marks spreadsheet.");
-                }
-              }}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-emerald-600/10 flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
-            >
-              Download Marks
-            </button>
+      {/* Header section with context-aware Title, Subtitle */}
+      {activeTab !== 'reports' && (
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+              <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
+              {activeTab === 'moderation' && "Moderation Logs"}
+              {activeTab === 'analytics' && "Analytics Dashboard"}
+              {activeTab === 'search' && "Global Database Search"}
+              {activeTab === 'mentors' && "Mentor Workloads"}
+              {activeTab === 'teams' && "Teams & Project Roster"}
+            </h1>
+            <p className="text-slate-500 text-sm font-semibold mt-1">
+              {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
+              {activeTab === 'analytics' && "Real-time statistics, registrations, approvals, and workloads."}
+              {activeTab === 'search' && "Query users, mentors, and student groups across the database."}
+              {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
+              {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
 
 
@@ -1462,6 +1418,76 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <button onClick={() => handleDownloadReport('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
                   <button onClick={() => handleDownloadReport('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
                   <button onClick={() => handleDownloadReport('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
+              {/* Card 6: Approved Teams Detailed CSV */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-50 dark:bg-blue-955/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
+                      <Users size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approved Teams Export</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Full master spreadsheet of approved teams, project topics, mentors, and all individual student member details.</p>
+                </div>
+                <div className="border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await api.get('/admin/download-approved-teams', { responseType: 'blob' });
+                        const url = window.URL.createObjectURL(new Blob([res.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', 'approved_teams.csv');
+                        document.body.appendChild(link);
+                        link.click();
+                        link.parentNode?.removeChild(link);
+                      } catch (err) {
+                        console.error("Failed to download teams CSV", err);
+                        alert("Failed to download spreadsheet.");
+                      }
+                    }}
+                    className="w-full bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-2.5 px-4 rounded-lg transition text-[10px] uppercase tracking-wider cursor-pointer text-center block"
+                  >
+                    Download Teams CSV
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 7: Student Phase Marks CSV */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Marks & Observations</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Complete breakdown of Phase 1, 2, and 3 marks, total scores, sections, year of study, and specific mentor observations.</p>
+                </div>
+                <div className="border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await api.get('/admin/download-student-marks', { responseType: 'blob' });
+                        const url = window.URL.createObjectURL(new Blob([res.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', 'student_phase_marks.csv');
+                        document.body.appendChild(link);
+                        link.click();
+                        link.parentNode?.removeChild(link);
+                      } catch (err) {
+                        console.error("Failed to download student marks CSV", err);
+                        alert("Failed to download marks spreadsheet.");
+                      }
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-lg transition text-[10px] uppercase tracking-wider cursor-pointer text-center block"
+                  >
+                    Download Marks CSV
+                  </button>
                 </div>
               </div>
 
