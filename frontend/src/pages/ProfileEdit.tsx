@@ -350,7 +350,7 @@ export default function ProfileEdit() {
               className="glass-panel p-8"
             >
               <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Edit Profile</h2>
+                <h2 className="text-2xl font-black text-white tracking-tight">Edit Profile</h2>
               </div>
               
               <form onSubmit={handleSave} className="space-y-8">
