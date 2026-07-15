@@ -476,8 +476,13 @@ export default function Layout() {
             animate={{ opacity: 1, scale: 1 }}
             className="max-w-md w-full bg-slate-900 border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6"
           >
-            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Logo size={48} />
+            <div className="w-16 h-16 flex items-center justify-center">
+              <img
+                src="/rvce_logo_header.png"
+                alt="RV College of Engineering Logo"
+                className="w-16 h-16 object-contain invert brightness-200"
+                style={{ mixBlendMode: 'screen' }}
+              />
             </div>
             
             <div className="text-center space-y-2">
