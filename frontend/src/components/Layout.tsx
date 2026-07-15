@@ -263,6 +263,16 @@ export default function Layout() {
         </div>
 
         <div className="p-4 border-t border-white/10 space-y-3">
+          {/* RVCE Logo */}
+          <div className="flex items-center justify-center px-2 pb-1">
+            <img
+              src="/rvce_logo_header.png"
+              alt="RV College of Engineering"
+              className="h-8 object-contain dark:invert dark:brightness-90"
+              style={{ mixBlendMode: 'multiply' }}
+            />
+          </div>
+
           {/* Profile Card */}
           <div 
             className="relative"
