@@ -776,6 +776,129 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
             df = pd.DataFrame(columns=["Event ID", "Event Title", "Description", "Date", "Time", "Venue", "Total RSVPs"])
         return df, "Campus Events & Registration Report", (20, 50, 87, 25, 20, 55, 20)
 
+    elif dataset == "approved_teams":
+        approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
+        data = []
+        for group in approved_groups:
+            member_records = list(db.group_members.find({"group_id": group["id"]}))
+            member_ids = [m["user_id"] for m in member_records]
+            
+            mentor_email = group.get("mentor_email")
+            mentor_id = None
+            if mentor_email:
+                mentor_user = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
+                mentor_id = mentor_user["id"] if mentor_user else None
+            
+            student_ids = [uid for uid in member_records if uid["user_id"] != mentor_id]
+            # Wait, let's write it cleaner to match the existing schema
+            student_ids = [uid for uid in member_ids if uid != mentor_id]
+            students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+            
+            row_dict = {
+                "Team ID": str(group["id"]),
+                "Team Name": group["name"],
+                "Project Topic": group.get("project_topic") or "N/A",
+                "Mentor Name": group.get("mentor_name") or "N/A",
+                "Mentor Email": group.get("mentor_email") or "N/A",
+                "Approved At": (group.get("approved_at") or "N/A")[:10]
+            }
+            
+            for i in range(1, 6):
+                if (i - 1) < len(students):
+                    m = students[i - 1]
+                    row_dict[f"Member {i} Name"] = m.get("full_name") or ""
+                    row_dict[f"Member {i} USN"] = m.get("usn") or "N/A"
+                else:
+                    row_dict[f"Member {i} Name"] = ""
+                    row_dict[f"Member {i} USN"] = ""
+            
+            data.append(row_dict)
+            
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=[
+                "Team ID", "Team Name", "Project Topic", "Mentor Name", "Mentor Email", "Approved At",
+                "Member 1 Name", "Member 1 USN", "Member 2 Name", "Member 2 USN",
+                "Member 3 Name", "Member 3 USN", "Member 4 Name", "Member 4 USN",
+                "Member 5 Name", "Member 5 USN"
+            ])
+        return df, "Approved Project Teams Master Report", (15, 25, 30, 20, 25, 20, 15, 13, 15, 13, 15, 13, 15, 13, 15, 13)
+
+    elif dataset == "student_marks":
+        students = list(db.users.find({
+            "is_mentor": {"$ne": True}, 
+            "is_admin": {"$ne": True},
+            "email": {"$ne": "ishaen.vihaan@gmail.com"}
+        }))
+        data = []
+        for s in students:
+            student_id = s.get("id")
+            usn = s.get("usn") or "N/A"
+            name = s.get("full_name") or "N/A"
+            branch = s.get("branch") or "N/A"
+            section = s.get("section") or "N/A"
+            year = s.get("year_of_study") or "N/A"
+            
+            group_id = "N/A"
+            group_name = "N/A"
+            mentor_name = "N/A"
+            group_doc = None
+            
+            membership = db.group_members.find_one({"user_id": student_id})
+            if membership:
+                group_doc = db.group_chats.find_one({"id": membership["group_id"]})
+                if group_doc:
+                    group_id = str(group_doc.get("id"))
+                    group_name = group_doc.get("name") or "N/A"
+                    mentor_name = group_doc.get("mentor_name") or "N/A"
+                        
+            p1_marks = 0
+            p1_obs = ""
+            p2_marks = 0
+            p2_obs = ""
+            p3_marks = 0
+            p3_obs = ""
+            
+            if group_doc:
+                eval_doc = db.evaluations.find_one({"group_id": group_doc.get("id"), "student_id": student_id})
+                if eval_doc:
+                    p1_det = eval_doc.get("phase1_detail_marks") or {}
+                    p1_marks = sum(int(float(v or 0)) for v in p1_det.values())
+                    p1_obs = eval_doc.get("phase1_observations") or ""
+                    
+                    p2_det = eval_doc.get("phase2_detail_marks") or {}
+                    p2_marks = sum(int(float(v or 0)) for v in p2_det.values())
+                    p2_obs = eval_doc.get("phase2_observations") or ""
+                    
+                    p3_det = eval_doc.get("phase3_detail_marks") or {}
+                    p3_marks = sum(int(float(v or 0)) for v in p3_det.values())
+                    p3_obs = eval_doc.get("phase3_observations") or ""
+                    
+            total_marks = p1_marks + p2_marks + p3_marks
+            data.append({
+                "USN": usn,
+                "Student Name": name,
+                "Branch": branch,
+                "Sec": section,
+                "Year": year,
+                "Team Name": group_name,
+                "Mentor": mentor_name,
+                "P1 Marks": p1_marks,
+                "P1 Observations": p1_obs[:30] + "..." if len(p1_obs) > 30 else p1_obs,
+                "P2 Marks": p2_marks,
+                "P2 Observations": p2_obs[:30] + "..." if len(p2_obs) > 30 else p2_obs,
+                "P3 Marks": p3_marks,
+                "P3 Observations": p3_obs[:30] + "..." if len(p3_obs) > 30 else p3_obs,
+                "Total Marks": total_marks
+            })
+        df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(columns=[
+                "USN", "Student Name", "Branch", "Sec", "Year", "Team Name", "Mentor",
+                "P1 Marks", "P1 Observations", "P2 Marks", "P2 Observations", "P3 Marks", "P3 Observations", "Total Marks"
+            ])
+        return df, "Student Performance Marks & Detailed Observations Report", (20, 30, 20, 10, 10, 25, 20, 15, 30, 15, 30, 15, 30, 15)
+
     else:
         raise HTTPException(status_code=400, detail="Invalid dataset specified")
 
