@@ -15,37 +15,67 @@ export default function Logo({
       xmlns="http://www.w3.org/2000/svg" 
       viewBox="0 0 200 200" 
       style={{ width: size, height: size }}
-      className="flex-shrink-0 object-contain text-[#1e3a5f] dark:text-indigo-400"
+      className="flex-shrink-0 object-contain"
     >
       {/* Square border lines */}
-      <rect x="30" y="30" width="140" height="140" fill="none" stroke="currentColor" strokeWidth="8" strokeLinejoin="round"/>
+      <rect 
+        x="25" 
+        y="25" 
+        width="150" 
+        height="150" 
+        fill="none" 
+        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
+        strokeWidth="6" 
+        strokeLinejoin="round"
+      />
 
-      {/* Diagonal lines from corners to circle edge */}
-      <line x1="30" y1="30" x2="72" y2="72" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
-      <line x1="170" y1="30" x2="128" y2="72" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
-      <line x1="30" y1="170" x2="72" y2="128" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
-      <line x1="170" y1="170" x2="128" y2="128" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
+      {/* Diagonal lines from corners to center */}
+      <line 
+        x1="25" 
+        y1="25" 
+        x2="175" 
+        y2="175" 
+        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
+        strokeWidth="6" 
+        strokeLinecap="round"
+      />
+      <line 
+        x1="175" 
+        y1="25" 
+        x2="25" 
+        y2="175" 
+        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
+        strokeWidth="6" 
+        strokeLinecap="round"
+      />
 
-      {/* Circle (smaller) --> made smaller as requested */}
-      <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="8"/>
+      {/* Center Circle Mask Layer */}
+      <circle 
+        cx="100" 
+        cy="100" 
+        r="54" 
+        className="fill-white dark:fill-slate-950" 
+      /> 
+
+      {/* Inner filled circle */}
+      <circle 
+        cx="100" 
+        cy="100" 
+        r="50" 
+        className="fill-[#1e295d] dark:fill-indigo-500" 
+      /> 
+
+      {/* White Graduation Cap in the center */}
+      <polygon points="100,75 136,90 100,105 64,90" fill="#ffffff" />
+      <path d="M 74,96 L 74,110 C 74,118 100,123 100,123 C 100,123 126,118 126,110 L 126,96" fill="#ffffff" />
+      <path d="M 129,91.5 L 129,112 C 129,114 126.5,115.5 126.5,118" fill="none" stroke="#ffffff" strokeWidth="2.5" stroke-linecap="round" />
+      <polygon points="124.5,118 128.5,118 130,127 123,127" fill="#ffffff" />
 
       {/* Corner nodes */}
-      <circle cx="30" cy="30" r="12" fill="currentColor"/>
-      <circle cx="170" cy="30" r="12" fill="currentColor"/>
-      <circle cx="30" cy="170" r="12" fill="currentColor"/>
-      <circle cx="170" cy="170" r="12" fill="currentColor"/>
-
-      {/* Graduation cap body */}
-      <path d="M 82 100 L 100 115 L 118 100 L 100 95 Z" fill="currentColor"/>
-
-      {/* Cap top board */}
-      <polygon points="100,75 128,87 100,99 72,87" fill="currentColor"/>
-
-      {/* Cap tassel string */}
-      <path d="M 120 84.5 L 120 102 C 120 105, 123 105, 123 108" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-
-      {/* Tassel end */}
-      <polygon points="121,108 125,108 126,115 120,115" fill="currentColor"/>
+      <circle cx="25" cy="25" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      <circle cx="175" cy="25" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      <circle cx="25" cy="175" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      <circle cx="175" cy="175" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
     </svg>
   );
 
