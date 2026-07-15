@@ -260,7 +260,7 @@ export default function Layout() {
           )}
         </div>
 
-        <div className="flex-1 px-4 space-y-2 mt-4">
+        <div className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
           {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
             const isActive = item.path.startsWith('/admin')
               ? location.pathname === item.path
@@ -309,7 +309,7 @@ export default function Layout() {
           })}
         </div>
 
-        <div className="p-4 border-t border-white/10 space-y-3">
+        <div className="p-4 border-t border-white/10 space-y-3 flex-shrink-0">
           {/* RVCE Logo */}
           {!isCollapsed && (
             <div className="flex items-center justify-center w-full pb-1">
