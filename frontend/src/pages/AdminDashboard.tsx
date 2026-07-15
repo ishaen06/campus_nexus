@@ -1051,11 +1051,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         {/* Header Row */}
                         <div 
                           onClick={() => setExpandedMentorId(isExpanded ? null : mentor.id)}
-                          className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-100/30 dark:hover:bg-slate-900/10 transition-all duration-200"
+                          className="p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-100/30 dark:hover:bg-slate-900/10 transition-all duration-200"
                         >
-                          <div className="space-y-1">
-                            <h3 className="font-extrabold text-base text-slate-800 dark:text-slate-100">{mentor.full_name}</h3>
-                            <div className="flex items-center gap-3 text-xs text-slate-405 font-semibold flex-wrap">
+                          <div className="space-y-0.5">
+                            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100">{mentor.full_name}</h3>
+                            <div className="flex items-center gap-2.5 text-[11px] text-slate-405 font-semibold flex-wrap">
                               <span>Post: {mentor.post}</span>
                               <span>•</span>
                               <span>Dept: {mentor.department}</span>
@@ -1064,18 +1064,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-6 flex-shrink-0">
+                          <div className="flex items-center gap-5 flex-shrink-0">
                             {/* Workload Progress */}
-                            <div className="text-right space-y-1">
-                              <span className="block text-[10px] font-black text-slate-405 uppercase tracking-wider">Workload Capacity</span>
+                            <div className="text-right space-y-0.5">
+                              <span className="block text-[9px] font-black text-slate-405 uppercase tracking-wider">Workload Capacity</span>
                               <div className="flex items-center gap-2">
-                                <div className="w-24 bg-slate-100 dark:bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-200/40 dark:border-slate-800/40">
+                                <div className="w-24 bg-slate-100 dark:bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-200/40 dark:border-slate-800/40">
                                   <div style={{ width: `${workloadPercent}%` }} className="h-full bg-indigo-600 rounded-full"></div>
                                 </div>
-                                <span className="text-xs font-black text-slate-700 dark:text-slate-350">{mentor.workload} / 25 teams</span>
+                                <span className="text-[11px] font-black text-slate-700 dark:text-slate-350">{mentor.workload} / 25 teams</span>
                               </div>
                             </div>
-                            <ChevronRight className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} size={18} />
+                            <ChevronRight className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} size={16} />
                           </div>
                         </div>
 
