@@ -11,35 +11,12 @@ export default function Logo({
 }: LogoProps) {
   
   const graphic = (
-    <svg 
-      viewBox="0 0 100 100" 
-      width={size} 
-      height={size} 
-      className="flex-shrink-0"
-    >
-      {/* Connection lines */}
-      <line x1="15" y1="15" x2="85" y2="15" stroke="#1e3a8a" strokeWidth="2.5" strokeOpacity={0.25} />
-      <line x1="15" y1="85" x2="85" y2="85" stroke="#1e3a8a" strokeWidth="2.5" strokeOpacity={0.25} />
-      <line x1="15" y1="15" x2="15" y2="85" stroke="#1e3a8a" strokeWidth="2.5" strokeOpacity={0.25} />
-      <line x1="85" y1="15" x2="85" y2="85" stroke="#1e3a8a" strokeWidth="2.5" strokeOpacity={0.25} />
-      <line x1="15" y1="15" x2="85" y2="85" stroke="#1e3a8a" strokeWidth="2" strokeOpacity={0.25} />
-      <line x1="15" y1="85" x2="85" y2="15" stroke="#1e3a8a" strokeWidth="2" strokeOpacity={0.25} />
-
-      {/* Corner nodes */}
-      <circle cx="15" cy="15" r="9" fill="#1e3a8a" fillOpacity={0.7} />
-      <circle cx="85" cy="15" r="9" fill="#1e3a8a" fillOpacity={0.7} />
-      <circle cx="15" cy="85" r="9" fill="#1e3a8a" fillOpacity={0.7} />
-      <circle cx="85" cy="85" r="9" fill="#1e3a8a" fillOpacity={0.7} />
-
-      {/* Central circle badge */}
-      <circle cx="50" cy="50" r="23" fill="#1e3a8a" />
-
-      {/* Graduation Cap / Mortarboard */}
-      <polygon points="50,38 68,45 50,52 32,45" fill="white" />
-      <path d="M38,48.5 V54 C38,57.5 43,60 50,60 C57,60 62,57.5 62,54 V48.5 Q50,52 38,48.5 Z" fill="white" />
-      <path d="M50,45 L64,49 V56" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="64" cy="57.5" r="1.5" fill="white" />
-    </svg>
+    <img 
+      src="/college_logo.png" 
+      alt="RV College Logo"
+      style={{ width: size, height: size }}
+      className="flex-shrink-0 object-contain"
+    />
   );
 
   if (showText) {
