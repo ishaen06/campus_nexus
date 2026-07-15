@@ -596,53 +596,63 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             ) : (
               <>
                 {/* 1. Plain Indigo Blue Stat Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
+                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
                   >
-                    <Users size={24} className="mb-3 opacity-90" />
-                    <div className="text-3xl font-black">{analytics.counts.total_students}</div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Students</div>
+                    <Users size={18} className="opacity-90 mb-2" />
+                    <div>
+                      <div className="text-2xl font-black">{analytics.counts.total_students}</div>
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Students</div>
+                    </div>
                   </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
+                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
                   >
-                    <User size={24} className="mb-3 opacity-90" />
-                    <div className="text-3xl font-black">{analytics.counts.total_mentors}</div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Mentors</div>
+                    <User size={18} className="opacity-90 mb-2" />
+                    <div>
+                      <div className="text-2xl font-black">{analytics.counts.total_mentors}</div>
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Mentors</div>
+                    </div>
                   </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
+                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
                   >
-                    <Layers size={24} className="mb-3 opacity-90" />
-                    <div className="text-3xl font-black">
-                      {analytics.counts.approved_teams}
-                      <span className="text-base font-semibold opacity-70 ml-1">/ {analytics.counts.total_teams}</span>
+                    <Layers size={18} className="opacity-90 mb-2" />
+                    <div>
+                      <div className="text-2xl font-black">
+                        {analytics.counts.approved_teams}
+                        <span className="text-xs font-semibold opacity-70 ml-1">/ {analytics.counts.total_teams}</span>
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Approved / Total Teams</div>
                     </div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Approved / Total Teams</div>
                   </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
+                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
                   >
-                    <Clock size={24} className="mb-3 opacity-90" />
-                    <div className="text-3xl font-black">{analytics.counts.pending_teams}</div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Pending Teams</div>
+                    <Clock size={18} className="opacity-90 mb-2" />
+                    <div>
+                      <div className="text-2xl font-black">{analytics.counts.pending_teams}</div>
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Pending Teams</div>
+                    </div>
                   </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                    className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-[#1e3a8a]"
+                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
                   >
-                    <MessageSquare size={24} className="mb-3 opacity-90" />
-                    <div className="text-3xl font-black">{analytics.counts.total_notifications}</div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Notifications Sent</div>
+                    <MessageSquare size={18} className="opacity-90 mb-2" />
+                    <div>
+                      <div className="text-2xl font-black">{analytics.counts.total_notifications}</div>
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Notifications Sent</div>
+                    </div>
                   </motion.div>
                 </div>
 
