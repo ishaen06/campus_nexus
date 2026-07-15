@@ -12,8 +12,8 @@ export default function Logo({
   
   const graphic = (
     <img 
-      src="/college_logo.png" 
-      alt="RV College Logo"
+      src="/logo_nexus.svg" 
+      alt="Campus Nexus Logo"
       style={{ width: size, height: size }}
       className="flex-shrink-0 object-contain"
     />
