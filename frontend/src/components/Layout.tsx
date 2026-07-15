@@ -309,7 +309,7 @@ export default function Layout() {
           })}
         </div>
 
-        <div className="p-4 border-t border-white/10 space-y-3 flex-shrink-0">
+        <div className="p-4 border-t border-slate-200/50 dark:border-transparent space-y-3 flex-shrink-0">
           {/* RVCE Logo */}
           {!isCollapsed && (
             <div className="flex items-center justify-center w-full pb-1">
@@ -319,7 +319,6 @@ export default function Layout() {
                 className="w-full object-contain"
                 style={{
                   filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none',
-                  mixBlendMode: theme === 'dark' ? 'screen' : 'multiply',
                   maxHeight: '90px'
                 }}
               />
@@ -486,8 +485,7 @@ export default function Layout() {
                 alt="RV College of Engineering Logo"
                 className="w-10 h-10 object-contain"
                 style={{
-                  filter: 'brightness(0) invert(1)',
-                  mixBlendMode: 'screen'
+                  filter: 'brightness(0) invert(1)'
                 }}
               />
             </div>
