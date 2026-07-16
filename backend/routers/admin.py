@@ -784,39 +784,80 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
                 if group_doc:
                     group_id = str(group_doc.get("id"))
                     group_name = group_doc.get("name") or "N/A"
-                        
-            p1_marks = 0
-            p2_marks = 0
-            p3_marks = 0
-            
+
+            # Phase 1 criteria
+            p1_problem_def = 0
+            p1_objectives = 0
+            p1_methodology = 0
+            # Phase 2 criteria
+            p2_project_exec = 0
+            p2_tools_tech = 0
+            p2_partial_results = 0
+            # Phase 3 criteria
+            p3_prototype_demo = 0
+            p3_results_disc = 0
+            p3_report_poster = 0
+            p3_outcome_work = 0
+
             if group_doc:
                 eval_doc = db.evaluations.find_one({"group_id": group_doc.get("id"), "student_id": student_id})
                 if eval_doc:
                     p1_det = eval_doc.get("phase1_detail_marks") or {}
-                    p1_marks = sum(int(float(v or 0)) for v in p1_det.values())
-                    
+                    p1_problem_def   = int(float(p1_det.get("problem_definition", 0) or 0))
+                    p1_objectives    = int(float(p1_det.get("objectives", 0) or 0))
+                    p1_methodology   = int(float(p1_det.get("methodology", 0) or 0))
+
                     p2_det = eval_doc.get("phase2_detail_marks") or {}
-                    p2_marks = sum(int(float(v or 0)) for v in p2_det.values())
-                    
+                    p2_project_exec  = int(float(p2_det.get("project_execution", 0) or 0))
+                    p2_tools_tech    = int(float(p2_det.get("tools_techniques", 0) or 0))
+                    p2_partial_results = int(float(p2_det.get("partial_results", 0) or 0))
+
                     p3_det = eval_doc.get("phase3_detail_marks") or {}
-                    p3_marks = sum(int(float(v or 0)) for v in p3_det.values())
-                    
-            total_marks = p1_marks + p2_marks + p3_marks
+                    p3_prototype_demo = int(float(p3_det.get("prototype_demonstration", 0) or 0))
+                    p3_results_disc   = int(float(p3_det.get("results_discussions", 0) or 0))
+                    p3_report_poster  = int(float(p3_det.get("report_poster_ppt", 0) or 0))
+                    p3_outcome_work   = int(float(p3_det.get("outcome_work", 0) or 0))
+
+            p1_total = p1_problem_def + p1_objectives + p1_methodology
+            p2_total = p2_project_exec + p2_tools_tech + p2_partial_results
+            p3_total = p3_prototype_demo + p3_results_disc + p3_report_poster + p3_outcome_work
+            grand_total = p1_total + p2_total + p3_total
+
             data.append({
                 "USN": usn,
                 "Student Name": name,
                 "Branch": branch,
                 "Team ID": group_id,
                 "Team Name": group_name,
-                "Phase 1 Marks": p1_marks,
-                "Phase 2 Marks": p2_marks,
-                "Phase 3 Marks": p3_marks,
-                "Total Marks": total_marks
+                # Phase 1 breakdown
+                "P1 - Problem Definition": p1_problem_def,
+                "P1 - Objectives": p1_objectives,
+                "P1 - Methodology": p1_methodology,
+                "Phase 1 Total": p1_total,
+                # Phase 2 breakdown
+                "P2 - Project Execution": p2_project_exec,
+                "P2 - Tools & Techniques": p2_tools_tech,
+                "P2 - Partial Results": p2_partial_results,
+                "Phase 2 Total": p2_total,
+                # Phase 3 breakdown
+                "P3 - Prototype Demo": p3_prototype_demo,
+                "P3 - Results & Discussion": p3_results_disc,
+                "P3 - Report/Poster/PPT": p3_report_poster,
+                "P3 - Outcome/Work": p3_outcome_work,
+                "Phase 3 Total": p3_total,
+                # Grand total
+                "Total Marks": grand_total
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["USN", "Student Name", "Branch", "Team ID", "Team Name", "Phase 1 Marks", "Phase 2 Marks", "Phase 3 Marks", "Total Marks"])
-        return df, "Student Performance Marks Report", (25, 45, 20, 20, 52, 28, 28, 28, 31)
+            df = pd.DataFrame(columns=[
+                "USN", "Student Name", "Branch", "Team ID", "Team Name",
+                "P1 - Problem Definition", "P1 - Objectives", "P1 - Methodology", "Phase 1 Total",
+                "P2 - Project Execution", "P2 - Tools & Techniques", "P2 - Partial Results", "Phase 2 Total",
+                "P3 - Prototype Demo", "P3 - Results & Discussion", "P3 - Report/Poster/PPT", "P3 - Outcome/Work", "Phase 3 Total",
+                "Total Marks"
+            ])
+        return df, "Student Performance Marks Report", (25, 45, 20, 15, 45, 28, 22, 25, 22, 28, 28, 25, 22, 28, 30, 28, 22, 22, 22, 22)
 
     elif dataset == "projects":
         teams = list(db.group_chats.find())
