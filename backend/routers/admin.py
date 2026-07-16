@@ -27,10 +27,23 @@ def get_admin_user(current_user = Depends(get_current_user)):
 @router.post("/verify-reauth")
 def verify_reauth(payload: AdminReauthRequest, admin = Depends(get_admin_user)):
     from utils import load_env
+    from security import verify_password, get_password_hash
     load_env()
-    expected_password = os.getenv("ADMIN_PASSWORD", "admin123")
-    if payload.password != expected_password:
+
+    # Prefer hashed password (ADMIN_PASSWORD_HASH env var); fall back to plain-text ADMIN_PASSWORD
+    hashed = os.getenv("ADMIN_PASSWORD_HASH", "")
+    plain  = os.getenv("ADMIN_PASSWORD", "admin123")
+
+    if hashed:
+        # Secure bcrypt comparison
+        password_ok = verify_password(payload.password, hashed)
+    else:
+        # Legacy plain-text fallback (still functional, just less secure)
+        password_ok = (payload.password == plain)
+
+    if not password_ok:
         raise HTTPException(status_code=401, detail="Invalid admin security password")
+
     return {"status": "ok"}
 
 @router.get("/reports", response_model=List[dict])

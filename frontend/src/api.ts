@@ -37,8 +37,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // If we get a 401 Unauthorized and it's not the login endpoint, redirect to login
-    if (error.response?.status === 401 && !error.config.url.includes('/auth/login')) {
+    // If we get a 401 Unauthorized and it's not the login/reauth endpoint, redirect to login
+    if (
+      error.response?.status === 401 &&
+      !error.config.url.includes('/auth/login') &&
+      !error.config.url.includes('/admin/verify-reauth')
+    ) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }

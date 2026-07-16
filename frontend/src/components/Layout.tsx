@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -26,6 +26,10 @@ export default function Layout() {
   const [adminPassword, setAdminPassword] = useState('');
   const [lockError, setLockError] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const MAX_ATTEMPTS = 5;
+  const LOCK_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
@@ -135,18 +139,29 @@ export default function Layout() {
   useEffect(() => {
     if (!isAdmin) return;
 
-    // Set first verification time if not set
-    if (!localStorage.getItem('adminLastVerified')) {
-      localStorage.setItem('adminLastVerified', Date.now().toString());
-    }
-
-    const interval = setInterval(() => {
-      const lastVerified = Number(localStorage.getItem('adminLastVerified') || Date.now());
-      const elapsed = Date.now() - lastVerified;
-      if (elapsed > 15 * 60 * 1000) { // 15 minutes
+    // Lock immediately if no verified session exists
+    const lastVerified = localStorage.getItem('adminLastVerified');
+    if (!lastVerified) {
+      setIsLocked(true);
+    } else {
+      const elapsed = Date.now() - Number(lastVerified);
+      if (elapsed > LOCK_DURATION_MS) {
         setIsLocked(true);
       }
-    }, 5000); // Check status every 5 seconds
+    }
+
+    // Check every 5 seconds for 10-minute expiry
+    const interval = setInterval(() => {
+      const stored = localStorage.getItem('adminLastVerified');
+      if (!stored) {
+        setIsLocked(true);
+        return;
+      }
+      const elapsed = Date.now() - Number(stored);
+      if (elapsed > LOCK_DURATION_MS) {
+        setIsLocked(true);
+      }
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isAdmin]);
@@ -162,8 +177,24 @@ export default function Layout() {
       setIsLocked(false);
       setAdminPassword('');
       setLockError('');
+      setFailedAttempts(0);
+      setShowPassword(false);
     } catch (err: any) {
-      setLockError(err.response?.data?.detail || 'Invalid admin security password');
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      const remaining = MAX_ATTEMPTS - newAttempts;
+      if (newAttempts >= MAX_ATTEMPTS) {
+        // Force full logout after 5 failed attempts
+        setLockError('Too many failed attempts. Signing you out...');
+        setTimeout(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('adminLastVerified');
+          navigate('/login');
+        }, 1500);
+      } else {
+        setLockError(`Incorrect password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+      }
+      setAdminPassword('');
     } finally {
       setVerifying(false);
     }
@@ -466,67 +497,194 @@ export default function Layout() {
       {/* Main Content Area */}
       <main className={cn(
         "flex-1 relative min-h-screen transition-all duration-300",
-        isCollapsed ? "md:ml-20" : "md:ml-64"
+        isCollapsed ? "md:ml-20" : "md:ml-64",
+        isLocked && isAdmin ? "blur-sm pointer-events-none select-none" : ""
       )}>
         <Outlet />
       </main>
 
       {/* Admin lock overlay */}
       {isLocked && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-2xl p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(15,23,42,0.97) 0%, rgba(2,6,23,0.99) 100%)' }}>
+          {/* Animated background orbs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10 blur-3xl"
+              style={{ background: 'radial-gradient(circle, #3730a3 0%, transparent 70%)' }} />
+            <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full opacity-10 blur-3xl"
+              style={{ background: 'radial-gradient(circle, #1e3a8a 0%, transparent 70%)' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5 blur-3xl"
+              style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)' }} />
+          </div>
+
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md w-full bg-slate-900 border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="relative max-w-sm w-full flex flex-col items-center gap-7"
+            style={{
+              background: 'linear-gradient(145deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.95) 100%)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              borderRadius: '28px',
+              padding: '2.5rem 2rem',
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 32px 80px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.08)'
+            }}
           >
-            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-              <img
-                src="/rvce_logo_header.png"
-                alt="RV College of Engineering Logo"
-                className="w-10 h-10 object-contain"
-                style={{
-                  filter: 'brightness(0) invert(1)'
-                }}
+            {/* Lock icon with pulsing ring */}
+            <div className="relative flex items-center justify-center">
+              <motion.div
+                animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute w-24 h-24 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)' }}
               />
+              <motion.div
+                animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.35, 0.15] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                className="absolute w-16 h-16 rounded-full border"
+                style={{ borderColor: 'rgba(99,102,241,0.4)' }}
+              />
+              <div className="relative w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.1) 100%)',
+                  border: '1px solid rgba(99,102,241,0.35)',
+                  boxShadow: '0 8px 32px rgba(99,102,241,0.2)'
+                }}>
+                <Lock size={22} className="text-indigo-400" strokeWidth={2.5} />
+              </div>
             </div>
-            
+
+            {/* Header */}
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-black text-white tracking-tight">Admin Session Locked</h2>
-              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
-                For security, please enter the admin password to unlock your session.
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <img
+                  src="/rvce_logo_header.png"
+                  alt="RVCE"
+                  className="w-5 h-5 object-contain"
+                  style={{ filter: 'brightness(0) invert(1)', opacity: 0.7 }}
+                />
+                <span className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">Campus Nexus</span>
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Session Locked</h2>
+              <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-[260px] mx-auto">
+                Your admin session has been locked for security. Enter your security password to continue.
               </p>
             </div>
-            
-            <form onSubmit={handleUnlock} className="w-full space-y-4">
-              <div>
+
+            {/* Attempt warning badge */}
+            {failedAttempts > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold"
+                style={{
+                  background: failedAttempts >= MAX_ATTEMPTS - 1
+                    ? 'rgba(239,68,68,0.12)'
+                    : 'rgba(234,179,8,0.1)',
+                  border: `1px solid ${ failedAttempts >= MAX_ATTEMPTS - 1 ? 'rgba(239,68,68,0.3)' : 'rgba(234,179,8,0.25)' }`,
+                  color: failedAttempts >= MAX_ATTEMPTS - 1 ? '#f87171' : '#facc15'
+                }}
+              >
+                <ShieldAlert size={13} strokeWidth={2.5} />
+                {failedAttempts >= MAX_ATTEMPTS
+                  ? 'Signing out...'
+                  : `${MAX_ATTEMPTS - failedAttempts} of ${MAX_ATTEMPTS} attempts remaining`}
+              </motion.div>
+            )}
+
+            {/* Password form */}
+            <form onSubmit={handleUnlock} className="w-full space-y-3">
+              <div className="relative">
                 <input
-                  type="password"
-                  placeholder="Enter admin password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter security password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-950 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-indigo-500 transition"
+                  disabled={failedAttempts >= MAX_ATTEMPTS}
+                  className="w-full px-4 py-3.5 pr-12 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none transition-all"
+                  style={{
+                    background: 'rgba(2,6,23,0.7)',
+                    border: lockError
+                      ? '1px solid rgba(239,68,68,0.5)'
+                      : '1px solid rgba(99,102,241,0.2)',
+                    borderRadius: '14px',
+                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.3)'
+                  }}
                   autoFocus
                 />
-                {lockError && (
-                  <p className="text-xs text-rose-500 font-bold mt-2 text-left">{lockError}</p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
-              
+
+              {lockError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs font-bold text-rose-400 text-left pl-1"
+                >
+                  {lockError}
+                </motion.p>
+              )}
+
               <button
                 type="submit"
-                disabled={verifying}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 text-white font-extrabold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
+                disabled={verifying || failedAttempts >= MAX_ATTEMPTS || !adminPassword}
+                className="w-full font-extrabold py-3.5 px-4 text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: verifying
+                    ? 'rgba(79,70,229,0.5)'
+                    : 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                  borderRadius: '14px',
+                  color: '#fff',
+                  boxShadow: '0 4px 20px rgba(99,102,241,0.35), 0 1px 0 rgba(255,255,255,0.1) inset'
+                }}
               >
-                {verifying ? 'Unlocking...' : 'Unlock Session'}
+                <span className="flex items-center justify-center gap-2">
+                  {verifying ? (
+                    <>
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                        className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={14} strokeWidth={2.5} />
+                      Unlock Session
+                    </>
+                  )}
+                </span>
               </button>
             </form>
-            
+
+            {/* Divider */}
+            <div className="w-full flex items-center gap-3">
+              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <span className="text-[10px] text-slate-600 font-medium">or</span>
+              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            </div>
+
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="text-xs font-bold text-slate-500 hover:text-slate-300 transition cursor-pointer"
+              className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-rose-400 transition-colors duration-200 cursor-pointer -mt-2"
             >
-              Log out of account
+              <LogOut size={13} strokeWidth={2.5} />
+              Sign out of account
             </button>
+
+            {/* Re-lock timer note */}
+            <p className="text-[10px] text-slate-700 text-center -mt-3">
+              Session auto-locks every 10 minutes for security.
+            </p>
           </motion.div>
         </div>
       )}
