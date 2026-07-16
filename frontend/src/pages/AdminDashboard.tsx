@@ -12,7 +12,6 @@ import {
   Activity, 
   CheckCircle2, 
   Clock, 
-  BarChart3, 
   Search,
   Mail,
   ChevronRight,
@@ -22,7 +21,12 @@ import {
   GitMerge,
   Filter,
   Check,
-  Slash
+  Slash,
+  GraduationCap,
+  Briefcase,
+  UserCheck,
+  UserX,
+  AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -43,6 +47,11 @@ interface AnalyticsData {
     pending_teams: number;
     total_events: number;
     total_notifications: number;
+    total_projects?: number;
+    active_projects?: number;
+    pending_approvals?: number;
+    students_without_teams?: number;
+    teams_without_mentors?: number;
   };
   students_by_branch: Record<string, number>;
   teams_by_department: Record<string, number>;
@@ -54,6 +63,16 @@ interface AnalyticsData {
     "NOT SUBMITTED": number;
   };
   event_registrations: Record<string, number>;
+  team_formation_progress?: {
+    in_teams: number;
+    without_teams: number;
+  };
+  project_status_distribution?: {
+    Completed: number;
+    Ongoing: number;
+    Pending: number;
+  };
+  monthly_project_creation_trend?: Record<string, number>;
 }
 
 interface MatchedUser {
@@ -619,246 +638,603 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </div>
             ) : (
               <>
-                {/* 1. Plain Indigo Blue Stat Cards */}
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {/* 1. 8 Redesigned Statistics Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Card 1: Total Students */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
-                    <Users size={18} className="opacity-90 mb-2" />
-                    <div>
-                      <div className="text-2xl font-black">{analytics.counts.total_students}</div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Students</div>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
-                  >
-                    <User size={18} className="opacity-90 mb-2" />
-                    <div>
-                      <div className="text-2xl font-black">{analytics.counts.total_mentors}</div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Mentors</div>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
-                  >
-                    <Layers size={18} className="opacity-90 mb-2" />
-                    <div>
-                      <div className="text-2xl font-black">
-                        {analytics.counts.approved_teams}
-                        <span className="text-xs font-semibold opacity-70 ml-1">/ {analytics.counts.total_teams}</span>
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <GraduationCap size={20} />
                       </div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Approved / Total Teams</div>
+                      <span className="text-[9px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+                        Students
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.total_students ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Total Students
+                      </div>
                     </div>
                   </motion.div>
 
+                  {/* Card 2: Total Mentors */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
-                    <Clock size={18} className="opacity-90 mb-2" />
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        <UserCheck size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                        Mentors
+                      </span>
+                    </div>
                     <div>
-                      <div className="text-2xl font-black">{analytics.counts.pending_teams}</div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Pending Teams</div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.total_mentors ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Total Mentors
+                      </div>
                     </div>
                   </motion.div>
 
+                  {/* Card 3: Total Teams */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                    className="relative overflow-hidden rounded-xl p-3.5 text-white shadow bg-[#1e3a8a] flex flex-col justify-between"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
-                    <MessageSquare size={18} className="opacity-90 mb-2" />
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                        <Layers size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2.5 py-0.5 rounded-full">
+                        Teams
+                      </span>
+                    </div>
                     <div>
-                      <div className="text-2xl font-black">{analytics.counts.total_notifications}</div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mt-1">Notifications Sent</div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.total_teams ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Total Teams
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Card 4: Total Projects */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                        <Briefcase size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+                        Projects
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.total_projects ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Total Projects
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Card 5: Active Projects */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-emerald-950/30 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.active_projects ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Active Projects
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Card 6: Pending Approvals */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-amber-950/30 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <Clock size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                        Pending
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.pending_approvals ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Pending Approvals
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Card 7: Students Without Teams */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-red-950/30 border border-red-500/20 dark:border-red-900/30 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300 ring-1 ring-red-500/10 shadow-red-900/10"
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20">
+                        <AlertTriangle size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-0.5 rounded-full">
+                        Warning
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.students_without_teams ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Students Without Teams
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Card 8: Teams Without Mentors */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-red-950/30 border border-red-500/20 dark:border-red-900/30 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300 ring-1 ring-red-500/10 shadow-red-900/10"
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20">
+                        <UserX size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-0.5 rounded-full">
+                        Warning
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.teams_without_mentors ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Teams Without Mentors
+                      </div>
                     </div>
                   </motion.div>
                 </div>
 
                 {/* 2. Charts Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Students by Branch */}
+                  {/* Chart 1: Team Formation Progress (Donut Chart) */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="glass-panel p-6 space-y-5"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                    className="glass-panel p-6 space-y-6 flex flex-col"
                   >
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
-                        <BarChart3 size={14} className="text-white" />
+                    <h3 className="text-sm font-black text-slate-850 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                        <Users size={14} />
                       </div>
-                      Students by Branch
+                      Team Formation Progress
                     </h3>
-                    <div className="space-y-4">
-                      {Object.keys(analytics.students_by_branch || {}).length === 0 ? (
-                        <p className="text-sm text-slate-400 font-medium italic text-center py-4">No student branch data available.</p>
-                      ) : (
-                        Object.entries(analytics.students_by_branch || {}).map(([branch, count], i) => {
-                          const maxVal = Math.max(...Object.values(analytics.students_by_branch || {}), 1);
-                          const percentage = (count / maxVal) * 100;
-                          return (
-                            <div key={branch} className="space-y-1.5">
-                              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                                <span>{branch}</span>
-                                <span className="text-slate-500">{count} student{count !== 1 ? 's' : ''}</span>
-                              </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${percentage}%` }}
-                                  transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
-                                  className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-500 rounded-full"
-                                />
+
+                    {(() => {
+                      const inTeams = analytics.team_formation_progress?.in_teams ?? 0;
+                      const withoutTeams = analytics.team_formation_progress?.without_teams ?? 0;
+                      const total = inTeams + withoutTeams;
+                      const inTeamsPct = total > 0 ? (inTeams / total) * 100 : 0;
+                      const withoutTeamsPct = total > 0 ? (withoutTeams / total) * 100 : 0;
+                      const dashArray = 314;
+                      const dashOffset = dashArray * (1 - inTeamsPct / 100);
+
+                      return (
+                        <div className="flex flex-col sm:flex-row items-center justify-around gap-6 flex-grow py-4">
+                          {/* SVG Donut */}
+                          <div className="relative w-36 h-36 flex items-center justify-center">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                              {/* Background ring */}
+                              <circle
+                                cx="60"
+                                cy="60"
+                                r="50"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="8"
+                                className="text-slate-100 dark:text-slate-800"
+                              />
+                              {/* Indicator ring */}
+                              <motion.circle
+                                cx="60"
+                                cy="60"
+                                r="50"
+                                fill="none"
+                                stroke="#3b82f6"
+                                strokeWidth="8"
+                                strokeDasharray={dashArray}
+                                initial={{ strokeDashoffset: dashArray }}
+                                animate={{ strokeDashoffset: dashOffset }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            {/* Inner Text overlay */}
+                            <div className="absolute flex flex-col items-center justify-center text-center">
+                              <span className="text-2xl font-black text-slate-800 dark:text-white leading-none">
+                                {inTeamsPct.toFixed(0)}%
+                              </span>
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                In Teams
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Legend card */}
+                          <div className="flex flex-col gap-4 w-full sm:w-auto">
+                            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-4 border border-slate-200/40 dark:border-slate-800/60 flex items-center gap-4">
+                              <div className="w-3.5 h-3.5 rounded-full bg-blue-500 flex-shrink-0" />
+                              <div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">In Teams</div>
+                                <div className="text-sm font-black text-slate-850 dark:text-white mt-0.5">
+                                  {inTeams} <span className="text-xs font-semibold text-slate-400">({inTeamsPct.toFixed(0)}%)</span>
+                                </div>
                               </div>
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </motion.div>
-
-                  {/* Teams by Department */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                    className="glass-panel p-6 space-y-5"
-                  >
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
-                        <Layers size={14} className="text-white" />
-                      </div>
-                      Teams by Department
-                    </h3>
-                    <div className="space-y-4">
-                      {Object.keys(analytics.teams_by_department || {}).length === 0 ? (
-                        <p className="text-sm text-slate-400 font-medium italic text-center py-4">No department data available.</p>
-                      ) : (
-                        Object.entries(analytics.teams_by_department || {}).map(([dept, count], i) => {
-                          const maxVal = Math.max(...Object.values(analytics.teams_by_department || {}), 1);
-                          const percentage = (count / maxVal) * 100;
-                          return (
-                            <div key={dept} className="space-y-1.5">
-                              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                                <span>{dept}</span>
-                                <span className="text-slate-500">{count} team{count !== 1 ? 's' : ''}</span>
-                              </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${percentage}%` }}
-                                  transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
-                                  className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-500 rounded-full"
-                                />
+                            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-4 border border-slate-200/40 dark:border-slate-800/60 flex items-center gap-4">
+                              <div className="w-3.5 h-3.5 rounded-full bg-slate-300 dark:bg-slate-600 flex-shrink-0" />
+                              <div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Without Teams</div>
+                                <div className="text-sm font-black text-slate-855 dark:text-white mt-0.5">
+                                  {withoutTeams} <span className="text-xs font-semibold text-slate-400">({withoutTeamsPct.toFixed(0)}%)</span>
+                                </div>
                               </div>
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </motion.div>
 
-                  {/* Mentor Workload */}
+                  {/* Chart 2: Project Status Distribution */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="glass-panel p-6 space-y-6 flex flex-col justify-between"
+                  >
+                    <h3 className="text-sm font-black text-slate-850 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                        <CheckCircle2 size={14} />
+                      </div>
+                      Project Status Distribution
+                    </h3>
+
+                    {(() => {
+                      const completed = analytics.project_status_distribution?.Completed ?? 0;
+                      const ongoing = analytics.project_status_distribution?.Ongoing ?? 0;
+                      const pending = analytics.project_status_distribution?.Pending ?? 0;
+                      const total = completed + ongoing + pending;
+                      
+                      const completedPct = total > 0 ? (completed / total) * 100 : 0;
+                      const ongoingPct = total > 0 ? (ongoing / total) * 100 : 0;
+                      const pendingPct = total > 0 ? (pending / total) * 100 : 0;
+
+                      return (
+                        <div className="space-y-6 flex-grow flex flex-col justify-center">
+                          {/* Segmented bar */}
+                          <div className="h-6 w-full rounded-2xl overflow-hidden flex gap-0.5 bg-slate-100 dark:bg-slate-800/40 border border-slate-200/20 dark:border-slate-800/50">
+                            {completedPct > 0 && (
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${completedPct}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full flex items-center justify-center text-[10px] font-black text-white"
+                                title={`Completed: ${completed}`}
+                              />
+                            )}
+                            {ongoingPct > 0 && (
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${ongoingPct}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="bg-gradient-to-r from-blue-500 to-blue-600 h-full flex items-center justify-center text-[10px] font-black text-white"
+                                title={`Ongoing: ${ongoing}`}
+                              />
+                            )}
+                            {pendingPct > 0 && (
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pendingPct}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="bg-gradient-to-r from-amber-400 to-amber-500 h-full flex items-center justify-center text-[10px] font-black text-white"
+                                title={`Pending: ${pending}`}
+                              />
+                            )}
+                          </div>
+
+                          {/* Cards grid */}
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/60 rounded-2xl p-3 flex flex-col">
+                              <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-405 uppercase tracking-wider">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                Completed
+                              </div>
+                              <span className="text-base font-black text-slate-800 dark:text-white mt-1.5">
+                                {completed} <span className="text-xs font-semibold text-slate-400">({completedPct.toFixed(0)}%)</span>
+                              </span>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/60 rounded-2xl p-3 flex flex-col">
+                              <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-405 uppercase tracking-wider">
+                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                Ongoing
+                              </div>
+                              <span className="text-base font-black text-slate-800 dark:text-white mt-1.5">
+                                {ongoing} <span className="text-xs font-semibold text-slate-400">({ongoingPct.toFixed(0)}%)</span>
+                              </span>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/60 rounded-2xl p-3 flex flex-col">
+                              <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-405 uppercase tracking-wider">
+                                <div className="w-2 h-2 rounded-full bg-amber-400" />
+                                Pending
+                              </div>
+                              <span className="text-base font-black text-slate-800 dark:text-white mt-1.5">
+                                {pending} <span className="text-xs font-semibold text-slate-400">({pendingPct.toFixed(0)}%)</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
+
+                  {/* Chart 3: Mentor Workload */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 }}
                     className="glass-panel p-6 space-y-5"
                   >
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a] flex items-center justify-center">
-                        <Activity size={14} className="text-white" />
+                    <h3 className="text-sm font-black text-slate-850 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#1e3a8a]/10 text-[#1e3a8a] dark:text-blue-400 flex items-center justify-center border border-blue-500/20">
+                        <Activity size={14} />
                       </div>
                       Mentor Workload
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-[220px] overflow-y-auto pr-1">
                       {Object.keys(analytics.mentor_workload || {}).length === 0 ? (
                         <p className="text-sm text-slate-400 font-medium italic text-center py-4">No mentors with approved teams yet.</p>
                       ) : (
-                        Object.entries(analytics.mentor_workload || {}).map(([name, count], i) => {
-                          const percentage = Math.min((count / 25) * 100, 100);
-                          const isHigh = percentage > 70;
-                          return (
-                            <div key={name} className="space-y-1.5">
-                              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                                <span className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${isHigh ? 'bg-rose-500' : 'bg-[#1e3a8a]'}`} />
-                                  {name}
-                                </span>
-                                <span className={`font-extrabold ${isHigh ? 'text-rose-500' : 'text-[#1e3a8a] dark:text-blue-400'}`}>{count} / 25</span>
+                        Object.entries(analytics.mentor_workload || {})
+                          .sort((a, b) => b[1] - a[1]) // Sort workload descending
+                          .slice(0, 6) // Display top 6
+                          .map(([name, count], i) => {
+                            const percentage = Math.min((count / 25) * 100, 100);
+                            const isHigh = count >= 20;
+                            const isMedium = count >= 10 && count < 20;
+                            
+                            return (
+                              <div key={name} className="space-y-1.5 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/40 dark:border-slate-800/50 p-3 rounded-2xl">
+                                <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                  <span className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-[10px] font-black uppercase">
+                                      {name.charAt(0)}
+                                    </div>
+                                    <span className="truncate max-w-[150px]">{name}</span>
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {isHigh && (
+                                      <span className="text-[8px] font-black uppercase bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900/30">
+                                        Near Limit
+                                      </span>
+                                    )}
+                                    <span className={`font-black ${isHigh ? 'text-red-500' : isMedium ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                      {count} / 25
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-3 overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${percentage}%` }}
+                                    transition={{ type: "spring", stiffness: 60, delay: i * 0.05 }}
+                                    className={`h-full rounded-full ${isHigh ? 'bg-gradient-to-r from-red-500 to-rose-600' : isMedium ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-emerald-400 to-emerald-500'}`}
+                                  />
+                                </div>
                               </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-4 overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${percentage}%` }}
-                                  transition={{ type: "spring", stiffness: 60, delay: i * 0.07 }}
-                                  className={`h-full rounded-full ${isHigh ? 'bg-gradient-to-r from-rose-500 to-rose-700' : 'bg-gradient-to-r from-[#1e3a8a] to-blue-500'}`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })
+                            );
+                          })
                       )}
                     </div>
                   </motion.div>
 
-                  {/* Project Approval Status */}
+                  {/* Chart 4: Monthly Project Creation Trend (SVG Line Chart) */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                    className="glass-panel p-6 space-y-5"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="glass-panel p-6 space-y-5 flex flex-col justify-between"
                   >
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
-                        <CheckCircle2 size={14} className="text-white" />
+                    <h3 className="text-sm font-black text-slate-855 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                        <Calendar size={14} />
                       </div>
-                      Project Approval Status
+                      Monthly Project Creation Trend
                     </h3>
-                    <div className="space-y-5">
-                      <div className="h-8 w-full rounded-2xl overflow-hidden flex gap-0.5 bg-slate-100 dark:bg-slate-800/60">
-                        {Object.entries(analytics.project_approval_status || {}).map(([status, count]) => {
-                          const total = Object.values(analytics.project_approval_status || {}).reduce((a, b) => a + b, 0) || 1;
-                          const pct = (count / total) * 100;
-                          if (pct === 0) return null;
-                          const colorMap: Record<string, string> = {
-                            APPROVED: 'bg-gradient-to-r from-emerald-500 to-emerald-600',
-                            PENDING: 'bg-gradient-to-r from-amber-400 to-amber-500',
-                            REJECTED: 'bg-gradient-to-r from-rose-500 to-rose-600',
-                            'NOT SUBMITTED': 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700',
-                          };
-                          return (
-                            <motion.div
-                              key={status}
-                              initial={{ flexGrow: 0 }}
-                              animate={{ flexGrow: pct }}
-                              transition={{ duration: 0.6, ease: 'easeOut' }}
-                              style={{ width: `${pct}%` }}
-                              className={`h-full ${colorMap[status] || 'bg-slate-400'} first:rounded-l-2xl last:rounded-r-2xl`}
-                              title={`${status}: ${count}`}
-                            />
-                          );
-                        })}
-                      </div>
-                      {/* Legend grid */}
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { label: 'Approved', key: 'APPROVED', color: 'bg-emerald-500', text: 'text-emerald-600' },
-                          { label: 'Pending', key: 'PENDING', color: 'bg-amber-400', text: 'text-amber-600' },
-                          { label: 'Rejected', key: 'REJECTED', color: 'bg-rose-500', text: 'text-rose-600' },
-                          { label: 'Draft', key: 'NOT SUBMITTED', color: 'bg-slate-400', text: 'text-slate-500' },
-                        ].map(({ label, key, color, text }) => (
-                          <div key={key} className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl px-3 py-2.5">
-                            <div className={`w-3 h-3 rounded-full ${color} flex-shrink-0`} />
-                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{label}</span>
-                            <span className={`ml-auto text-sm font-black ${text}`}>
-                              {(analytics.project_approval_status as Record<string, number>)?.[key] ?? 0}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+
+                    {(() => {
+                      const trendEntries = Object.entries(analytics.monthly_project_creation_trend || {});
+                      
+                      if (trendEntries.length === 0) {
+                        return <p className="text-sm text-slate-400 font-medium italic text-center py-10 flex-grow flex items-center justify-center">No trend data available.</p>;
+                      }
+
+                      const trendWidth = 460;
+                      const trendHeight = 180;
+                      const paddingLeft = 30;
+                      const paddingRight = 10;
+                      const paddingTop = 15;
+                      const paddingBottom = 30;
+
+                      const chartWidth = trendWidth - paddingLeft - paddingRight;
+                      const chartHeight = trendHeight - paddingTop - paddingBottom;
+
+                      const maxVal = Math.max(...trendEntries.map(([_, val]) => val as number), 4);
+
+                      const points = trendEntries.map(([label, val], idx) => {
+                        const x = paddingLeft + (trendEntries.length > 1 ? (idx / (trendEntries.length - 1)) * chartWidth : chartWidth / 2);
+                        const y = paddingTop + chartHeight - ((val as number) / maxVal) * chartHeight;
+                        return { x, y, label, val: val as number };
+                      });
+
+                      // Construct path lines
+                      let linePath = "";
+                      let areaPath = "";
+                      if (points.length > 0) {
+                        linePath = `M ${points[0].x} ${points[0].y}`;
+                        for (let i = 1; i < points.length; i++) {
+                          linePath += ` L ${points[i].x} ${points[i].y}`;
+                        }
+                        areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`;
+                      }
+
+                      // Generate vertical grid lines
+                      const yTicks = [0, Math.floor(maxVal * 0.33), Math.floor(maxVal * 0.66), maxVal];
+
+                      return (
+                        <div className="w-full overflow-x-auto flex-grow flex items-end">
+                          <svg className="w-full min-w-[350px]" height={trendHeight} viewBox={`0 0 ${trendWidth} ${trendHeight}`}>
+                            <defs>
+                              <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+
+                            {/* Horizontal gridlines & Y labels */}
+                            {yTicks.map((tick, i) => {
+                              const y = paddingTop + chartHeight - (tick / maxVal) * chartHeight;
+                              return (
+                                <g key={i}>
+                                  <line
+                                    x1={paddingLeft}
+                                    y1={y}
+                                    x2={trendWidth - paddingRight}
+                                    y2={y}
+                                    stroke="currentColor"
+                                    strokeWidth="1"
+                                    className="text-slate-100 dark:text-slate-800/50"
+                                    strokeDasharray="4 4"
+                                  />
+                                  <text
+                                    x={paddingLeft - 8}
+                                    y={y + 4}
+                                    fontSize="8"
+                                    fontWeight="bold"
+                                    textAnchor="end"
+                                    className="fill-slate-400 dark:fill-slate-500"
+                                  >
+                                    {tick}
+                                  </text>
+                                </g>
+                              );
+                            })}
+
+                            {/* Area fill */}
+                            {areaPath && (
+                              <path d={areaPath} fill="url(#trendGradient)" />
+                            )}
+
+                            {/* Trend Line */}
+                            {linePath && (
+                              <path
+                                d={linePath}
+                                fill="none"
+                                stroke="#3b82f6"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            )}
+
+                            {/* Hover circles / Tooltips */}
+                            {points.map((p, idx) => (
+                              <g key={idx}>
+                                <circle
+                                  cx={p.x}
+                                  cy={p.y}
+                                  r="4"
+                                  fill="#3b82f6"
+                                  stroke="currentColor"
+                                  className="text-white dark:text-slate-900 shadow"
+                                  strokeWidth="2"
+                                />
+                                {/* Value tag */}
+                                <text
+                                  x={p.x}
+                                  y={p.y - 8}
+                                  fontSize="9"
+                                  fontWeight="black"
+                                  textAnchor="middle"
+                                  className="fill-blue-500 dark:fill-blue-400"
+                                >
+                                  {p.val}
+                                </text>
+                                {/* X Label */}
+                                <text
+                                  x={p.x}
+                                  y={paddingTop + chartHeight + 16}
+                                  fontSize="7.5"
+                                  fontWeight="bold"
+                                  textAnchor="middle"
+                                  className="fill-slate-400 dark:fill-slate-500"
+                                >
+                                  {p.label.split(' ')[0]} {/* Show abbreviation */}
+                                </text>
+                              </g>
+                            ))}
+                          </svg>
+                        </div>
+                      );
+                    })()}
                   </motion.div>
-
-
                 </div>
               </>
             )}

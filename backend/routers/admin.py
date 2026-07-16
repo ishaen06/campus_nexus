@@ -88,6 +88,23 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
     pending_teams = db.group_chats.count_documents({"mentor_status": "PENDING"})
     total_events = db.events.count_documents({})
     total_notifications = db.notifications.count_documents({})
+
+    # Calculated New Counts
+    total_projects = db.group_chats.count_documents({"project_topic": {"$ne": None, "$regex": "\\S"}})
+    active_projects = db.group_chats.count_documents({"mentor_status": "APPROVED", "project_topic": {"$ne": None, "$regex": "\\S"}})
+    pending_approvals = pending_teams
+    
+    # Students without teams
+    in_team_ids = db.group_members.distinct("user_id")
+    students_without_teams = db.users.count_documents({
+        "is_mentor": {"$ne": True},
+        "is_admin": {"$ne": True},
+        "email": {"$ne": "ishaen.vihaan@gmail.com"},
+        "id": {"$nin": in_team_ids}
+    })
+    
+    # Teams without mentors
+    teams_without_mentors = db.group_chats.count_documents({"mentor_email": {"$in": [None, ""]}})
     
     # 2. Students by Branch (normalized)
     branch_counts = {}
@@ -136,6 +153,62 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
     for e in db.events.find():
         title = e.get("title") or "Unnamed Event"
         event_registrations[title] = len(e.get("rsvps") or [])
+
+    # --- New Chart Datasets ---
+    # A. Team Formation Progress
+    students_in_teams = db.users.count_documents({
+        "is_mentor": {"$ne": True},
+        "is_admin": {"$ne": True},
+        "email": {"$ne": "ishaen.vihaan@gmail.com"},
+        "id": {"$in": in_team_ids}
+    })
+    team_formation_progress = {
+        "in_teams": students_in_teams,
+        "without_teams": students_without_teams
+    }
+
+    # B. Project Status Distribution
+    completed_projects = db.group_chats.count_documents({"mentor_status": "APPROVED", "phase3_marks": {"$gt": 0}})
+    ongoing_projects = db.group_chats.count_documents({"mentor_status": "APPROVED", "phase3_marks": {"$in": [0, None]}})
+    pending_projects = db.group_chats.count_documents({"mentor_status": {"$ne": "APPROVED"}})
+    project_status_distribution = {
+        "Completed": completed_projects,
+        "Ongoing": ongoing_projects,
+        "Pending": pending_projects
+    }
+
+    # C. Monthly Project Creation Trend
+    monthly_trend = {}
+    groups_list = list(db.group_chats.find())
+    
+    def get_group_date(g):
+        c_at = g.get("created_at")
+        if c_at:
+            if isinstance(c_at, str):
+                try:
+                    from dateutil.parser import parse
+                    return parse(c_at)
+                except Exception:
+                    pass
+                try:
+                    import datetime
+                    return datetime.datetime.fromisoformat(c_at.replace("Z", "+00:00"))
+                except Exception:
+                    pass
+            return c_at
+        return None
+
+    valid_groups = []
+    for g in groups_list:
+        dt = get_group_date(g)
+        if dt:
+            valid_groups.append((dt, g))
+    valid_groups.sort(key=lambda x: x[0])
+
+    for dt, g in valid_groups:
+        if hasattr(dt, "strftime"):
+            month_str = dt.strftime("%b %Y")
+            monthly_trend[month_str] = monthly_trend.get(month_str, 0) + 1
         
     return {
         "counts": {
@@ -145,13 +218,21 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
             "approved_teams": approved_teams,
             "pending_teams": pending_teams,
             "total_events": total_events,
-            "total_notifications": total_notifications
+            "total_notifications": total_notifications,
+            "total_projects": total_projects,
+            "active_projects": active_projects,
+            "pending_approvals": pending_approvals,
+            "students_without_teams": students_without_teams,
+            "teams_without_mentors": teams_without_mentors
         },
         "students_by_branch": branch_counts,
         "teams_by_department": dept_counts,
         "mentor_workload": mentor_workload,
         "project_approval_status": approval_status,
-        "event_registrations": event_registrations
+        "event_registrations": event_registrations,
+        "team_formation_progress": team_formation_progress,
+        "project_status_distribution": project_status_distribution,
+        "monthly_project_creation_trend": monthly_trend
     }
 
 @router.get("/search")
