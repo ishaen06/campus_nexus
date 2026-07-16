@@ -84,6 +84,20 @@ export default function Layout() {
         setIsMentor(res.data.is_mentor);
         
         if (userIsAdmin) {
+          // Always check lock status on every page load / navigation
+          // This catches the case where the admin just logged in fresh (Layout may
+          // already have isAdmin=true from a previous session, so the [isAdmin]
+          // useEffect would never re-fire — this guarantees the lock always shows)
+          const lastVerified = localStorage.getItem('adminLastVerified');
+          if (!lastVerified) {
+            setIsLocked(true);
+          } else {
+            const elapsed = Date.now() - Number(lastVerified);
+            if (elapsed > LOCK_DURATION_MS) {
+              setIsLocked(true);
+            }
+          }
+
           if (location.pathname === '/mentor-dashboard' || location.pathname === '/discovery' || location.pathname === '/' || location.pathname === '/profile-setup') {
             navigate('/admin/analytics');
           }
