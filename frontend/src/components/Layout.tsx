@@ -150,11 +150,17 @@ export default function Layout() {
       const token = localStorage.getItem('token');
       if (!token) return;
       try {
-        const res = await api.get('/notifications');
+        const res = await api.get(`/notifications?t=${Date.now()}`);
         const notifications = res.data;
         if (Array.isArray(notifications)) {
-          const readIdsString = localStorage.getItem('nexus_read_notifs');
-          const readIds: number[] = readIdsString ? JSON.parse(readIdsString) : [];
+          let readIds: number[] = [];
+          try {
+            const readIdsString = localStorage.getItem('nexus_read_notifs');
+            readIds = readIdsString ? JSON.parse(readIdsString) : [];
+            if (!Array.isArray(readIds)) readIds = [];
+          } catch (e) {
+            readIds = [];
+          }
           const hasUnreadNotif = notifications.some((n: any) => !readIds.includes(n.id));
           setHasUnreadNotifications(hasUnreadNotif);
         }

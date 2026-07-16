@@ -157,13 +157,19 @@ export default function Notifications() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/notifications');
+      const res = await api.get(`/notifications?t=${Date.now()}`);
       const data = res.data;
       setNotifications(data);
 
       if (Array.isArray(data) && data.length > 0) {
-        const readIdsString = localStorage.getItem('nexus_read_notifs');
-        const readIds: number[] = readIdsString ? JSON.parse(readIdsString) : [];
+        let readIds: number[] = [];
+        try {
+          const readIdsString = localStorage.getItem('nexus_read_notifs');
+          readIds = readIdsString ? JSON.parse(readIdsString) : [];
+          if (!Array.isArray(readIds)) readIds = [];
+        } catch (e) {
+          readIds = [];
+        }
         const newReadIds = [...readIds];
         let updated = false;
         data.forEach((n: any) => {
