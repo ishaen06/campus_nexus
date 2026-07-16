@@ -287,7 +287,7 @@ export default function Layout() {
             {!isCollapsed && (
               <button
                 onClick={toggleSidebar}
-                className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-slate-100 hover:bg-white/10 transition cursor-pointer"
+                className="p-1.5 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
                 title="Collapse Sidebar"
               >
                 <ChevronLeft size={16} />
@@ -297,7 +297,7 @@ export default function Layout() {
           {isCollapsed && (
             <button
               onClick={toggleSidebar}
-              className="mx-auto p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-slate-100 hover:bg-white/10 transition cursor-pointer"
+              className="mx-auto p-1.5 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
               title="Expand Sidebar"
             >
               <ChevronRight size={16} />
