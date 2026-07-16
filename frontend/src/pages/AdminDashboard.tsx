@@ -645,13 +645,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#1e3a8a]/40 border border-blue-100 dark:border-slate-800/80 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
                         <GraduationCap size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 px-2.5 py-0.5 rounded-full">
                         Students
                       </span>
                     </div>
@@ -670,13 +670,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#1e3a8a]/40 border border-indigo-100 dark:border-slate-800/80 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
                         <UserCheck size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 px-2.5 py-0.5 rounded-full">
                         Mentors
                       </span>
                     </div>
@@ -695,13 +695,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#1e3a8a]/40 border border-violet-100 dark:border-slate-800/80 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                      <div className="p-2.5 rounded-2xl bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20">
                         <Layers size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20 px-2.5 py-0.5 rounded-full">
                         Teams
                       </span>
                     </div>
@@ -720,13 +720,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-[#1e3a8a]/40 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#1e3a8a]/40 border border-cyan-100 dark:border-slate-800/80 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      <div className="p-2.5 rounded-2xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20">
                         <Briefcase size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20 px-2.5 py-0.5 rounded-full">
                         Projects
                       </span>
                     </div>
@@ -745,13 +745,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-emerald-950/30 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-emerald-950/30 border border-emerald-100 dark:border-slate-800/80 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
                         <CheckCircle2 size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-2.5 py-0.5 rounded-full">
                         Active
                       </span>
                     </div>
@@ -770,13 +770,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-amber-950/30 border border-slate-200/10 dark:border-slate-800/80 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-amber-950/30 border border-amber-100 dark:border-slate-800/80 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
                         <Clock size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 px-2.5 py-0.5 rounded-full">
                         Pending
                       </span>
                     </div>
@@ -795,13 +795,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.35 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-red-950/30 border border-red-500/20 dark:border-red-900/30 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300 ring-1 ring-red-500/10 shadow-red-900/10"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-red-950/30 border border-red-100 dark:border-red-900/30 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20">
+                      <div className="p-2.5 rounded-2xl bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-500/20">
                         <AlertTriangle size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-500/20 px-2.5 py-0.5 rounded-full">
                         Warning
                       </span>
                     </div>
@@ -820,13 +820,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 to-red-950/30 border border-red-500/20 dark:border-red-900/30 shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300 ring-1 ring-red-500/10 shadow-red-900/10"
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-red-950/30 border border-red-100 dark:border-red-900/30 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
                   >
                     <div className="flex items-start justify-between w-full">
-                      <div className="p-2.5 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20">
+                      <div className="p-2.5 rounded-2xl bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-500/20">
                         <UserX size={20} />
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-500/20 px-2.5 py-0.5 rounded-full">
                         Warning
                       </span>
                     </div>
