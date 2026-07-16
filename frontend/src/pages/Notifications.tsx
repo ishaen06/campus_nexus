@@ -66,6 +66,77 @@ export default function Notifications() {
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Floating compose dialog Draggable state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const positionStart = useRef({ x: 0, y: 0 });
+
+  // Floating compose dialog Resizable state
+  const [size, setSize] = useState({ width: 512, height: 500 });
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStart = useRef({ x: 0, y: 0 });
+  const sizeStart = useRef({ width: 512, height: 500 });
+
+  // Handle Dialog Drag Start
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input') || (e.target as HTMLElement).closest('textarea')) return;
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    positionStart.current = { ...position };
+    e.preventDefault();
+  };
+
+  // Handle Dialog Resize Start
+  const handleResizeStart = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsResizing(true);
+    resizeStart.current = { x: e.clientX, y: e.clientY };
+    sizeStart.current = { ...size };
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        const dx = e.clientX - dragStart.current.x;
+        const dy = e.clientY - dragStart.current.y;
+        setPosition({
+          x: positionStart.current.x + dx,
+          y: positionStart.current.y + dy
+        });
+      }
+      
+      if (isResizing) {
+        const dx = e.clientX - resizeStart.current.x;
+        const dy = e.clientY - resizeStart.current.y;
+        const newWidth = Math.max(400, sizeStart.current.width - dx);
+        const newHeight = Math.max(350, sizeStart.current.height - dy);
+        setSize({
+          width: Math.min(window.innerWidth - 20, newWidth),
+          height: Math.min(window.innerHeight - 20, newHeight)
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setIsResizing(false);
+    };
+
+    if (isDragging || isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, isResizing]);
+
   useEffect(() => {
     localStorage.setItem('nexus_starred_notifs', JSON.stringify(starredIds));
   }, [starredIds]);
@@ -515,16 +586,35 @@ export default function Notifications() {
             initial={{ opacity: 0, y: 100, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
-            className="fixed bottom-0 right-0 md:right-10 w-full max-w-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-t-2xl shadow-2xl z-50 flex flex-col max-h-[500px]"
+            className="fixed bottom-0 right-0 md:right-10 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-t-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
+            style={{
+              width: `${size.width}px`,
+              height: `${size.height}px`,
+              transform: `translate(${position.x}px, ${position.y}px)`
+            }}
           >
+            {/* Top-left corner resize handle */}
+            <div
+              onMouseDown={handleResizeStart}
+              className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize z-50 flex items-center justify-center group"
+              title="Drag to Resize"
+            >
+              <div className="w-2 h-2 border-t-2 border-l-2 border-slate-300 dark:border-slate-700 group-hover:border-indigo-500 rounded-tl transition-colors" />
+            </div>
+
             {/* Compose header */}
-            <div className="flex justify-between items-center p-4 bg-slate-100 dark:bg-slate-900 rounded-t-2xl border-b border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">New Post Notification</span>
+            <div
+              onMouseDown={handleDragStart}
+              className="flex justify-between items-center p-4 bg-slate-100 dark:bg-slate-900 rounded-t-2xl border-b border-slate-200 dark:border-slate-800 cursor-move select-none"
+            >
+              <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 pl-1">New Post Notification</span>
               <button
                 onClick={() => {
                   setIsComposing(false);
                   setSelectedFiles([]);
                   setUploadError(null);
+                  setPosition({ x: 0, y: 0 }); // reset position on close
+                  setSize({ width: 512, height: 500 }); // reset size on close
                 }}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
               >
