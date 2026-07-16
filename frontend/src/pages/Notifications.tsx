@@ -188,6 +188,18 @@ export default function Notifications() {
     }
   };
 
+  const handleDeleteNotification = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this notification?")) return;
+    try {
+      await api.delete(`/notifications/${id}`);
+      setSelectedNotif(null);
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to delete notification", err);
+      alert("Failed to delete notification. Make sure you have administrative privileges.");
+    }
+  };
+
   const isAdmin = currentUser?.is_admin || currentUser?.email === 'ishaen.vihaan@gmail.com';
 
   // Filter logic
@@ -394,6 +406,15 @@ export default function Notifications() {
                     >
                       <AlertCircle size={14} fill={importantIds.includes(selectedNotif.id) ? "currentColor" : "none"} />
                     </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteNotification(selectedNotif.id)}
+                        className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/25 transition cursor-pointer"
+                        title="Delete Notification"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

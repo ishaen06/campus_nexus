@@ -148,3 +148,25 @@ def get_notifications(current_user = Depends(get_current_user), db = Depends(get
     for n in notifs:
         n.pop("_id", None)
     return notifs
+
+@router.delete("/{notification_id}")
+def delete_notification(notification_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    notif = db.notifications.find_one({"id": notification_id})
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    # Delete associated files from the uploads directory
+    files = notif.get("files", [])
+    for f in files:
+        url = f.get("url", "")
+        if url.startswith("/api/uploads/"):
+            filename = url.replace("/api/uploads/", "")
+            file_path = os.path.join("uploads", filename)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    logging.error(f"Failed to delete attachment file {file_path}: {e}")
+                    
+    db.notifications.delete_one({"id": notification_id})
+    return {"status": "ok", "message": "Notification deleted successfully"}
