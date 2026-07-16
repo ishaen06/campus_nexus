@@ -4,6 +4,7 @@ import api, { getWsURL } from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, ArrowLeft, AlertTriangle, Users, Settings, X, Sparkles, UserMinus, UserPlus, Check, Lock } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { THEME_SUBTOPICS } from './MyTeam';
 
 interface GroupMessage {
   id?: number;
@@ -35,6 +36,7 @@ export default function GroupChat() {
   const [teamMembers, setTeamMembers] = useState<number[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
   const [projectTopic, setProjectTopic] = useState('');
+  const [projectTheme, setProjectTheme] = useState('');
   const [apiError, setApiError] = useState<string | null>(null);
   
   const ws = useRef<WebSocket | null>(null);
@@ -105,6 +107,7 @@ export default function GroupChat() {
       setTeamIsPublic(groupDetails.is_public);
       setTeamMembers(groupDetails.member_ids);
       setProjectTopic(groupDetails.project_topic || '');
+      setProjectTheme(groupDetails.project_theme || '');
     }
   }, [groupDetails, showSettings]);
 
@@ -222,7 +225,8 @@ export default function GroupChat() {
         name: teamName,
         is_public: teamIsPublic,
         member_ids: filteredMembers,
-        project_topic: projectTopic
+        project_topic: projectTopic,
+        project_theme: projectTheme
       });
       setGroupDetails(res.data);
       setShowSettings(false);
@@ -427,6 +431,22 @@ export default function GroupChat() {
                   placeholder="Enter project topic..."
                   disabled={groupDetails?.created_by !== userId}
                 />
+              </div>
+
+              {/* Project Theme Dropdown */}
+              <div className="space-y-2 mb-6">
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block text-left">Project Theme</label>
+                <select
+                  className="w-full glass-input rounded-2xl px-4 py-3 focus:outline-none transition-all text-slate-900 dark:text-slate-100 font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-75 disabled:cursor-not-allowed"
+                  value={projectTheme}
+                  onChange={(e) => setProjectTheme(e.target.value)}
+                  disabled={groupDetails?.created_by !== userId}
+                >
+                  <option value="">-- Select a Theme --</option>
+                  {Object.keys(THEME_SUBTOPICS).map(theme => (
+                    <option key={theme} value={theme}>{theme}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Public/Private Toggle */}

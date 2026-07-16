@@ -27,6 +27,7 @@ interface TeamItem {
   created_by: number;
   created_at: string;
   project_topic?: string | null;
+  project_theme?: string | null;
   mentor_status?: string;
   members: MemberItem[];
 }
@@ -223,6 +224,12 @@ export default function MentorDashboard() {
                     </h3>
                     <p className="text-xs text-indigo-400 font-semibold mt-1">
                       Team: <span className="text-slate-600 dark:text-slate-200">{team.name}</span>
+                      {team.project_theme && (
+                        <>
+                          <span className="mx-2 text-slate-350 dark:text-slate-700">|</span>
+                          Theme: <span className="text-slate-600 dark:text-slate-200">{team.project_theme}</span>
+                        </>
+                      )}
                     </p>
                   </div>
                   <span className="text-[10px] font-black px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full uppercase tracking-wider">

@@ -38,6 +38,7 @@ interface TeamItem {
   created_by: number;
   created_at: string;
   project_topic?: string | null;
+  project_theme?: string | null;
   mentor_name?: string | null;
   mentor_email?: string | null;
   mentor_status?: string;
@@ -130,13 +131,24 @@ export default function TeamDetails() {
 
         {/* Project Topic Callout Box */}
         <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/40 rounded-xl p-5 text-left">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Project Topic</span>
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Project Details</span>
           <div className="flex items-center gap-3">
             <FolderGit className="text-indigo-600 dark:text-indigo-400 w-6 h-6 shrink-0" />
-            <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 capitalize">
-              {team.project_topic ? team.project_topic : "No topic entered yet"}
-            </p>
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Project Topic</span>
+              <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 capitalize">
+                {team.project_topic ? team.project_topic : "No topic entered yet"}
+              </p>
+            </div>
           </div>
+          {team.project_theme && (
+            <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-800/50">
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Project Theme</span>
+              <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 capitalize">
+                {team.project_theme}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Team Members List */}
