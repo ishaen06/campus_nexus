@@ -368,7 +368,7 @@ export default function Layout() {
                 to={item.path}
                 title={isCollapsed ? item.name : undefined}
                 className={cn(
-                  "flex items-center transition-all duration-300 font-medium",
+                  "flex items-center transition-all duration-300 font-medium relative",
                   isCollapsed ? "justify-center p-3 rounded-xl mx-auto w-12" : "justify-between px-4 py-3",
                   isAdminPath
                     ? (isActive
@@ -389,16 +389,18 @@ export default function Layout() {
                     )} 
                     strokeWidth={isActive ? 2.5 : 2} 
                   />
-                  {!isCollapsed && item.name}
+                  <span className="flex items-center gap-2">
+                    {!isCollapsed && item.name}
+                    {!isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
+                      <span className="h-2 w-2 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
+                    )}
+                    {!isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                      <span className="h-2 w-2 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
+                    )}
+                  </span>
                 </div>
-                {!isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
-                )}
                 {isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
                   <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                )}
-                {!isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
                 )}
                 {isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
                   <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
