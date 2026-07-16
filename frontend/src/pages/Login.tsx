@@ -84,7 +84,7 @@ export default function Login() {
       const isUserAdmin = meRes.data.is_admin || (meRes.data.email || '').toLowerCase().trim() === 'ishaen.vihaan@gmail.com';
       
       if (isUserAdmin) {
-        localStorage.setItem('adminLastVerified', Date.now().toString());
+        localStorage.removeItem('adminLastVerified');
         navigate('/admin/analytics');
       } else if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
         navigate('/profile-setup');
