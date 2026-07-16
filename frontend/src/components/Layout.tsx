@@ -149,42 +149,21 @@ export default function Layout() {
     const checkUnreadNotifications = async () => {
       const token = localStorage.getItem('token');
       if (!token) return;
+      // Don't bother polling while the user is already on the notifications page
+      if (window.location.pathname === '/notifications') {
+        setHasUnreadNotifications(false);
+        return;
+      }
       try {
-        const res = await api.get(`/notifications?t=${Date.now()}`);
-        const notifications = res.data;
-        if (Array.isArray(notifications)) {
-          let readIds: number[] = [];
-          try {
-            const readIdsString = localStorage.getItem('nexus_read_notifs');
-            readIds = readIdsString ? JSON.parse(readIdsString) : [];
-            if (!Array.isArray(readIds)) readIds = [];
-          } catch (e) {
-            readIds = [];
-          }
-          const hasUnreadNotif = notifications.some((n: any) => !readIds.includes(n.id));
-          
-          if (window.location.pathname === '/notifications') {
-            setHasUnreadNotifications(false);
-          } else {
-            setHasUnreadNotifications(hasUnreadNotif);
-          }
-        }
+        const res = await api.get('/notifications/has-unread');
+        setHasUnreadNotifications(res.data.has_unread === true);
       } catch (err) {
         console.error("Error checking notifications for unread status:", err);
       }
     };
 
-    if (window.location.pathname === '/notifications') {
-      setHasUnreadNotifications(false);
-    } else {
-      checkUnreadNotifications();
-    }
-
-    const interval = setInterval(() => {
-      if (window.location.pathname !== '/notifications') {
-        checkUnreadNotifications();
-      }
-    }, 7000); // Check every 7 seconds, matching the connection interval for performance alignment
+    checkUnreadNotifications();
+    const interval = setInterval(checkUnreadNotifications, 7000);
 
     const handleReadEvent = () => {
       setHasUnreadNotifications(false);

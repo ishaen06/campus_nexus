@@ -161,27 +161,15 @@ export default function Notifications() {
       const data = res.data;
       setNotifications(data);
 
+      // Mark all notifications as seen on the server (server-side tracking like chat)
+      // and fire the event so the Layout sidebar red dot clears immediately
       if (Array.isArray(data) && data.length > 0) {
-        let readIds: number[] = [];
         try {
-          const readIdsString = localStorage.getItem('nexus_read_notifs');
-          readIds = readIdsString ? JSON.parse(readIdsString) : [];
-          if (!Array.isArray(readIds)) readIds = [];
+          await api.post('/notifications/mark-seen');
         } catch (e) {
-          readIds = [];
+          console.error("Failed to mark notifications as seen", e);
         }
-        const newReadIds = [...readIds];
-        let updated = false;
-        data.forEach((n: any) => {
-          if (!newReadIds.includes(n.id)) {
-            newReadIds.push(n.id);
-            updated = true;
-          }
-        });
-        if (updated) {
-          localStorage.setItem('nexus_read_notifs', JSON.stringify(newReadIds));
-          window.dispatchEvent(new Event('nexus_notifications_read'));
-        }
+        window.dispatchEvent(new Event('nexus_notifications_read'));
       }
     } catch (err) {
       console.error("Failed to load notifications", err);

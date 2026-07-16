@@ -141,6 +141,40 @@ def create_notification(
     notif_doc.pop("_id", None)
     return notif_doc
 
+@router.get("/has-unread")
+def has_unread_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    """
+    Returns { has_unread: bool } by comparing the latest notification ID in the DB
+    against the user's last_seen_notif_id stored in their user record.
+    This is the server-side approach — reliable across all devices and browser sessions.
+    """
+    # Get the most recent notification
+    latest = db.notifications.find_one({}, sort=[("id", -1)])
+    if not latest:
+        return {"has_unread": False}
+    
+    latest_id = latest["id"]
+    last_seen = current_user.get("last_seen_notif_id", 0) or 0
+    
+    return {"has_unread": latest_id > last_seen}
+
+
+@router.post("/mark-seen")
+def mark_notifications_seen(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    """
+    Marks all current notifications as seen for this user by recording the latest
+    notification ID into their user record (last_seen_notif_id).
+    """
+    latest = db.notifications.find_one({}, sort=[("id", -1)])
+    latest_id = latest["id"] if latest else 0
+    
+    db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"last_seen_notif_id": latest_id}}
+    )
+    return {"status": "ok", "last_seen_notif_id": latest_id}
+
+
 @router.get("", response_model=List[dict])
 def get_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     # Fetch all notifications sorted by id / created_at descending
