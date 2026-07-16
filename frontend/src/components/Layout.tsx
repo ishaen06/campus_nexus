@@ -596,6 +596,14 @@ export default function Layout() {
                 : '0 0 0 1px rgba(0,0,0,0.04) inset, 0 32px 80px rgba(0,0,0,0.12), 0 0 60px rgba(99,102,241,0.06)'
             }}
           >
+            {/* RVCE Logo — top of card, large and prominent */}
+            <img
+              src="/rvce_logo_header.png"
+              alt="RV College of Engineering"
+              className="w-44 object-contain"
+              style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }}
+            />
+
             {/* Lock icon with pulsing ring */}
             <div className="relative flex items-center justify-center">
               <motion.div
@@ -623,12 +631,6 @@ export default function Layout() {
             {/* Header */}
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-2 mb-1">
-                <img
-                  src="/rvce_logo_header.png"
-                  alt="RVCE"
-                  className="w-5 h-5 object-contain"
-                  style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none', opacity: 0.7 }}
-                />
                 <span className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">Campus Nexus</span>
               </div>
               <h2 className={`text-2xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Session Locked</h2>
