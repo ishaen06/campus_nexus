@@ -151,6 +151,9 @@ export default function Login() {
             <div className="flex justify-center w-full min-h-[44px]">
               <div id="google-signin-btn" className="w-full"></div>
             </div>
+            <p className="text-center text-[11px] font-medium text-slate-400 tracking-wide mt-2">
+              made by <span className="font-bold text-slate-500">Ishaen Bethur</span>
+            </p>
           </div>
         )}
       </motion.div>
