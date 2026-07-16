@@ -194,9 +194,10 @@ export default function Notifications() {
       await api.delete(`/notifications/${id}`);
       setSelectedNotif(null);
       fetchNotifications();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete notification", err);
-      alert("Failed to delete notification. Make sure you have administrative privileges.");
+      const errMsg = err.response?.data?.detail || err.response?.data?.message || err.message || "Unknown error";
+      alert(`Failed to delete notification: ${errMsg}`);
     }
   };
 
