@@ -1050,7 +1050,6 @@ def download_admin_report(
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, sheet_name="Report", index=False)
             
-            # Autofit column widths in Excel
             workbook  = writer.book
             worksheet = writer.sheets["Report"]
             header_format = workbook.add_format({
@@ -1062,13 +1061,57 @@ def download_admin_report(
                 'border': 1
             })
             
+            # Merged cell format for grouped cells (Team ID / Team Name)
+            merge_format = workbook.add_format({
+                'valign': 'vcenter',
+                'align': 'center',
+                'border': 1,
+                'bold': True,
+                'bg_color': '#EEF2FF',
+            })
+            
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)
                 max_len = max(
-                    df[value].astype(str).map(len).max(),
+                    df[value].astype(str).map(len).max() if not df.empty else len(value),
                     len(value)
                 ) + 3
                 worksheet.set_column(col_num, col_num, min(max_len, 50))
+            
+            # For the teams dataset: merge Team ID (col 0) and Team Name (col 1)
+            # for consecutive rows that belong to the same team
+            if dataset == "teams" and not df.empty and "Team ID" in df.columns and "Team Name" in df.columns:
+                team_id_col = list(df.columns).index("Team ID")
+                team_name_col = list(df.columns).index("Team Name")
+                
+                rows = df.values.tolist()
+                i = 0
+                while i < len(rows):
+                    # Find the run of rows with the same Team ID
+                    current_team_id = rows[i][team_id_col]
+                    current_team_name = rows[i][team_name_col]
+                    j = i + 1
+                    while j < len(rows) and rows[j][team_id_col] == current_team_id:
+                        j += 1
+                    
+                    # Excel row index: +1 for header row, +1 because xlsxwriter is 0-indexed
+                    start_row = i + 1  # 0-indexed, row 0 is header
+                    end_row = j        # exclusive, so last row index is j-1
+                    
+                    if end_row - start_row > 1:
+                        # Merge Team ID cells
+                        worksheet.merge_range(
+                            start_row, team_id_col,
+                            end_row - 1, team_id_col,
+                            current_team_id, merge_format
+                        )
+                        # Merge Team Name cells
+                        worksheet.merge_range(
+                            start_row, team_name_col,
+                            end_row - 1, team_name_col,
+                            current_team_name, merge_format
+                        )
+                    i = j
                 
         output.seek(0)
         filename = f"{dataset}_report_{date_str}.xlsx"
