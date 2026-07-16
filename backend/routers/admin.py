@@ -825,15 +825,17 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
             data.append({
                 "Team ID": t["id"],
                 "Team Name": t.get("name") or "N/A",
-                "Project Theme/Topic": t.get("project_topic") or "N/A",
+                "Project Theme": t.get("project_theme") or "N/A",
+                "Project Sub-Topic": t.get("project_sub_topic") or "N/A",
+                "Project Topic": t.get("project_topic") or "N/A",
                 "Assigned Mentor": t.get("mentor_name") or "N/A",
                 "Mentor Email": t.get("mentor_email") or "N/A",
                 "Approval Status": t.get("mentor_status") or "NOT_SUBMITTED"
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Team ID", "Team Name", "Project Theme/Topic", "Assigned Mentor", "Mentor Email", "Approval Status"])
-        return df, "Project Themes & Topic Allocation Report", (20, 50, 77, 45, 55, 30)
+            df = pd.DataFrame(columns=["Team ID", "Team Name", "Project Theme", "Project Sub-Topic", "Project Topic", "Assigned Mentor", "Mentor Email", "Approval Status"])
+        return df, "Project Themes & Topic Allocation Report", (20, 50, 40, 45, 55, 45, 55, 30)
 
     elif dataset == "approvals":
         teams = list(db.group_chats.find())
