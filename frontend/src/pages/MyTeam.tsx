@@ -295,24 +295,26 @@ export default function MyTeam() {
 
                       {/* Project Topic Details */}
                       <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/60 rounded-xl p-5 mb-6 text-left">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Project Details</span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-3">Project Details</span>
                         <div className="flex items-start gap-3">
                           <FolderGit className="text-indigo-600 dark:text-indigo-400 w-5.5 h-5.5 shrink-0 mt-0.5" />
-                          <div>
-                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Project Title</span>
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize leading-snug">
-                              {team.project_topic ? team.project_topic : "No topic entered yet"}
-                            </p>
+                          <div className="space-y-3.5 flex-1">
+                            <div>
+                              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Project Title</span>
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize leading-snug">
+                                {team.project_topic ? team.project_topic : "No topic entered yet"}
+                              </p>
+                            </div>
+                            {team.project_theme && (
+                              <div>
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Theme</span>
+                                <p className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400 leading-snug">
+                                  {team.project_theme}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        {team.project_theme && (
-                          <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-800/50">
-                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Theme</span>
-                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                              {team.project_theme}
-                            </span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Admin Settings Panel */}
