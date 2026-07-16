@@ -125,12 +125,32 @@ export default function Chat() {
   };
 
   const handleBlock = async () => {
-    if (!window.confirm("Are you sure you want to block this user?")) return;
+    if (!chatPartner) return;
+    if (!window.confirm(`Are you sure you want to block ${chatPartner.full_name}?`)) return;
     try {
+      await api.post(`/users/${chatPartner.id}/block`);
       alert("User Blocked. Returning to connections.");
       navigate('/connections');
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.response?.data?.detail || "Failed to block user.");
+    }
+  };
+
+  const handleReport = async () => {
+    if (!chatPartner) return;
+    const reason = window.prompt(`Please enter the reason for reporting ${chatPartner.full_name}:`);
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert("Report reason cannot be empty.");
+      return;
+    }
+    try {
+      await api.post(`/users/${chatPartner.id}/report`, { reason });
+      alert("Report submitted successfully. The administration team will review this case.");
+    } catch (e: any) {
+      console.error(e);
+      alert(e.response?.data?.detail || "Failed to submit report.");
     }
   };
 
@@ -168,10 +188,10 @@ export default function Chat() {
           )}
         </div>
         <div className="flex gap-2">
-          <button onClick={handleBlock} className="p-2 bg-white/80 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm" title="Block User">
+          <button onClick={handleBlock} className="p-2 bg-white/80 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm cursor-pointer" title="Block User">
             <UserMinus size={18} />
           </button>
-          <button className="p-2 bg-white/80 rounded-full text-gray-400 hover:text-yellow-500 transition-colors shadow-sm" title="Report">
+          <button onClick={handleReport} className="p-2 bg-white/80 rounded-full text-gray-400 hover:text-yellow-500 transition-colors shadow-sm cursor-pointer" title="Report">
             <ShieldAlert size={18} />
           </button>
         </div>
