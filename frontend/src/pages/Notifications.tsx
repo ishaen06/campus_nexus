@@ -87,7 +87,25 @@ export default function Notifications() {
     try {
       setLoading(true);
       const res = await api.get('/notifications');
-      setNotifications(res.data);
+      const data = res.data;
+      setNotifications(data);
+
+      if (Array.isArray(data) && data.length > 0) {
+        const readIdsString = localStorage.getItem('nexus_read_notifs');
+        const readIds: number[] = readIdsString ? JSON.parse(readIdsString) : [];
+        const newReadIds = [...readIds];
+        let updated = false;
+        data.forEach((n: any) => {
+          if (!newReadIds.includes(n.id)) {
+            newReadIds.push(n.id);
+            updated = true;
+          }
+        });
+        if (updated) {
+          localStorage.setItem('nexus_read_notifs', JSON.stringify(newReadIds));
+          window.dispatchEvent(new Event('nexus_notifications_read'));
+        }
+      }
     } catch (err) {
       console.error("Failed to load notifications", err);
     } finally {

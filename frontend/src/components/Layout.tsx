@@ -61,6 +61,7 @@ export default function Layout() {
     return localStorage.getItem('theme') || 'dark';
   });
   const [hasUnread, setHasUnread] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -143,6 +144,47 @@ export default function Layout() {
     const interval = setInterval(checkUnread, 7000); // Check every 7 seconds
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const checkUnreadNotifications = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await api.get('/notifications');
+        const notifications = res.data;
+        if (Array.isArray(notifications)) {
+          const readIdsString = localStorage.getItem('nexus_read_notifs');
+          const readIds: number[] = readIdsString ? JSON.parse(readIdsString) : [];
+          const hasUnreadNotif = notifications.some((n: any) => !readIds.includes(n.id));
+          setHasUnreadNotifications(hasUnreadNotif);
+        }
+      } catch (err) {
+        console.error("Error checking notifications for unread status:", err);
+      }
+    };
+
+    if (location.pathname === '/notifications') {
+      setHasUnreadNotifications(false);
+    } else {
+      checkUnreadNotifications();
+    }
+
+    const interval = setInterval(() => {
+      if (location.pathname !== '/notifications') {
+        checkUnreadNotifications();
+      }
+    }, 10000); // Check every 10 seconds
+
+    const handleReadEvent = () => {
+      setHasUnreadNotifications(false);
+    };
+    window.addEventListener('nexus_notifications_read', handleReadEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('nexus_notifications_read', handleReadEvent);
+    };
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -349,6 +391,12 @@ export default function Layout() {
                 {isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
                   <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                 )}
+                {!isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
+                )}
+                {isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
+                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                )}
               </Link>
             );
           })}
@@ -494,6 +542,9 @@ export default function Layout() {
                   <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                   <span className="text-[10px] font-medium opacity-0 hidden">{item.name}</span>
                   {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                    <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                  )}
+                  {item.name === 'Notifications' && hasUnreadNotifications && (
                     <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
                   )}
                 </Link>
