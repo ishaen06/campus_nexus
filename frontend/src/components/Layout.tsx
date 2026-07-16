@@ -354,7 +354,7 @@ export default function Layout() {
           })}
         </div>
 
-        <div className="p-4 border-t border-slate-200/50 dark:border-transparent space-y-3 flex-shrink-0">
+        <div className="p-4 space-y-3 flex-shrink-0">
           {/* RVCE Logo */}
           {!isCollapsed && (
             <div className="flex items-center justify-center w-full pb-1">
