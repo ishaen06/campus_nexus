@@ -58,7 +58,10 @@ export default function Layout() {
     setDropdownTimeout(id);
   };
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark';
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+    // Respect OS preference if user hasn't explicitly picked a theme
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
   const [hasUnread, setHasUnread] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
@@ -563,7 +566,9 @@ export default function Layout() {
       {/* Admin lock overlay */}
       {isLocked && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(15,23,42,0.97) 0%, rgba(2,6,23,0.99) 100%)' }}>
+          style={{ background: theme === 'dark'
+            ? 'radial-gradient(ellipse at center, rgba(15,23,42,0.97) 0%, rgba(2,6,23,0.99) 100%)'
+            : 'radial-gradient(ellipse at center, rgba(241,245,249,0.97) 0%, rgba(226,232,240,0.99) 100%)' }}>
           {/* Animated background orbs */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10 blur-3xl"
@@ -580,11 +585,15 @@ export default function Layout() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="relative max-w-sm w-full flex flex-col items-center gap-7"
             style={{
-              background: 'linear-gradient(145deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.95) 100%)',
-              border: '1px solid rgba(99,102,241,0.2)',
+              background: theme === 'dark'
+                ? 'linear-gradient(145deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.95) 100%)'
+                : 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
+              border: theme === 'dark' ? '1px solid rgba(99,102,241,0.2)' : '1px solid rgba(99,102,241,0.15)',
               borderRadius: '28px',
               padding: '2.5rem 2rem',
-              boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 32px 80px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.08)'
+              boxShadow: theme === 'dark'
+                ? '0 0 0 1px rgba(255,255,255,0.04) inset, 0 32px 80px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.08)'
+                : '0 0 0 1px rgba(0,0,0,0.04) inset, 0 32px 80px rgba(0,0,0,0.12), 0 0 60px rgba(99,102,241,0.06)'
             }}
           >
             {/* Lock icon with pulsing ring */}
@@ -618,11 +627,11 @@ export default function Layout() {
                   src="/rvce_logo_header.png"
                   alt="RVCE"
                   className="w-5 h-5 object-contain"
-                  style={{ filter: 'brightness(0) invert(1)', opacity: 0.7 }}
+                  style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none', opacity: 0.7 }}
                 />
                 <span className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">Campus Nexus</span>
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tight">Session Locked</h2>
+              <h2 className={`text-2xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Session Locked</h2>
               <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-[260px] mx-auto">
                 Your admin session has been locked for security. Enter your security password to continue.
               </p>
@@ -658,14 +667,14 @@ export default function Layout() {
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   disabled={failedAttempts >= MAX_ATTEMPTS}
-                  className="w-full px-4 py-3.5 pr-12 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none transition-all"
+                  className={`w-full px-4 py-3.5 pr-12 text-sm font-semibold focus:outline-none transition-all ${theme === 'dark' ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`}
                   style={{
-                    background: 'rgba(2,6,23,0.7)',
+                    background: theme === 'dark' ? 'rgba(2,6,23,0.7)' : 'rgba(248,250,252,1)',
                     border: lockError
                       ? '1px solid rgba(239,68,68,0.5)'
-                      : '1px solid rgba(99,102,241,0.2)',
+                      : theme === 'dark' ? '1px solid rgba(99,102,241,0.2)' : '1px solid rgba(99,102,241,0.3)',
                     borderRadius: '14px',
-                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.3)'
+                    boxShadow: theme === 'dark' ? 'inset 0 2px 8px rgba(0,0,0,0.3)' : 'inset 0 2px 8px rgba(0,0,0,0.05)'
                   }}
                   autoFocus
                 />
@@ -724,9 +733,9 @@ export default function Layout() {
 
             {/* Divider */}
             <div className="w-full flex items-center gap-3">
-              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="flex-1 h-px" style={{ background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)' }} />
               <span className="text-[10px] text-slate-600 font-medium">or</span>
-              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="flex-1 h-px" style={{ background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)' }} />
             </div>
 
             {/* Logout */}
