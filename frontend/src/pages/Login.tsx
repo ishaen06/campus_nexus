@@ -196,13 +196,15 @@ export default function Login() {
               <div id="google-signin-btn" className="w-full"></div>
             </div>
             {isInstallable && (
-              <button
-                onClick={handleInstallApp}
-                className="w-full flex items-center justify-center gap-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-bold py-3 px-6 rounded-2xl transition cursor-pointer text-xs uppercase tracking-wider border border-indigo-500/20 shadow-sm hover:scale-[1.01] active:scale-[0.99] duration-150"
-              >
-                <Download size={15} />
-                Download App
-              </button>
+              <div className="flex justify-center mt-1">
+                <button
+                  onClick={handleInstallApp}
+                  className="flex items-center gap-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-extrabold py-2 px-5 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-indigo-500/20 shadow-sm hover:scale-[1.02] active:scale-[0.98] duration-150"
+                >
+                  <Download size={12} className="stroke-[2.5]" />
+                  Download App
+                </button>
+              </div>
             )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mt-3">
               <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
