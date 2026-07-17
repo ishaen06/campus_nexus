@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api, { getWsURL } from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, ArrowLeft, ShieldAlert, UserMinus, AlertTriangle, Check, CheckCheck } from 'lucide-react';
+import { Send, ArrowLeft, ShieldAlert, AlertTriangle, Check, CheckCheck } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 interface Message {
@@ -124,19 +124,6 @@ export default function Chat() {
     ws.current.send(JSON.stringify({ type: 'stop_typing' }));
   };
 
-  const handleBlock = async () => {
-    if (!chatPartner) return;
-    if (!window.confirm(`Are you sure you want to block ${chatPartner.full_name}?`)) return;
-    try {
-      await api.post(`/users/${chatPartner.id}/block`);
-      alert("User Blocked. Returning to connections.");
-      navigate('/connections');
-    } catch (e: any) {
-      console.error(e);
-      alert(e.response?.data?.detail || "Failed to block user.");
-    }
-  };
-
   const handleReport = async () => {
     if (!chatPartner) return;
     const reason = window.prompt(`Please enter the reason for reporting ${chatPartner.full_name}:`);
@@ -188,9 +175,6 @@ export default function Chat() {
           )}
         </div>
         <div className="flex gap-2">
-          <button onClick={handleBlock} className="p-2 bg-white/80 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm cursor-pointer" title="Block User">
-            <UserMinus size={18} />
-          </button>
           <button onClick={handleReport} className="p-2 bg-white/80 rounded-full text-gray-400 hover:text-yellow-500 transition-colors shadow-sm cursor-pointer" title="Report">
             <ShieldAlert size={18} />
           </button>
