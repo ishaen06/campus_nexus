@@ -127,7 +127,7 @@ export default function MentorDashboard() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4 md:px-8 pb-24">
+    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-8 px-4 md:px-8 pb-24">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">

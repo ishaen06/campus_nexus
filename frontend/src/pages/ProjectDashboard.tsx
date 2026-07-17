@@ -186,7 +186,7 @@ export default function ProjectDashboard() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 md:px-8">
+    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-12 px-4 md:px-8">
       {/* Header */}
       <div className="mb-8 text-left">
         <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
