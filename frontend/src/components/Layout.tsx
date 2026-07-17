@@ -75,7 +75,7 @@ export default function Layout() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = (event?: any) => {
+  const toggleTheme = () => {
     const doc = document as any;
     const isAppearanceTransition = doc.startViewTransition
       && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -85,15 +85,10 @@ export default function Layout() {
       return;
     }
 
-    // Get click coordinates, or default to center of the viewport
-    const x = event?.clientX ?? window.innerWidth / 2;
-    const y = event?.clientY ?? window.innerHeight / 2;
-    
-    // Calculate distance to the furthest corner of the screen
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    );
+    // Start transition from the bottom-left corner where the toggle button resides
+    const x = 40;
+    const y = window.innerHeight - 40;
+    const endRadius = Math.hypot(window.innerWidth, window.innerHeight);
 
     const transition = doc.startViewTransition(() => {
       setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -108,8 +103,8 @@ export default function Layout() {
           ],
         },
         {
-          duration: 500,
-          easing: 'ease-in-out',
+          duration: 650,
+          easing: 'cubic-bezier(0.86, 0, 0.07, 1)', // Ultra-smooth easeInOut
           pseudoElement: '::view-transition-new(root)',
         }
       );
