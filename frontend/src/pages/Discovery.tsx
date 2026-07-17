@@ -541,7 +541,7 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
               <p className="text-[15px] font-semibold text-indigo-600 mt-1 uppercase tracking-wide">
                 {user.is_mentor 
                   ? `${user.post || 'Mentor'} • Department of ${user.department || 'N/A'}`
-                  : `${user.branch || 'N/A'} • ${user.year_of_study ? (user.year_of_study === 1 ? '1st Sem' : user.year_of_study === 2 ? '2nd Sem' : user.year_of_study === 3 ? '3rd Sem' : user.year_of_study === 4 ? '4th Sem' : user.year_of_study === 5 ? '5th Sem' : user.year_of_study === 6 ? '6th Sem' : user.year_of_study === 7 ? '7th Sem' : user.year_of_study === 8 ? '8th Sem' : `${user.year_of_study}th Sem`) : 'N/A'}`
+                  : `${user.branch || 'N/A'} • ${user.year_of_study === 1 ? '1st/2nd Sem' : user.year_of_study === 2 ? '3rd/4th Sem' : user.year_of_study === 3 ? '5th/6th Sem' : user.year_of_study === 4 ? '7th/8th Sem' : user.year_of_study ? `${user.year_of_study}th Sem` : 'N/A'}`
                 }
               </p>
             </div>

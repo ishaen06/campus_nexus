@@ -71,7 +71,7 @@ export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePr
               <div className="mb-6">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{user.full_name}</h2>
                 <p className="text-[#1e3a8a] dark:text-indigo-400 font-bold text-sm uppercase tracking-wider mt-1">
-                  {user.is_mentor ? `${user.post || 'Engineering Mentor'} • Department of ${user.department || 'N/A'}` : `${user.branch || 'N/A'} • ${user.year_of_study ? (user.year_of_study === 1 ? '1st Sem' : user.year_of_study === 2 ? '2nd Sem' : user.year_of_study === 3 ? '3rd Sem' : user.year_of_study === 4 ? '4th Sem' : user.year_of_study === 5 ? '5th Sem' : user.year_of_study === 6 ? '6th Sem' : user.year_of_study === 7 ? '7th Sem' : user.year_of_study === 8 ? '8th Sem' : `${user.year_of_study}th Sem`) : 'N/A'} ${user.usn ? `• ${user.usn}` : ''}`}
+                  {user.is_mentor ? `${user.post || 'Engineering Mentor'} • Department of ${user.department || 'N/A'}` : `${user.branch || 'N/A'} • ${user.year_of_study === 1 ? '1st/2nd Sem' : user.year_of_study === 2 ? '3rd/4th Sem' : user.year_of_study === 3 ? '5th/6th Sem' : user.year_of_study === 4 ? '7th/8th Sem' : user.year_of_study ? `${user.year_of_study}th Sem` : 'N/A'} ${user.usn ? `• ${user.usn}` : ''}`}
                 </p>
               </div>
 
