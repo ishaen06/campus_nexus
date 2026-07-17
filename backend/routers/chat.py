@@ -1671,6 +1671,11 @@ def draw_member_row(pdf, col_widths, vals):
         
     pdf.set_xy(x_start, y_start + max_h)
 
+def safe_upper(val) -> str:
+    if not val:
+        return ""
+    return str(val).upper()
+
 def draw_evaluators_signatures_table(pdf, mentor_name, evaluators):
     pdf.set_text_color(31, 78, 120)
     pdf.set_font("times", "B", 9)
@@ -1686,19 +1691,20 @@ def draw_evaluators_signatures_table(pdf, mentor_name, evaluators):
     pdf.cell(col_widths[0], 6, "1.", border=1, align="C")
     pdf.set_font("times", "B", 9)
     pdf.set_text_color(47, 85, 151)
-    pdf.cell(col_widths[1], 6, f" {mentor_name.upper()}  (Faculty Mentor)", border=1)
+    mentor_display = safe_upper(mentor_name)
+    pdf.cell(col_widths[1], 6, f" {mentor_display}  (Faculty Mentor)", border=1)
     pdf.set_font("times", "I", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(col_widths[2], 6, "Digitally Signed", border=1, align="R")
     pdf.ln(6)
     
-    active_evals = [e for e in evaluators if e.strip()]
+    active_evals = [e for e in (evaluators or []) if e and str(e).strip()]
     for idx in range(3):
         row_num = idx + 2
         name_val = ""
         sign_val = ""
         if idx < len(active_evals):
-            name_val = active_evals[idx].upper()
+            name_val = safe_upper(active_evals[idx])
             sign_val = "Digitally Signed"
             
         pdf.set_font("times", "", 9)
@@ -1777,18 +1783,18 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
     students = [m for m in group_details.get("members", []) if not m.get("is_mentor")]
     students_text = ""
     for s in students:
-        students_text += f"{s.get('full_name', '').upper()}  ({s.get('usn', 'N/A').upper()})\n"
+        students_text += f"{safe_upper(s.get('full_name'))}  ({safe_upper(s.get('usn') or 'N/A')})\n"
         
-    mentor_info = f"{(group_details.get('mentor_name') or '').upper()}\n"
+    mentor_info = f"{safe_upper(group_details.get('mentor_name'))}\n"
     if students and students[0].get("department"):
-        mentor_info += f"DEPARTMENT OF {students[0]['department'].upper()}"
+        mentor_info += f"DEPARTMENT OF {safe_upper(students[0].get('department'))}"
     else:
         mentor_info += "FACULTY ADVISOR"
         
-    chief_mentor_info = f"{(group_details.get('chief_mentor_name') or '').upper()}\n"
-    chief_mentor_info += f"{(group_details.get('chief_mentor_designation') or '').upper()}"
+    chief_mentor_info = f"{safe_upper(group_details.get('chief_mentor_name'))}\n"
+    chief_mentor_info += f"{safe_upper(group_details.get('chief_mentor_designation'))}"
     if group_details.get("chief_mentor_department"):
-        chief_mentor_info += f" • DEPARTMENT OF {group_details['chief_mentor_department'].upper()}"
+        chief_mentor_info += f" • DEPARTMENT OF {safe_upper(group_details.get('chief_mentor_department'))}"
         
     draw_two_col_row(pdf, "Name of the students\n(In Capitals) with USN", students_text.strip())
     draw_two_col_row(pdf, "Name of the faculty Mentor with Designation and Department", chief_mentor_info.strip() if not group_details.get("mentor_name") else mentor_info.strip())
@@ -1804,12 +1810,12 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
     pdf.cell(0, 5, "For the II Semester B.E PROGRAMS", align="C", ln=True)
     pdf.ln(5)
     
-    draw_two_col_row(pdf, "Team Name", (group_details.get("name") or "").upper(), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(47, 85, 151))
+    draw_two_col_row(pdf, "Team Name", safe_upper(group_details.get("name")), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(47, 85, 151))
     draw_two_col_row(pdf, "Theme", (group_details.get("project_theme") or "N/A"), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(0, 0, 0))
     draw_two_col_row(pdf, "Team ID", f"EL-2026-TEAM-{group_id}", col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(0, 0, 0))
-    draw_two_col_row(pdf, "Topic", (group_details.get("project_topic") or "N/A").upper(), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(192, 0, 0))
+    draw_two_col_row(pdf, "Topic", safe_upper(group_details.get("project_topic") or "N/A"), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(192, 0, 0))
     leader_name = students[0].get("full_name", "N/A") if students else "N/A"
-    draw_two_col_row(pdf, "Team Leader Name", leader_name.upper(), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(47, 85, 151))
+    draw_two_col_row(pdf, "Team Leader Name", safe_upper(leader_name), col1_width=50, col2_width=136, col1_color=(31, 78, 120), col2_color=(47, 85, 151))
     pdf.ln(8)
     
     pdf.set_font("times", "B", 10)
@@ -1833,9 +1839,9 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
             vals = [
                 f"{idx + 1}.",
                 "B.E",
-                f"{s.get('cycle', 'P').upper()}-Cycle",
-                s.get('usn', 'N/A').upper(),
-                s.get('full_name', '').upper(),
+                f"{safe_upper(s.get('cycle') or 'P')}-Cycle",
+                safe_upper(s.get('usn') or 'N/A'),
+                safe_upper(s.get('full_name')),
                 s.get('email', '')
             ]
         else:
@@ -1854,7 +1860,7 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
         pdf.cell(col_w, 4, f"Student-{idx + 1} Signature", align="C")
         pdf.set_xy(x_col, y_sig + 5)
         pdf.set_font("times", "", 7)
-        pdf.cell(col_w, 4, s.get('full_name', '').upper(), align="C")
+        pdf.cell(col_w, 4, safe_upper(s.get('full_name')), align="C")
         pdf.set_font("times", "B", 8)
         
     y_sig2 = y_sig + 25
@@ -1888,12 +1894,12 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
         pdf.ln(2)
         
         draw_two_col_row(pdf, "Theme:", team_theme or "N/A", col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
-        draw_four_col_row(pdf, ["Team Name:", team_name.upper(), "Team No:", f"EL-{team_id}"])
-        draw_two_col_row(pdf, "Title:", (team_topic or "N/A").upper(), col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
+        draw_four_col_row(pdf, ["Team Name:", safe_upper(team_name), "Team No:", f"EL-{team_id}"])
+        draw_two_col_row(pdf, "Title:", safe_upper(team_topic or "N/A"), col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
         pdf.ln(3)
         
-        draw_two_col_row(pdf, "USN", stud.get("usn", "N/A").upper(), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
-        draw_two_col_row(pdf, "NAME (in Capitals)", stud.get("full_name", "").upper(), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
+        draw_two_col_row(pdf, "USN", safe_upper(stud.get("usn") or "N/A"), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
+        draw_two_col_row(pdf, "NAME (in Capitals)", safe_upper(stud.get("full_name")), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
         draw_two_col_row(pdf, "Mobile No.", stud.get("mobile_no", "N/A"), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(0,0,0))
         draw_two_col_row(pdf, "Email Id", stud.get("email", ""), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(0,0,0))
         pdf.ln(4)
@@ -1974,12 +1980,12 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
         pdf.ln(2)
         
         draw_two_col_row(pdf, "Theme:", team_theme or "N/A", col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
-        draw_four_col_row(pdf, ["Team Name:", team_name.upper(), "Team No:", f"EL-{team_id}"])
-        draw_two_col_row(pdf, "Title:", (team_topic or "N/A").upper(), col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
+        draw_four_col_row(pdf, ["Team Name:", safe_upper(team_name), "Team No:", f"EL-{team_id}"])
+        draw_two_col_row(pdf, "Title:", safe_upper(team_topic or "N/A"), col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
         pdf.ln(3)
         
-        draw_two_col_row(pdf, "USN", stud.get("usn", "N/A").upper(), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
-        draw_two_col_row(pdf, "NAME (in Capitals)", stud.get("full_name", "").upper(), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
+        draw_two_col_row(pdf, "USN", safe_upper(stud.get("usn") or "N/A"), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
+        draw_two_col_row(pdf, "NAME (in Capitals)", safe_upper(stud.get("full_name")), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
         draw_two_col_row(pdf, "Mobile No.", stud.get("mobile_no", "N/A"), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(0,0,0))
         draw_two_col_row(pdf, "Email Id", stud.get("email", ""), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(0,0,0))
         pdf.ln(4)
@@ -2060,12 +2066,12 @@ def get_group_evaluation_pdf(group_id: int, current_user = Depends(get_current_u
         pdf.ln(2)
         
         draw_two_col_row(pdf, "Theme:", team_theme or "N/A", col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
-        draw_four_col_row(pdf, ["Team Name:", team_name.upper(), "Team No:", f"EL-{team_id}"])
-        draw_two_col_row(pdf, "Title:", (team_topic or "N/A").upper(), col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
+        draw_four_col_row(pdf, ["Team Name:", safe_upper(team_name), "Team No:", f"EL-{team_id}"])
+        draw_two_col_row(pdf, "Title:", safe_upper(team_topic or "N/A"), col1_width=40, col2_width=146, col1_color=(0,0,0), col2_color=(0,0,0))
         pdf.ln(3)
         
-        draw_two_col_row(pdf, "USN", stud.get("usn", "N/A").upper(), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
-        draw_two_col_row(pdf, "NAME (in Capitals)", stud.get("full_name", "").upper(), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
+        draw_two_col_row(pdf, "USN", safe_upper(stud.get("usn") or "N/A"), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
+        draw_two_col_row(pdf, "NAME (in Capitals)", safe_upper(stud.get("full_name")), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(47, 85, 151))
         draw_two_col_row(pdf, "Mobile No.", stud.get("mobile_no", "N/A"), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(0,0,0))
         draw_two_col_row(pdf, "Email Id", stud.get("email", ""), col1_width=50, col2_width=136, col1_color=(0,0,0), col2_color=(0,0,0))
         pdf.ln(4)
