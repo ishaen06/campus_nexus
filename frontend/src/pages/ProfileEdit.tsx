@@ -310,7 +310,7 @@ export default function ProfileEdit() {
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-8 -mt-24 relative z-20">
+      <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 md:px-8 -mt-24 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Left Column (Avatar & Basic Info) */}

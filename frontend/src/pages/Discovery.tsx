@@ -189,7 +189,7 @@ export default function Discovery() {
   });
 
   return (
-    <div className="relative flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16 w-full max-w-7xl mx-auto">
+    <div className="relative flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16 w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-100 dark:border-slate-800/80 mb-8 justify-center w-full max-w-sm md:max-w-4xl mx-auto">
         <button

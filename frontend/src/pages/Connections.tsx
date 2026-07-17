@@ -131,7 +131,7 @@ export default function Connections() {
 
   return (
     <div className="min-h-screen bg-transparent py-12 px-4 md:px-8 relative">
-      <div className="max-w-5xl mx-auto">
+      <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
