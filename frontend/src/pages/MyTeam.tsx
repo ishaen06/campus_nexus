@@ -619,7 +619,13 @@ export default function MyTeam() {
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
                                 {conn.other_user.is_mentor 
                                   ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
-                                  : `${conn.other_user.branch || 'N/A'} • ${conn.other_user.year_of_study === 1 ? '1st/2nd Sem' : conn.other_user.year_of_study === 2 ? '3rd/4th Sem' : conn.other_user.year_of_study === 3 ? '5th/6th Sem' : conn.other_user.year_of_study === 4 ? '7th/8th Sem' : conn.other_user.year_of_study ? `${conn.other_user.year_of_study}th Sem` : 'N/A'}`
+                                  : `${conn.other_user.branch || 'N/A'} • ${
+                                      [1, 2].includes(Number(conn.other_user.year_of_study)) ? '1st Year' :
+                                      [3, 4].includes(Number(conn.other_user.year_of_study)) ? '2nd Year' :
+                                      [5, 6].includes(Number(conn.other_user.year_of_study)) ? '3rd Year' :
+                                      [7, 8].includes(Number(conn.other_user.year_of_study)) ? '4th Year' :
+                                      'N/A'
+                                    }`
                                 }
                               </p>
                             </div>

@@ -202,11 +202,34 @@ export default function EvaluationFormModal({
     }
   };
 
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handlePrint = async () => {
+    try {
+      setSaving(true);
+      setSaveStatus('Generating PDF...');
+      const response = await api.get(`/chat/groups/${team.id}/evaluation-pdf`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `observation_record_team_${team.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setSaveStatus('Downloaded successfully!');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err: any) {
+      console.error('PDF download error:', err);
+      alert('Failed to download PDF. Please ensure all evaluation details are saved first.');
+    } finally {
+      setSaving(false);
+    }
+    return;
+  };
 
-    // CSS Styling representing the exact printed report format
+  /*
     const styles = `
       @media print {
         @page {
@@ -954,10 +977,7 @@ export default function EvaluationFormModal({
 
     if (printWindow.document.readyState === 'complete') {
       runPrint();
-    } else {
-      printWindow.onload = runPrint;
-    }
-  };
+  */
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

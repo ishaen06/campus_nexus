@@ -373,7 +373,13 @@ export default function ProfileEdit() {
               )}
               <h1 className="text-2xl font-black text-gray-900 mt-4 tracking-tight">{fullName}</h1>
               <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mt-1">
-                {isMentor ? 'Mentor' : `${branch} • ${year === '1' ? '1st/2nd Sem' : year === '2' ? '3rd/4th Sem' : year === '3' ? '5th/6th Sem' : year === '4' ? '7th/8th Sem' : year ? `${year}th Sem` : 'N/A'}`}
+                {isMentor ? 'Mentor' : `${branch} • ${
+                  ['1', '2'].includes(year) ? '1st Year' :
+                  ['3', '4'].includes(year) ? '2nd Year' :
+                  ['5', '6'].includes(year) ? '3rd Year' :
+                  ['7', '8'].includes(year) ? '4th Year' :
+                  'N/A'
+                }`}
               </p>
             </motion.div>
           </div>
@@ -479,11 +485,15 @@ export default function ProfileEdit() {
                           className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm cursor-pointer"
                           value={year} onChange={e => setYear(e.target.value)}
                         >
-                          <option value="" disabled hidden>Select Year / Semesters</option>
-                          <option value="1">1st/2nd Semester (1st Year)</option>
-                          <option value="2">3rd/4th Semester (2nd Year)</option>
-                          <option value="3">5th/6th Semester (3rd Year)</option>
-                          <option value="4">7th/8th Semester (4th Year)</option>
+                          <option value="" disabled hidden>Select Semester</option>
+                          <option value="1">1st Semester</option>
+                          <option value="2">2nd Semester</option>
+                          <option value="3">3rd Semester</option>
+                          <option value="4">4th Semester</option>
+                          <option value="5">5th Semester</option>
+                          <option value="6">6th Semester</option>
+                          <option value="7">7th Semester</option>
+                          <option value="8">8th Semester</option>
                         </select>
                       </div>
                     </>
