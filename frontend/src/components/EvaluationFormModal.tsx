@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Printer, Save, FileText, CheckCircle2, User } from 'lucide-react';
+import { X, Download, Save, FileText, CheckCircle2, User } from 'lucide-react';
 import api from '../api';
 
 interface EvaluationFormModalProps {
@@ -209,6 +209,7 @@ export default function EvaluationFormModal({
     // CSS Styling representing the exact printed report format
     const styles = `
       @media print {
+        .no-print { display: none !important; }
         @page {
           size: A4;
           margin: 12mm 12mm 12mm 12mm;
@@ -217,6 +218,37 @@ export default function EvaluationFormModal({
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
+      }
+      .no-print {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #1f2937;
+        color: #fff;
+        padding: 10px 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        position: sticky;
+        top: 0;
+        z-index: 10000;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-bottom: 1px solid #374151;
+      }
+      .no-print-btn {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .no-print-btn:hover {
+        background: #4338ca;
       }
       body {
         font-family: 'Times New Roman', Times, serif;
@@ -385,6 +417,10 @@ export default function EvaluationFormModal({
           <style>${styles}</style>
         </head>
         <body>
+          <div class="no-print">
+            <span style="font-weight: 500;"><strong>Print Preview Mode</strong> &mdash; Choose 'Save as PDF' to download.</span>
+            <button class="no-print-btn" onclick="window.print()">Download / Save PDF</button>
+          </div>
     `;
 
     // ----------------------------------------------------
@@ -949,7 +985,6 @@ export default function EvaluationFormModal({
     const runPrint = () => {
       printWindow.focus();
       printWindow.print();
-      printWindow.close();
     };
 
     if (printWindow.document.readyState === 'complete') {
@@ -984,11 +1019,11 @@ export default function EvaluationFormModal({
           <div className="flex items-center gap-3">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer uppercase tracking-wider"
-              title="Print / Save to PDF"
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer uppercase tracking-wider"
+              title="Download PDF"
             >
-              <Printer size={14} />
-              Print / Save PDF
+              <Download size={14} />
+              Download PDF
             </button>
             <button
               onClick={onClose}
