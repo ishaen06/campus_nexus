@@ -473,17 +473,21 @@ export default function ProfileEdit() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Year of Study</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Semester</label>
                         <select
                           required
                           className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm cursor-pointer"
                           value={year} onChange={e => setYear(e.target.value)}
                         >
-                          <option value="" disabled hidden>Select Year</option>
-                          <option value="1">1st Year</option>
-                          <option value="2">2nd Year</option>
-                          <option value="3">3rd Year</option>
-                          <option value="4">4th Year</option>
+                          <option value="" disabled hidden>Select Semester</option>
+                          <option value="1">1st Semester</option>
+                          <option value="2">2nd Semester</option>
+                          <option value="3">3rd Semester</option>
+                          <option value="4">4th Semester</option>
+                          <option value="5">5th Semester</option>
+                          <option value="6">6th Semester</option>
+                          <option value="7">7th Semester</option>
+                          <option value="8">8th Semester</option>
                         </select>
                       </div>
                     </>

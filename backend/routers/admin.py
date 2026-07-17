@@ -1017,7 +1017,7 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
                 "Student Name": name,
                 "Branch": branch,
                 "Sec": section,
-                "Year": year,
+                "Semester": year,
                 "Team Name": group_name,
                 "Mentor": mentor_name,
                 "P1 Marks": p1_marks,
@@ -1031,7 +1031,7 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
         df = pd.DataFrame(data)
         if df.empty:
             df = pd.DataFrame(columns=[
-                "USN", "Student Name", "Branch", "Sec", "Year", "Team Name", "Mentor",
+                "USN", "Student Name", "Branch", "Sec", "Semester", "Team Name", "Mentor",
                 "P1 Marks", "P1 Observations", "P2 Marks", "P2 Observations", "P3 Marks", "P3 Observations", "Total Marks"
             ])
         return df, "Student Performance Marks & Detailed Observations Report", (20, 30, 20, 10, 10, 25, 20, 15, 30, 15, 30, 15, 30, 15)

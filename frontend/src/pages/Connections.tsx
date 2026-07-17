@@ -192,7 +192,7 @@ export default function Connections() {
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                           {conn.other_user.is_mentor 
                             ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
-                            : `${conn.other_user.branch || 'CSE'} • Year ${conn.other_user.year_of_study || 1}`
+                            : `${conn.other_user.branch || 'CSE'} • ${conn.other_user.year_of_study ? (conn.other_user.year_of_study === 1 ? '1st Sem' : conn.other_user.year_of_study === 2 ? '2nd Sem' : conn.other_user.year_of_study === 3 ? '3rd Sem' : conn.other_user.year_of_study === 4 ? '4th Sem' : conn.other_user.year_of_study === 5 ? '5th Sem' : conn.other_user.year_of_study === 6 ? '6th Sem' : conn.other_user.year_of_study === 7 ? '7th Sem' : conn.other_user.year_of_study === 8 ? '8th Sem' : `${conn.other_user.year_of_study}th Sem`) : '1st Sem'}`
                           }
                         </p>
                       </div>
@@ -309,7 +309,7 @@ export default function Connections() {
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                           {conn.other_user.is_mentor 
                             ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
-                            : `${conn.other_user.branch || 'CSE'} • Year ${conn.other_user.year_of_study || 1}`
+                            : `${conn.other_user.branch || 'CSE'} • ${conn.other_user.year_of_study ? (conn.other_user.year_of_study === 1 ? '1st Sem' : conn.other_user.year_of_study === 2 ? '2nd Sem' : conn.other_user.year_of_study === 3 ? '3rd Sem' : conn.other_user.year_of_study === 4 ? '4th Sem' : conn.other_user.year_of_study === 5 ? '5th Sem' : conn.other_user.year_of_study === 6 ? '6th Sem' : conn.other_user.year_of_study === 7 ? '7th Sem' : conn.other_user.year_of_study === 8 ? '8th Sem' : `${conn.other_user.year_of_study}th Sem`) : '1st Sem'}`
                           }
                         </p>
                       </div>
@@ -398,7 +398,7 @@ export default function Connections() {
                             <div className="text-left">
                               <p className="text-sm font-bold text-slate-900 dark:text-white">{conn.other_user.full_name}</p>
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
-                                {conn.other_user.branch || 'N/A'} • Year {conn.other_user.year_of_study || 'N/A'}
+                                {conn.other_user.branch || 'N/A'} • {conn.other_user.year_of_study ? (conn.other_user.year_of_study === 1 ? '1st Sem' : conn.other_user.year_of_study === 2 ? '2nd Sem' : conn.other_user.year_of_study === 3 ? '3rd Sem' : conn.other_user.year_of_study === 4 ? '4th Sem' : conn.other_user.year_of_study === 5 ? '5th Sem' : conn.other_user.year_of_study === 6 ? '6th Sem' : conn.other_user.year_of_study === 7 ? '7th Sem' : conn.other_user.year_of_study === 8 ? '8th Sem' : `${conn.other_user.year_of_study}th Sem`) : 'N/A'}
                               </p>
                             </div>
                           </div>
