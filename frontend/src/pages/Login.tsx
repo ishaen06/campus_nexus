@@ -23,6 +23,7 @@ export default function Login() {
   });
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState<boolean>(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -31,6 +32,25 @@ export default function Login() {
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if app is running as PWA (standalone display mode)
+    const checkStandalone = () => {
+      const isStandaloneMode = 
+        window.matchMedia('(display-mode: standalone)').matches || 
+        (window.navigator as any).standalone || 
+        document.referrer.includes('android-app://');
+      setIsStandalone(isStandaloneMode);
+    };
+
+    checkStandalone();
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', checkStandalone);
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        mediaQuery.removeEventListener('change', checkStandalone);
+      };
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -207,15 +227,17 @@ export default function Login() {
       </motion.div>
 
       {/* Floating PWA Download Button in the top-right corner */}
-      <div className="fixed top-6 right-6 z-50">
-        <button
-          onClick={handleInstallApp}
-          className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md hover:bg-white/95 dark:hover:bg-slate-900/95 text-slate-800 dark:text-slate-100 font-extrabold py-2.5 px-4 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-slate-200/50 dark:border-slate-800/60 shadow-lg hover:scale-[1.03] active:scale-[0.97] duration-150"
-        >
-          <img src="/app_logo.png" className="w-4.5 h-4.5 object-contain rounded-md" alt="" />
-          Download App
-        </button>
-      </div>
+      {!isStandalone && (
+        <div className="fixed top-6 right-6 z-50">
+          <button
+            onClick={handleInstallApp}
+            className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md hover:bg-white/95 dark:hover:bg-slate-900/95 text-slate-800 dark:text-slate-100 font-extrabold py-2.5 px-4 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-slate-200/50 dark:border-slate-800/60 shadow-lg hover:scale-[1.03] active:scale-[0.97] duration-150"
+          >
+            <img src="/app_logo.png" className="w-4.5 h-4.5 object-contain rounded-md" alt="" />
+            Download App
+          </button>
+        </div>
+      )}
     </div>
   );
 }
