@@ -206,7 +206,7 @@ export default function Login() {
             )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mt-3">
               <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
-                made by <span className="font-bold text-slate-500 dark:text-slate-400">Ishaen Bethur</span>
+                Made By <span className="font-bold text-slate-500 dark:text-slate-400">Ishaen Bethur</span>
               </p>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200/35 dark:border-slate-800/30 bg-slate-100/10 dark:bg-slate-900/10 backdrop-blur-sm shadow-sm select-none">
                 <HeartHandshake size={12} className="text-indigo-500 dark:text-indigo-400" />
