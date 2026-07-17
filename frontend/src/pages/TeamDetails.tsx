@@ -98,7 +98,7 @@ export default function TeamDetails() {
   const studentMembers = (team.members || []).filter((m: any) => !m.is_mentor);
 
   return (
-    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-8 px-4 md:px-8 pb-24">
+    <div className="max-w-4xl mx-auto py-8 px-4 md:px-8 pb-24">
       {/* Back Button */}
       <button
         onClick={() => navigate('/my-teams')}

@@ -76,39 +76,7 @@ export default function Layout() {
   }, [theme]);
 
   const toggleTheme = () => {
-    const doc = document as any;
-    const isAppearanceTransition = doc.startViewTransition
-      && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (!isAppearanceTransition) {
-      setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-      return;
-    }
-
-    // Start transition from the bottom-left corner where the toggle button resides
-    const x = 40;
-    const y = window.innerHeight - 40;
-    const endRadius = Math.hypot(window.innerWidth, window.innerHeight);
-
-    const transition = doc.startViewTransition(() => {
-      setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    });
-
-    transition.ready.then(() => {
-      document.documentElement.animate(
-        {
-          clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${endRadius}px at ${x}px ${y}px)`,
-          ],
-        },
-        {
-          duration: 650,
-          easing: 'cubic-bezier(0.86, 0, 0.07, 1)', // Ultra-smooth easeInOut
-          pseudoElement: '::view-transition-new(root)',
-        }
-      );
-    });
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
   useEffect(() => {

@@ -2,15 +2,6 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* View Transitions circular reveal animation configuration */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-  height: 100%;
-  overflow: clip;
-}
-
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: #f8fafc;

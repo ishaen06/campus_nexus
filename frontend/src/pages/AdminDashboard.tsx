@@ -499,7 +499,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   );
 
   return (
-    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-10 px-4 md:px-8 space-y-8">
+    <div className="max-w-5xl mx-auto py-10 px-4 md:px-8 space-y-8">
       {/* Header section with context-aware Title, Subtitle */}
       {activeTab !== 'reports' && (
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
