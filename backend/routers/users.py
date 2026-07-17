@@ -177,6 +177,12 @@ def get_discovery(
         "is_mentor": False
     }
     
+    # Restrict discovery suggestions to the same year of study for students
+    if not current_user.get("is_mentor"):
+        user_year = current_user.get("year_of_study")
+        if user_year is not None:
+            query_filter["year_of_study"] = user_year
+    
     # Apply smart cycle matchmaking filter if user is a team admin
     active_teams = list(db.group_chats.find({"created_by": current_user["id"]}))
     if active_teams:
