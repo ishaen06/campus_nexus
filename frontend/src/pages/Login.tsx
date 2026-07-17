@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api';
 import Logo from '../components/Logo';
-import { Download, HeartHandshake } from 'lucide-react';
+import { HeartHandshake } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -195,17 +195,6 @@ export default function Login() {
             <div className="flex justify-center w-full min-h-[44px]">
               <div id="google-signin-btn" className="w-full"></div>
             </div>
-            {isInstallable && (
-              <div className="flex justify-center mt-1">
-                <button
-                  onClick={handleInstallApp}
-                  className="flex items-center gap-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-extrabold py-2 px-5 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-indigo-500/20 shadow-sm hover:scale-[1.02] active:scale-[0.98] duration-150"
-                >
-                  <Download size={12} className="stroke-[2.5]" />
-                  Download App
-                </button>
-              </div>
-            )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mt-3">
               <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
                 Made By <span className="font-bold text-slate-500 dark:text-slate-400">Ishaen Bethur</span>
@@ -220,6 +209,19 @@ export default function Login() {
           </div>
         )}
       </motion.div>
+
+      {/* Floating PWA Download Button in the top-right corner */}
+      {isInstallable && (
+        <div className="fixed top-6 right-6 z-50">
+          <button
+            onClick={handleInstallApp}
+            className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md hover:bg-white/95 dark:hover:bg-slate-900/95 text-slate-800 dark:text-slate-100 font-extrabold py-2.5 px-4 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-slate-200/50 dark:border-slate-800/60 shadow-lg hover:scale-[1.03] active:scale-[0.97] duration-150"
+          >
+            <img src="/app_logo.png" className="w-4.5 h-4.5 object-contain rounded-md" alt="" />
+            Download App
+          </button>
+        </div>
+      )}
     </div>
   );
 }
