@@ -15,6 +15,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Connecting to Google...');
   const navigate = useNavigate();
+  const [theme] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
 
   useEffect(() => {
     if (!loading) return;
@@ -123,6 +128,7 @@ export default function Login() {
             src="/rvce_logo_header.png"
             alt="RV College of Engineering"
             className="w-56 object-contain mb-4"
+            style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }}
           />
           <Logo size={136} showText={true} />
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-3">
