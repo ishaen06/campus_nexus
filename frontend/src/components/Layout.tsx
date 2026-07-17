@@ -301,7 +301,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
       {/* Desktop Sidebar */}
       <nav className={cn(
-        "hidden md:flex flex-col fixed left-0 top-0 h-screen bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50 transition-all duration-300",
+        "hidden md:flex flex-col fixed left-0 top-0 h-screen bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50",
         isCollapsed ? "w-20" : "w-64"
       )}>
         <div className="p-4 flex flex-col gap-4">
@@ -564,7 +564,7 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <main className={cn(
-        "flex-1 relative min-h-screen transition-all duration-300",
+        "flex-1 relative min-h-screen",
         isCollapsed ? "md:ml-20" : "md:ml-64",
         isLocked && isAdmin ? "blur-sm pointer-events-none select-none" : ""
       )}>
