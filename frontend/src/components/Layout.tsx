@@ -397,7 +397,7 @@ export default function Layout() {
           })}
         </div>
 
-        <div className="p-4 space-y-3 flex-shrink-0">
+        <div className="p-3 space-y-2.5 flex-shrink-0">
           {/* RVCE Logo */}
           {!isCollapsed && (
             <div className="flex items-center justify-center w-full pb-1">
@@ -471,11 +471,9 @@ export default function Layout() {
             )}
           </div>
 
-          <div className="h-px bg-white/5" />
-
           {/* Theme Toggle Switch */}
           {isCollapsed ? (
-            <div className="flex items-center justify-center py-1">
+            <div className="flex items-center justify-center pt-2 border-t border-slate-200/10 dark:border-white/5">
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
@@ -485,7 +483,7 @@ export default function Layout() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-center gap-2.5 py-1.5">
+            <div className="flex items-center justify-center gap-2.5 pt-2.5 border-t border-slate-200/10 dark:border-white/5">
               <span className={cn(
                 "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
                 theme === 'dark' ? "text-white" : "text-slate-400 font-semibold"
