@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api';
 import Logo from '../components/Logo';
+import { Download } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -20,6 +21,37 @@ export default function Login() {
     if (saved) return saved;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstallable(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`PWA installation outcome: ${outcome}`);
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
+
 
   useEffect(() => {
     if (!loading) return;
@@ -163,6 +195,15 @@ export default function Login() {
             <div className="flex justify-center w-full min-h-[44px]">
               <div id="google-signin-btn" className="w-full"></div>
             </div>
+            {isInstallable && (
+              <button
+                onClick={handleInstallApp}
+                className="w-full flex items-center justify-center gap-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-bold py-3 px-6 rounded-2xl transition cursor-pointer text-xs uppercase tracking-wider border border-indigo-500/20 shadow-sm hover:scale-[1.01] active:scale-[0.99] duration-150"
+              >
+                <Download size={15} />
+                Download App
+              </button>
+            )}
             <p className="text-center text-[11px] font-medium text-slate-400 tracking-wide mt-2">
               made by <span className="font-bold text-slate-500">Ishaen Bethur</span>
             </p>
