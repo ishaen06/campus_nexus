@@ -485,28 +485,44 @@ export default function Layout() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between px-2 py-1">
-              <div className="flex items-center gap-3">
-                <Sun size={20} className="text-slate-500 dark:text-slate-400" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Light Mode
-                </span>
-              </div>
+            <div className="flex items-center justify-center gap-4 py-2">
+              <span className={cn(
+                "text-xs font-black tracking-[0.1em] uppercase transition-colors duration-300 select-none",
+                theme === 'dark' ? "text-white" : "text-slate-400 font-semibold"
+              )}>
+                Dark
+              </span>
               
               <button
                 onClick={toggleTheme}
-                className={cn(
-                  "w-11 h-6 rounded-full relative transition-colors duration-300 focus:outline-none cursor-pointer",
-                  theme === 'light' ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-800"
-                )}
+                className="w-14 h-7 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center"
               >
-                <span
+                <div
                   className={cn(
-                    "w-4 h-4 rounded-full bg-white absolute top-1 transition-all duration-300 shadow-sm",
-                    theme === 'light' ? "left-6" : "left-1"
+                    "w-6 h-6 rounded-full bg-[#fafafa] dark:bg-[#1e293b] flex items-center justify-center transition-all duration-300 shadow-md absolute",
+                    theme === 'dark' ? "left-[2px]" : "left-[30px]"
                   )}
-                />
+                >
+                  {theme === 'dark' ? (
+                    // Crescent moon shape matching the image
+                    <svg className="w-4 h-4 text-[#2d3139]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12.3 2a10 10 0 0 0-1.9.2 6.5 6.5 0 0 1 8.4 8.4 10 10 0 1 0-6.5-8.6z" />
+                    </svg>
+                  ) : (
+                    // Sun shape for Light Mode
+                    <svg className="w-4.5 h-4.5 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1zM5.64 4.22a1 1 0 0 1 1.41 0l1.42 1.42a1 1 0 0 1-1.42 1.42L5.64 5.64a1 1 0 0 1 0-1.41zm11.31 11.31a1 1 0 0 1 1.42 0l1.41 1.41a1 1 0 0 1-1.41 1.42l-1.41-1.42a1 1 0 0 1 0-1.41zM2 12a1 1 0 0 1 1-1h2a1 1 0 0 1 0 2H3a1 1 0 0 1-1-1zm16 0a1 1 0 0 1 1-1h2a1 1 0 0 1 0 2h-2a1 1 0 0 1-1-1zM6.34 16.95a1 1 0 0 1 0 1.41l-1.41 1.42a1 1 0 0 1-1.42-1.42l1.42-1.41a1 1 0 0 1 1.41 0zm11.31-11.31a1 1 0 0 1 0 1.41l-1.42 1.42a1 1 0 0 1-1.41-1.42l1.41-1.41a1 1 0 0 1 1.42 0z" />
+                    </svg>
+                  )}
+                </div>
               </button>
+
+              <span className={cn(
+                "text-xs font-black tracking-[0.1em] uppercase transition-colors duration-300 select-none",
+                theme === 'light' ? "text-slate-900" : "text-slate-500 font-semibold"
+              )}>
+                Light
+              </span>
             </div>
           )}
         </div>
