@@ -23,20 +23,14 @@ export default function Login() {
   });
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setIsInstallable(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstallable(false);
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -44,12 +38,14 @@ export default function Login() {
   }, []);
 
   const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`PWA installation outcome: ${outcome}`);
-    setDeferredPrompt(null);
-    setIsInstallable(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`PWA installation outcome: ${outcome}`);
+      setDeferredPrompt(null);
+    } else {
+      alert("To install RVCE Campus Nexus on your device:\n\n1. In Chrome/Edge: Click the install icon in the address bar (next to bookmark star) or choose 'Install RVCE Campus Nexus' from the browser menu (three dots).\n2. In Safari (iOS): Tap the 'Share' button and select 'Add to Home Screen'.\n3. In Firefox: Click the menu button and select 'Install'.");
+    }
   };
 
 
@@ -211,17 +207,15 @@ export default function Login() {
       </motion.div>
 
       {/* Floating PWA Download Button in the top-right corner */}
-      {isInstallable && (
-        <div className="fixed top-6 right-6 z-50">
-          <button
-            onClick={handleInstallApp}
-            className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md hover:bg-white/95 dark:hover:bg-slate-900/95 text-slate-800 dark:text-slate-100 font-extrabold py-2.5 px-4 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-slate-200/50 dark:border-slate-800/60 shadow-lg hover:scale-[1.03] active:scale-[0.97] duration-150"
-          >
-            <img src="/app_logo.png" className="w-4.5 h-4.5 object-contain rounded-md" alt="" />
-            Download App
-          </button>
-        </div>
-      )}
+      <div className="fixed top-6 right-6 z-50">
+        <button
+          onClick={handleInstallApp}
+          className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md hover:bg-white/95 dark:hover:bg-slate-900/95 text-slate-800 dark:text-slate-100 font-extrabold py-2.5 px-4 rounded-full transition cursor-pointer text-[10px] uppercase tracking-wider border border-slate-200/50 dark:border-slate-800/60 shadow-lg hover:scale-[1.03] active:scale-[0.97] duration-150"
+        >
+          <img src="/app_logo.png" className="w-4.5 h-4.5 object-contain rounded-md" alt="" />
+          Download App
+        </button>
+      </div>
     </div>
   );
 }
