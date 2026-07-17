@@ -124,12 +124,18 @@ export default function Layout() {
   const getStudentSub = (user: any) => {
     if (!user) return '';
     if (!user.branch) return 'Student';
-    const s = user.year_of_study || 1;
-    let yr = '1st Year';
-    if (s === 3 || s === 4) yr = '2nd Year';
-    else if (s === 5 || s === 6) yr = '3rd Year';
-    else if (s === 7 || s === 8) yr = '4th Year';
-    return `${user.branch} • ${yr}`;
+    const semMap: Record<number, string> = {
+      1: '1st Sem',
+      2: '2nd Sem',
+      3: '3rd Sem',
+      4: '4th Sem',
+      5: '5th Sem',
+      6: '6th Sem',
+      7: '7th Sem',
+      8: '8th Sem'
+    };
+    const sem = semMap[user.year_of_study || 1] || `${user.year_of_study || 1}th Sem`;
+    return `${user.branch} ${sem}`;
   };
 
   useEffect(() => {

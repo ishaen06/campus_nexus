@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Download, Save, FileText, CheckCircle2, User } from 'lucide-react';
+import { X, Printer, Save, FileText, CheckCircle2, User } from 'lucide-react';
 import api from '../api';
 
 interface EvaluationFormModalProps {
@@ -202,34 +202,11 @@ export default function EvaluationFormModal({
     }
   };
 
-  const handlePrint = async () => {
-    try {
-      setSaving(true);
-      setSaveStatus('Generating PDF...');
-      const response = await api.get(`/chat/groups/${team.id}/evaluation-pdf`, {
-        responseType: 'blob'
-      });
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `observation_record_team_${team.id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      setSaveStatus('Downloaded successfully!');
-      setTimeout(() => setSaveStatus(null), 3000);
-    } catch (err: any) {
-      console.error('PDF download error:', err);
-      alert('Failed to download PDF. Please ensure all evaluation details are saved first.');
-    } finally {
-      setSaving(false);
-    }
-    return;
-  };
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
 
-  /*
+    // CSS Styling representing the exact printed report format
     const styles = `
       @media print {
         @page {
@@ -977,7 +954,10 @@ export default function EvaluationFormModal({
 
     if (printWindow.document.readyState === 'complete') {
       runPrint();
-  */
+    } else {
+      printWindow.onload = runPrint;
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1004,11 +984,11 @@ export default function EvaluationFormModal({
           <div className="flex items-center gap-3">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer uppercase tracking-wider"
-              title="Download PDF"
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer uppercase tracking-wider"
+              title="Print / Save to PDF"
             >
-              <Download size={14} />
-              Download PDF
+              <Printer size={14} />
+              Print / Save PDF
             </button>
             <button
               onClick={onClose}

@@ -373,13 +373,7 @@ export default function ProfileEdit() {
               )}
               <h1 className="text-2xl font-black text-gray-900 mt-4 tracking-tight">{fullName}</h1>
               <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mt-1">
-                {isMentor ? 'Mentor' : `${branch} • ${
-                  ['1', '2'].includes(year) ? '1st Year' :
-                  ['3', '4'].includes(year) ? '2nd Year' :
-                  ['5', '6'].includes(year) ? '3rd Year' :
-                  ['7', '8'].includes(year) ? '4th Year' :
-                  'N/A'
-                }`}
+                {isMentor ? 'Mentor' : `${branch} • Year ${year}`}
               </p>
             </motion.div>
           </div>
@@ -479,7 +473,7 @@ export default function ProfileEdit() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Year of Study / Semester</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Semester</label>
                         <select
                           required
                           className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm cursor-pointer"

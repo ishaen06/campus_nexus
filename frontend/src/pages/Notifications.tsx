@@ -318,7 +318,7 @@ export default function Notifications() {
             { id: 'inbox', label: 'Inbox', icon: Inbox },
             { id: 'starred', label: 'Starred', icon: Star },
             { id: 'important', label: 'Important', icon: AlertCircle },
-            ...(isAdmin ? [{ id: 'sent', label: 'Sent', icon: Send }] : []),
+            { id: 'sent', label: 'Sent', icon: Send },
           ].map(folder => {
             const Icon = folder.icon;
             const isActive = activeFolder === folder.id;
