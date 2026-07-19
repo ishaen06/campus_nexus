@@ -248,6 +248,42 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
         "monthly_project_creation_trend": monthly_trend
     }
 
+@router.get("/users")
+def get_all_users(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    """Return all platform users (students + mentors) sorted by role then name."""
+    users = list(db.users.find(
+        {"email": {"$ne": "ishaen.vihaan@gmail.com"}},
+        sort=[("is_mentor", -1), ("full_name", 1)]
+    ))
+    formatted_users = []
+    for u in users:
+        group_info = None
+        if not u.get("is_mentor"):
+            membership = db.group_members.find_one({"user_id": u["id"]})
+            if membership:
+                group = db.group_chats.find_one({"id": membership["group_id"]})
+                if group:
+                    group_info = {
+                        "id": group["id"],
+                        "name": group["name"],
+                        "project_topic": group.get("project_topic") or "N/A"
+                    }
+        formatted_users.append({
+            "id": u["id"],
+            "full_name": u.get("full_name") or "N/A",
+            "email": u.get("email") or "N/A",
+            "usn": u.get("usn") or "N/A",
+            "branch": u.get("branch") or "N/A",
+            "department": u.get("department") or "N/A",
+            "post": u.get("post") or "N/A",
+            "is_mentor": bool(u.get("is_mentor")),
+            "bio": u.get("bio") or "",
+            "cycle": u.get("cycle") or "N/A",
+            "year_of_study": u.get("year_of_study"),
+            "group": group_info
+        })
+    return formatted_users
+
 @router.get("/search")
 def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     q = q.strip()

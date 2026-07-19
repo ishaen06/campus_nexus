@@ -163,6 +163,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ users: MatchedUser[]; teams: MatchedTeam[] }>({ users: [], teams: [] });
   const [searchLoading, setSearchLoading] = useState(false);
+  const [allUsers, setAllUsers] = useState<MatchedUser[]>([]);
+  const [allUsersLoading, setAllUsersLoading] = useState(false);
+  const [userListFilter, setUserListFilter] = useState<'all' | 'students' | 'mentors'>('all');
   const [selectedUser, setSelectedUser] = useState<MatchedUser | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
@@ -291,6 +294,19 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     fetchAnalytics();
     fetchMentorsData();
     fetchTeamsData();
+    // Fetch all users for the search directory
+    const fetchAllUsers = async () => {
+      setAllUsersLoading(true);
+      try {
+        const res = await api.get('/admin/users');
+        setAllUsers(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch all users', err);
+      } finally {
+        setAllUsersLoading(false);
+      }
+    };
+    fetchAllUsers();
 
     // Auto-refresh analytics every 30 seconds
     const interval = setInterval(() => {
@@ -1404,9 +1420,78 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       </div>
                     )}
 
-                    <div className="text-center py-16 text-slate-400 font-semibold glass-panel p-10">
-                      <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                      Enter keywords above to query the database.
+                    {/* All Users Directory */}
+                    <div className="glass-panel border border-slate-200 dark:border-slate-800 overflow-hidden">
+                      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Users size={15} className="text-indigo-500" />
+                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">All Users</span>
+                          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">{allUsers.length}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {(['all', 'mentors', 'students'] as const).map(f => (
+                            <button
+                              key={f}
+                              onClick={() => setUserListFilter(f)}
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg capitalize transition-all cursor-pointer ${
+                                userListFilter === f
+                                  ? 'bg-indigo-600 text-white shadow'
+                                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              {f}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {allUsersLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-10 text-slate-400 text-xs font-semibold">
+                          <div className="w-5 h-5 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
+                          Loading directory...
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800/70 max-h-[520px] overflow-y-auto">
+                          {allUsers
+                            .filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor)
+                            .map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => setSelectedUser(user)}
+                              className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors cursor-pointer group"
+                            >
+                              {/* Avatar initials */}
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
+                                user.is_mentor
+                                  ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400'
+                                  : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                              }`}>
+                                {user.full_name?.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                              </div>
+                              {/* Name + meta */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{user.full_name}</span>
+                                  <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                                    user.is_mentor
+                                      ? 'bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800'
+                                      : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                                  }`}>{user.is_mentor ? 'Mentor' : 'Student'}</span>
+                                </div>
+                                <div className="text-[11px] text-slate-400 font-medium truncate">
+                                  {user.is_mentor
+                                    ? `${user.department} · ${user.post}`
+                                    : `${user.branch} · ${user.usn}${user.group ? ` · Team: ${user.group.name}` : ' · No Team'}`
+                                  }
+                                </div>
+                              </div>
+                              <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 flex-shrink-0 group-hover:text-indigo-500 transition-colors" />
+                            </div>
+                          ))}
+                          {allUsers.filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor).length === 0 && (
+                            <div className="text-center py-10 text-slate-400 text-xs font-semibold">No users found.</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
