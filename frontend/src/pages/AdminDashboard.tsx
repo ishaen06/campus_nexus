@@ -1263,21 +1263,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Search Input Bar */}
-            <div className="glass-panel p-5 flex items-center gap-3">
-              <Search className="text-slate-400 flex-shrink-0" size={20} />
+            {/* Google Search Bar Style */}
+            <div className="flex items-center gap-3.5 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-full shadow-md hover:shadow-lg focus-within:shadow-lg focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 transition-all duration-300 w-full mb-2">
+              <Search className="text-slate-400 dark:text-slate-550 flex-shrink-0" size={20} />
               <input
                 type="text"
-                placeholder="Search by student/mentor name, USN, team ID, team name, branch, or project title..."
+                placeholder="Search students, mentors, USN, team ID, branch, or topics..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-405"
                 autoFocus
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="text-slate-450 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   <X size={18} />
                 </button>
@@ -1376,11 +1376,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-6 max-w-md mx-auto">
+                  <div className="space-y-6 w-full">
                     {recentSearches.length > 0 && (
                       <div className="glass-panel p-6 border border-slate-200 dark:border-slate-800">
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-xs font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
                             <Clock size={14} className="text-indigo-500" /> Recent Searches
                           </h3>
                           <button
@@ -1420,12 +1420,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       </div>
                     )}
 
-                    {/* All Users Directory */}
+                    {/* All Users Directory Grid */}
                     <div className="glass-panel border border-slate-200 dark:border-slate-800 overflow-hidden">
-                      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/20">
                         <div className="flex items-center gap-2">
                           <Users size={15} className="text-indigo-500" />
-                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">All Users</span>
+                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Platform Directory</span>
                           <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">{allUsers.length}</span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -1433,7 +1433,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                             <button
                               key={f}
                               onClick={() => setUserListFilter(f)}
-                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg capitalize transition-all cursor-pointer ${
+                              className={`text-[10px] font-bold px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
                                 userListFilter === f
                                   ? 'bg-indigo-600 text-white shadow'
                                   : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1445,50 +1445,60 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         </div>
                       </div>
                       {allUsersLoading ? (
-                        <div className="flex items-center justify-center gap-2 py-10 text-slate-400 text-xs font-semibold">
-                          <div className="w-5 h-5 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
-                          Loading directory...
+                        <div className="flex items-center justify-center gap-2 py-16 text-slate-400 text-xs font-semibold">
+                          <div className="w-6 h-6 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
+                          Loading platform directory...
                         </div>
                       ) : (
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800/70 max-h-[520px] overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5 max-h-[550px] overflow-y-auto no-scrollbar">
                           {allUsers
                             .filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor)
                             .map((user) => (
                             <div
                               key={user.id}
                               onClick={() => setSelectedUser(user)}
-                              className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors cursor-pointer group"
+                              className="glass-panel p-4 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 hover:border-slate-350 dark:hover:border-slate-750 transition-all cursor-pointer flex items-center gap-3.5 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl group"
                             >
-                              {/* Avatar initials */}
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
+                              {/* Avatar Initials */}
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
                                 user.is_mentor
-                                  ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400'
+                                  ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400'
                                   : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
                               }`}>
                                 {user.full_name?.split(' ').map(n => n[0]).slice(0, 2).join('')}
                               </div>
-                              {/* Name + meta */}
+                              {/* Meta Details */}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{user.full_name}</span>
-                                  <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="font-extrabold text-sm text-slate-800 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                    {user.full_name}
+                                  </span>
+                                  <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
                                     user.is_mentor
-                                      ? 'bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800'
+                                      ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
                                       : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
                                   }`}>{user.is_mentor ? 'Mentor' : 'Student'}</span>
                                 </div>
-                                <div className="text-[11px] text-slate-400 font-medium truncate">
+                                <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">
                                   {user.is_mentor
                                     ? `${user.department} · ${user.post}`
-                                    : `${user.branch} · ${user.usn}${user.group ? ` · Team: ${user.group.name}` : ' · No Team'}`
+                                    : `${user.branch} · ${user.usn}`
                                   }
                                 </div>
+                                {!user.is_mentor && (
+                                  <div className="text-[10px] mt-1 font-semibold truncate">
+                                    {user.group ? (
+                                      <span className="text-emerald-650 dark:text-emerald-400 font-bold">Team: {user.group.name}</span>
+                                    ) : (
+                                      <span className="text-slate-400 dark:text-slate-500">No Team</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 flex-shrink-0 group-hover:text-indigo-500 transition-colors" />
                             </div>
                           ))}
                           {allUsers.filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor).length === 0 && (
-                            <div className="text-center py-10 text-slate-400 text-xs font-semibold">No users found.</div>
+                            <div className="col-span-full text-center py-16 text-slate-400 text-xs font-semibold">No users match the filter criteria.</div>
                           )}
                         </div>
                       )}
