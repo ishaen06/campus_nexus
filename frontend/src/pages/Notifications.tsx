@@ -329,7 +329,7 @@ export default function Notifications() {
                   setActiveFolder(folder.id as any);
                   setSelectedNotif(null);
                 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer w-full text-left ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer w-auto md:w-full text-left ${
                   isActive 
                     ? 'bg-indigo-600/10 dark:bg-indigo-600/15 border-l-4 border-indigo-600 dark:border-indigo-500 text-indigo-700 dark:text-indigo-400 font-extrabold' 
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 hover:text-slate-800 dark:hover:text-slate-200'
@@ -492,7 +492,7 @@ export default function Notifications() {
                 </div>
 
                 {/* Sender Header Card */}
-                <div className="flex items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl">
                   <div className="flex items-center gap-3">
                     <Avatar config={null} name={selectedNotif.sender_name} size={38} />
                     <div>

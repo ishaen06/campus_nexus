@@ -530,9 +530,8 @@ export default function Layout() {
       </nav>
 
       {/* Mobile Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-955/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2 overflow-x-auto whitespace-nowrap" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-        <style dangerouslySetInnerHTML={{ __html: `nav::-webkit-scrollbar { display: none; }` }} />
-        <div className="flex justify-between items-center pb-2 px-6 gap-3 min-w-max">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-955/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2">
+        <div className="flex justify-around items-center pb-2 px-2 w-full">
           {navItems
             .map((item) => {
               const isActive = item.path.startsWith('/admin')

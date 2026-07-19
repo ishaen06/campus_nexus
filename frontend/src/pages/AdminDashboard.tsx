@@ -1499,7 +1499,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
                     {/* All Users Directory Grid */}
                     <div className="glass-panel border border-slate-200 dark:border-slate-800 overflow-hidden">
-                      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/20">
+                      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/20">
                         <div className="flex items-center gap-2">
                           <Users size={15} className="text-indigo-500" />
                           <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Platform Directory</span>
