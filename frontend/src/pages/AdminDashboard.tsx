@@ -199,8 +199,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
   const getSuggestions = (): SearchSuggestion[] => {
     const q = searchQuery.trim().toLowerCase();
+    const safeUsers = Array.isArray(allUsers) ? allUsers : [];
+    const safeTeams = Array.isArray(teams) ? teams : [];
+    const safeRecent = Array.isArray(recentSearches) ? recentSearches : [];
+
     if (!q) {
-      return recentSearches.map(term => ({
+      return safeRecent.map(term => ({
         type: 'recent' as const,
         label: term,
         subLabel: undefined,
@@ -208,31 +212,35 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       }));
     }
     
-    const matchedUsers = allUsers
+    const matchedUsers = safeUsers
       .filter(u => 
-        u.full_name?.toLowerCase().includes(q) ||
-        (u.usn && u.usn.toLowerCase().includes(q)) ||
-        (u.branch && u.branch.toLowerCase().includes(q)) ||
-        (u.department && u.department.toLowerCase().includes(q))
+        u && (
+          u.full_name?.toLowerCase().includes(q) ||
+          (u.usn && u.usn.toLowerCase().includes(q)) ||
+          (u.branch && u.branch.toLowerCase().includes(q)) ||
+          (u.department && u.department.toLowerCase().includes(q))
+        )
       )
       .slice(0, 5)
       .map(u => ({
         type: 'user' as const,
-        label: u.full_name,
+        label: u.full_name || 'N/A',
         subLabel: u.is_mentor ? `Mentor (${u.department || 'N/A'})` : `Student (${u.usn || u.branch || 'N/A'})`,
         data: u
       }));
 
-    const matchedTeams = teams
+    const matchedTeams = safeTeams
       .filter(t => 
-        t.name?.toLowerCase().includes(q) ||
-        (t.project_topic && t.project_topic.toLowerCase().includes(q)) ||
-        (t.mentor_name && t.mentor_name.toLowerCase().includes(q))
+        t && (
+          t.name?.toLowerCase().includes(q) ||
+          (t.project_topic && t.project_topic.toLowerCase().includes(q)) ||
+          (t.mentor_name && t.mentor_name.toLowerCase().includes(q))
+        )
       )
       .slice(0, 3)
       .map(t => ({
         type: 'team' as const,
-        label: t.name,
+        label: t.name || 'N/A',
         subLabel: `Team · Topic: ${t.project_topic || 'N/A'}`,
         data: t
       }));
@@ -243,14 +251,23 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const suggestions = getSuggestions();
 
   const selectSuggestion = (item: any) => {
-    if (item.type === 'recent') {
-      setSearchQuery(item.label);
-    } else if (item.type === 'user') {
-      setSelectedUser(item.data);
-      addRecentSearch(item.label);
-    } else if (item.type === 'team') {
-      navigate(`/my-teams/${item.data.id}`);
-      addRecentSearch(item.label);
+    if (!item) return;
+    try {
+      if (item.type === 'recent') {
+        setSearchQuery(item.label || '');
+      } else if (item.type === 'user') {
+        if (item.data) {
+          setSelectedUser(item.data);
+          addRecentSearch(item.label || '');
+        }
+      } else if (item.type === 'team') {
+        if (item.data && item.data.id) {
+          navigate(`/my-teams/${item.data.id}`);
+          addRecentSearch(item.label || '');
+        }
+      }
+    } catch (err) {
+      console.error('Error selecting suggestion:', err);
     }
     setIsFocused(false);
     setActiveSuggestionIndex(-1);
@@ -1551,8 +1568,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5 max-h-[550px] overflow-y-auto no-scrollbar">
-                          {allUsers
-                            .filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor)
+                          {(Array.isArray(allUsers) ? allUsers : [])
+                            .filter(u => u && (userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor))
                             .map((user) => (
                             <div
                               key={user.id}
