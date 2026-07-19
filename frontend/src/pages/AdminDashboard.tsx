@@ -187,7 +187,74 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     });
   };
 
-  // Mentor management states
+  const [isFocused, setIsFocused] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+
+  interface SearchSuggestion {
+    type: 'recent' | 'user' | 'team';
+    label: string;
+    subLabel?: string;
+    data: any;
+  }
+
+  const getSuggestions = (): SearchSuggestion[] => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) {
+      return recentSearches.map(term => ({
+        type: 'recent' as const,
+        label: term,
+        subLabel: undefined,
+        data: term
+      }));
+    }
+    
+    const matchedUsers = allUsers
+      .filter(u => 
+        u.full_name?.toLowerCase().includes(q) ||
+        (u.usn && u.usn.toLowerCase().includes(q)) ||
+        (u.branch && u.branch.toLowerCase().includes(q)) ||
+        (u.department && u.department.toLowerCase().includes(q))
+      )
+      .slice(0, 5)
+      .map(u => ({
+        type: 'user' as const,
+        label: u.full_name,
+        subLabel: u.is_mentor ? `Mentor (${u.department || 'N/A'})` : `Student (${u.usn || u.branch || 'N/A'})`,
+        data: u
+      }));
+
+    const matchedTeams = teams
+      .filter(t => 
+        t.name?.toLowerCase().includes(q) ||
+        (t.project_topic && t.project_topic.toLowerCase().includes(q)) ||
+        (t.mentor_name && t.mentor_name.toLowerCase().includes(q))
+      )
+      .slice(0, 3)
+      .map(t => ({
+        type: 'team' as const,
+        label: t.name,
+        subLabel: `Team · Topic: ${t.project_topic || 'N/A'}`,
+        data: t
+      }));
+
+    return [...matchedUsers, ...matchedTeams];
+  };
+
+  const suggestions = getSuggestions();
+
+  const selectSuggestion = (item: any) => {
+    if (item.type === 'recent') {
+      setSearchQuery(item.label);
+    } else if (item.type === 'user') {
+      setSelectedUser(item.data);
+      addRecentSearch(item.label);
+    } else if (item.type === 'team') {
+      navigate(`/my-teams/${item.data.id}`);
+      addRecentSearch(item.label);
+    }
+    setIsFocused(false);
+    setActiveSuggestionIndex(-1);
+  };
   const [mentors, setMentors] = useState<MentorData[]>([]);
   const [allTeams, setAllTeams] = useState<UnassignedTeam[]>([]);
   const [mentorQuery, setMentorQuery] = useState('');
@@ -1263,24 +1330,101 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Google Search Bar Style */}
-            <div className="flex items-center gap-3.5 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-full shadow-md hover:shadow-lg focus-within:shadow-lg focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 transition-all duration-300 w-full mb-2">
-              <Search className="text-slate-400 dark:text-slate-550 flex-shrink-0" size={20} />
-              <input
-                type="text"
-                placeholder="Search students, mentors, USN, team ID, branch, or topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-405"
-                autoFocus
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="text-slate-450 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  <X size={18} />
-                </button>
+            {/* Google Search Bar Style Container */}
+            <div className="relative w-full z-30">
+              <div className="flex items-center gap-3.5 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-full shadow-md hover:shadow-lg focus-within:shadow-lg focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 transition-all duration-300 w-full">
+                <Search className="text-slate-400 dark:text-slate-550 flex-shrink-0" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search students, mentors, USN, team ID, branch, or topics..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      if (suggestions.length === 0) return;
+                      e.preventDefault();
+                      setActiveSuggestionIndex(prev => 
+                        prev < suggestions.length - 1 ? prev + 1 : 0
+                      );
+                    } else if (e.key === 'ArrowUp') {
+                      if (suggestions.length === 0) return;
+                      e.preventDefault();
+                      setActiveSuggestionIndex(prev => 
+                        prev > 0 ? prev - 1 : suggestions.length - 1
+                      );
+                    } else if (e.key === 'Enter') {
+                      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
+                        e.preventDefault();
+                        selectSuggestion(suggestions[activeSuggestionIndex]);
+                      } else {
+                        setIsFocused(false);
+                      }
+                    } else if (e.key === 'Escape') {
+                      setIsFocused(false);
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-405"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActiveSuggestionIndex(-1);
+                    }}
+                    className="text-slate-450 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+
+              {/* Suggestions Dropdown */}
+              {isFocused && suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-xl overflow-hidden py-2 max-h-80 overflow-y-auto no-scrollbar">
+                  {suggestions.map((item, idx) => {
+                    const isHighlighted = activeSuggestionIndex === idx;
+                    return (
+                      <div
+                        key={idx}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectSuggestion(item);
+                        }}
+                        onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                        className={`flex items-center gap-3 px-6 py-2.5 cursor-pointer transition-colors ${
+                          isHighlighted 
+                            ? 'bg-slate-100/80 dark:bg-slate-800/60' 
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        }`}
+                      >
+                        {item.type === 'recent' ? (
+                          <Clock className="text-slate-400" size={14} />
+                        ) : item.type === 'team' ? (
+                          <Layers className="text-emerald-500" size={14} />
+                        ) : (
+                          <User className="text-indigo-500" size={14} />
+                        )}
+                        
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                          {item.label}
+                        </span>
+                        
+                        {item.subLabel && (
+                          <span className="text-[10px] text-slate-405 dark:text-slate-500 font-semibold ml-auto">
+                            {item.subLabel}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
