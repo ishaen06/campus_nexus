@@ -13,79 +13,69 @@ export default function Logo({
   const graphic = (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
-      viewBox="60 70 80 58" 
+      viewBox="0 0 200 200" 
       style={{ width: size, height: size }}
-      className="flex-shrink-0 object-contain animate-fade-in"
+      className="flex-shrink-0 object-contain"
     >
-      <defs>
-        {/* Cap Body Gradient */}
-        <linearGradient id="logo-cap-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4f46e5" />
-          <stop offset="100%" stopColor="#3b82f6" />
-        </linearGradient>
-        {/* Cap Left Highlight Gradient */}
-        <linearGradient id="logo-cap-light" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#6366f1" />
-          <stop offset="100%" stopColor="#4f46e5" />
-        </linearGradient>
-        {/* Soft Drop Shadow */}
-        <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#0f172a" floodOpacity="0.22" />
-        </filter>
-      </defs>
+      {/* Square border lines */}
+      <rect 
+        x="25" 
+        y="25" 
+        width="150" 
+        height="150" 
+        fill="none" 
+        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
+        strokeWidth="6" 
+        strokeLinejoin="round"
+      />
 
-      {/* Main Cap Group with Shadow */}
-      <g filter="url(#soft-shadow)">
-        {/* Skull Cap Base */}
-        <path 
-          d="M 74,96 L 74,110 C 74,118 100,123 100,123 C 100,123 126,118 126,110 L 126,96 Z" 
-          fill="url(#logo-cap-gradient)" 
-        />
-        
-        {/* Under-cap shadow line */}
-        <path 
-          d="M 74,96 C 74,96 100,101 126,96" 
-          fill="none" 
-          stroke="#000000" 
-          strokeWidth="1.25" 
-          opacity="0.12" 
-        />
+      {/* Diagonal lines from corners to center */}
+      <line 
+        x1="25" 
+        y1="25" 
+        x2="175" 
+        y2="175" 
+        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
+        strokeWidth="6" 
+        strokeLinecap="round"
+      />
+      <line 
+        x1="175" 
+        y1="25" 
+        x2="25" 
+        y2="175" 
+        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
+        strokeWidth="6" 
+        strokeLinecap="round"
+      />
 
-        {/* Top Diamond Board - Left Side (Light Highlight) */}
-        <polygon 
-          points="100,75 100,105 64,90" 
-          fill="url(#logo-cap-light)" 
-        />
+      {/* Center Circle Mask Layer */}
+      <circle 
+        cx="100" 
+        cy="100" 
+        r="54" 
+        className="fill-white dark:fill-slate-950" 
+      /> 
 
-        {/* Top Diamond Board - Right Side (Darker Shadow) */}
-        <polygon 
-          points="100,75 136,90 100,105" 
-          fill="url(#logo-cap-gradient)" 
-        />
+      {/* Inner filled circle */}
+      <circle 
+        cx="100" 
+        cy="100" 
+        r="50" 
+        className="fill-[#1e295d] dark:fill-indigo-500" 
+      /> 
 
-        {/* Center Button Pivot */}
-        <circle 
-          cx="100" 
-          cy="90" 
-          r="3.5" 
-          fill="url(#logo-cap-gradient)" 
-          stroke="#ffffff" 
-          strokeWidth="0.75" 
-        />
+      {/* White Graduation Cap in the center */}
+      <polygon points="100,75 136,90 100,105 64,90" fill="#ffffff" />
+      <path d="M 74,96 L 74,110 C 74,118 100,123 100,123 C 100,123 126,118 126,110 L 126,96" fill="#ffffff" />
+      <path d="M 129,91.5 L 129,112 C 129,114 126.5,115.5 126.5,118" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+      <polygon points="124.5,118 128.5,118 130,127 123,127" fill="#ffffff" />
 
-        {/* Tassel Blue String */}
-        <path 
-          d="M 100,90 L 129,91.5 L 129,112" 
-          fill="none" 
-          stroke="url(#logo-cap-gradient)" 
-          strokeWidth="1.75" 
-          strokeLinecap="round" 
-        />
-        <polygon 
-          points="125.5,112 132.5,112 134,120.5 124,120.5" 
-          fill="url(#logo-cap-gradient)" 
-        />
-      </g>
+      {/* Corner nodes */}
+      <circle cx="25" cy="25" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      <circle cx="175" cy="25" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      <circle cx="25" cy="175" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      <circle cx="175" cy="175" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
     </svg>
   );
 
