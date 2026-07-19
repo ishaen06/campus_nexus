@@ -13,69 +13,41 @@ export default function Logo({
   const graphic = (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 200 200" 
+      viewBox="58 70 84 62" 
       style={{ width: size, height: size }}
-      className="flex-shrink-0 object-contain"
+      className="flex-shrink-0 object-contain animate-fade-in"
     >
-      {/* Square border lines */}
-      <rect 
-        x="25" 
-        y="25" 
-        width="150" 
-        height="150" 
+      <defs>
+        <linearGradient id="logo-cap-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4f46e5" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+      </defs>
+      
+      {/* Tassel stroke and fringe */}
+      <path 
+        d="M 129,91.5 L 129,112 C 129,114 126.5,115.5 126.5,118" 
         fill="none" 
-        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
-        strokeWidth="6" 
-        strokeLinejoin="round"
+        stroke="url(#logo-cap-gradient)" 
+        strokeWidth="2.5" 
+        strokeLinecap="round" 
+      />
+      <polygon 
+        points="124.5,118 128.5,118 130,127 123,127" 
+        fill="url(#logo-cap-gradient)" 
       />
 
-      {/* Diagonal lines from corners to center */}
-      <line 
-        x1="25" 
-        y1="25" 
-        x2="175" 
-        y2="175" 
-        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
-        strokeWidth="6" 
-        strokeLinecap="round"
-      />
-      <line 
-        x1="175" 
-        y1="25" 
-        x2="25" 
-        y2="175" 
-        className="stroke-[#7f8ca8] dark:stroke-slate-700" 
-        strokeWidth="6" 
-        strokeLinecap="round"
+      {/* Main skull cap skull-band */}
+      <path 
+        d="M 74,96 L 74,110 C 74,118 100,123 100,123 C 100,123 126,118 126,110 L 126,96" 
+        fill="url(#logo-cap-gradient)" 
       />
 
-      {/* Center Circle Mask Layer */}
-      <circle 
-        cx="100" 
-        cy="100" 
-        r="54" 
-        className="fill-white dark:fill-slate-950" 
-      /> 
-
-      {/* Inner filled circle */}
-      <circle 
-        cx="100" 
-        cy="100" 
-        r="50" 
-        className="fill-[#1e295d] dark:fill-indigo-500" 
-      /> 
-
-      {/* White Graduation Cap in the center */}
-      <polygon points="100,75 136,90 100,105 64,90" fill="#ffffff" />
-      <path d="M 74,96 L 74,110 C 74,118 100,123 100,123 C 100,123 126,118 126,110 L 126,96" fill="#ffffff" />
-      <path d="M 129,91.5 L 129,112 C 129,114 126.5,115.5 126.5,118" fill="none" stroke="#ffffff" strokeWidth="2.5" stroke-linecap="round" />
-      <polygon points="124.5,118 128.5,118 130,127 123,127" fill="#ffffff" />
-
-      {/* Corner nodes */}
-      <circle cx="25" cy="25" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
-      <circle cx="175" cy="25" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
-      <circle cx="25" cy="175" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
-      <circle cx="175" cy="175" r="14" className="fill-[#1e295d] dark:fill-indigo-500" />
+      {/* Top diamond shape board */}
+      <polygon 
+        points="100,75 136,90 100,105 64,90" 
+        fill="url(#logo-cap-gradient)" 
+      />
     </svg>
   );
 

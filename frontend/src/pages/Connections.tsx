@@ -144,7 +144,7 @@ export default function Connections() {
             </p>
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             {!isMentor && (
               <button
                 onClick={() => setShowCreateGroup(true)}

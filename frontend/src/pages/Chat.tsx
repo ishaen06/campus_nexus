@@ -148,7 +148,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen md:h-screen bg-transparent relative overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-transparent relative overflow-hidden">
       {/* Glass Header */}
       <div className="absolute top-0 w-full glass-panel border-b border-white/20 border-x-0 border-t-0 rounded-none px-6 py-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-4">

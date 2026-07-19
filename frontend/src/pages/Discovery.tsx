@@ -221,7 +221,7 @@ export default function Discovery() {
       </div>
 
       {/* Filter Bar */}
-      <div className="md:absolute md:top-4 md:right-8 flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/30 dark:bg-slate-900/35 backdrop-blur-xl rounded-full border border-slate-200/30 dark:border-slate-800/40 shadow-[0_8px_30px_rgb(0,0,0,0.02)] text-xs mb-8 md:mb-0 z-40">
+      <div className="md:absolute md:top-4 md:right-8 flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/30 dark:bg-slate-900/35 backdrop-blur-xl rounded-2xl md:rounded-full border border-slate-200/30 dark:border-slate-800/40 shadow-[0_8px_30px_rgb(0,0,0,0.02)] text-xs mb-8 md:mb-0 z-40">
         <div className="flex items-center gap-1.5 bg-white/60 dark:bg-slate-950/40 px-3 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Cycle:</label>
           <select
