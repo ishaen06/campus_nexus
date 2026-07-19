@@ -166,6 +166,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [allUsers, setAllUsers] = useState<MatchedUser[]>([]);
   const [allUsersLoading, setAllUsersLoading] = useState(false);
   const [userListFilter, setUserListFilter] = useState<'all' | 'students' | 'mentors'>('all');
+  const [directoryError, setDirectoryError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<MatchedUser | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
@@ -187,91 +188,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     });
   };
 
-  const [isFocused, setIsFocused] = useState(false);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
-
-  interface SearchSuggestion {
-    type: 'recent' | 'user' | 'team';
-    label: string;
-    subLabel?: string;
-    data: any;
-  }
-
-  const getSuggestions = (): SearchSuggestion[] => {
-    const q = searchQuery.trim().toLowerCase();
-    const safeUsers = Array.isArray(allUsers) ? allUsers : [];
-    const safeTeams = Array.isArray(teams) ? teams : [];
-    const safeRecent = Array.isArray(recentSearches) ? recentSearches : [];
-
-    if (!q) {
-      return safeRecent.map(term => ({
-        type: 'recent' as const,
-        label: term,
-        subLabel: undefined,
-        data: term
-      }));
-    }
-    
-    const matchedUsers = safeUsers
-      .filter(u => 
-        u && (
-          u.full_name?.toLowerCase().includes(q) ||
-          (u.usn && u.usn.toLowerCase().includes(q)) ||
-          (u.branch && u.branch.toLowerCase().includes(q)) ||
-          (u.department && u.department.toLowerCase().includes(q))
-        )
-      )
-      .slice(0, 5)
-      .map(u => ({
-        type: 'user' as const,
-        label: u.full_name || 'N/A',
-        subLabel: u.is_mentor ? `Mentor (${u.department || 'N/A'})` : `Student (${u.usn || u.branch || 'N/A'})`,
-        data: u
-      }));
-
-    const matchedTeams = safeTeams
-      .filter(t => 
-        t && (
-          t.name?.toLowerCase().includes(q) ||
-          (t.project_topic && t.project_topic.toLowerCase().includes(q)) ||
-          (t.mentor_name && t.mentor_name.toLowerCase().includes(q))
-        )
-      )
-      .slice(0, 3)
-      .map(t => ({
-        type: 'team' as const,
-        label: t.name || 'N/A',
-        subLabel: `Team · Topic: ${t.project_topic || 'N/A'}`,
-        data: t
-      }));
-
-    return [...matchedUsers, ...matchedTeams];
-  };
-
-  const suggestions = getSuggestions();
-
-  const selectSuggestion = (item: any) => {
-    if (!item) return;
-    try {
-      if (item.type === 'recent') {
-        setSearchQuery(item.label || '');
-      } else if (item.type === 'user') {
-        if (item.data) {
-          setSelectedUser(item.data);
-          addRecentSearch(item.label || '');
-        }
-      } else if (item.type === 'team') {
-        if (item.data && item.data.id) {
-          navigate(`/my-teams/${item.data.id}`);
-          addRecentSearch(item.label || '');
-        }
-      }
-    } catch (err) {
-      console.error('Error selecting suggestion:', err);
-    }
-    setIsFocused(false);
-    setActiveSuggestionIndex(-1);
-  };
+  // Mentor management states
   const [mentors, setMentors] = useState<MentorData[]>([]);
   const [allTeams, setAllTeams] = useState<UnassignedTeam[]>([]);
   const [mentorQuery, setMentorQuery] = useState('');
@@ -381,11 +298,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     // Fetch all users for the search directory
     const fetchAllUsers = async () => {
       setAllUsersLoading(true);
+      setDirectoryError(null);
       try {
         const res = await api.get('/admin/users');
         setAllUsers(res.data || []);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch all users', err);
+        setDirectoryError(err.response?.data?.detail || err.message || 'Failed to load directory');
       } finally {
         setAllUsersLoading(false);
       }
@@ -399,6 +318,63 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Fallback directory populator in case /admin/users fails (e.g. during backend deployment rollout)
+  useEffect(() => {
+    if (allUsers.length === 0 && mentors.length > 0 && teams.length > 0) {
+      console.warn("Using fallback local aggregation for Platform Directory");
+      const aggregated: MatchedUser[] = [];
+      
+      // 1. Add mentors
+      mentors.forEach(m => {
+        aggregated.push({
+          id: m.id,
+          full_name: m.full_name,
+          email: m.email,
+          usn: 'N/A',
+          branch: 'N/A',
+          department: m.department || 'N/A',
+          post: m.post || 'N/A',
+          is_mentor: true,
+          bio: m.bio || '',
+          cycle: 'N/A',
+          group: null
+        });
+      });
+      
+      // 2. Add students from teams
+      const seenStudentIds = new Set<number>();
+      teams.forEach(t => {
+        (t.members || []).forEach(mem => {
+          if (!seenStudentIds.has(mem.id)) {
+            seenStudentIds.add(mem.id);
+            aggregated.push({
+              id: mem.id,
+              full_name: mem.full_name,
+              email: mem.email,
+              usn: mem.usn || 'N/A',
+              branch: mem.branch || 'N/A',
+              department: 'N/A',
+              post: 'N/A',
+              is_mentor: false,
+              bio: '',
+              cycle: mem.cycle || 'N/A',
+              group: { id: t.id, name: t.name, project_topic: t.project_topic }
+            });
+          }
+        });
+      });
+      
+      // Sort mentors first, then students by name
+      aggregated.sort((a, b) => {
+        if (a.is_mentor && !b.is_mentor) return -1;
+        if (!a.is_mentor && b.is_mentor) return 1;
+        return a.full_name.localeCompare(b.full_name);
+      });
+      
+      setAllUsers(aggregated);
+    }
+  }, [mentors, teams, allUsers.length]);
 
   const handleBan = async (userId: number) => {
     if (!window.confirm("Are you sure you want to ban this user?")) return;
@@ -1347,101 +1323,24 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Google Search Bar Style Container */}
-            <div className="relative w-full z-30">
-              <div className="flex items-center gap-3.5 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-full shadow-md hover:shadow-lg focus-within:shadow-lg focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 transition-all duration-300 w-full">
-                <Search className="text-slate-400 dark:text-slate-550 flex-shrink-0" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search students, mentors, USN, team ID, branch, or topics..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setActiveSuggestionIndex(-1);
-                  }}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowDown') {
-                      if (suggestions.length === 0) return;
-                      e.preventDefault();
-                      setActiveSuggestionIndex(prev => 
-                        prev < suggestions.length - 1 ? prev + 1 : 0
-                      );
-                    } else if (e.key === 'ArrowUp') {
-                      if (suggestions.length === 0) return;
-                      e.preventDefault();
-                      setActiveSuggestionIndex(prev => 
-                        prev > 0 ? prev - 1 : suggestions.length - 1
-                      );
-                    } else if (e.key === 'Enter') {
-                      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
-                        e.preventDefault();
-                        selectSuggestion(suggestions[activeSuggestionIndex]);
-                      } else {
-                        setIsFocused(false);
-                      }
-                    } else if (e.key === 'Escape') {
-                      setIsFocused(false);
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-405"
-                  autoFocus
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setActiveSuggestionIndex(-1);
-                    }}
-                    className="text-slate-450 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                  >
-                    <X size={18} />
-                  </button>
-                )}
-              </div>
-
-              {/* Suggestions Dropdown */}
-              {isFocused && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-xl overflow-hidden py-2 max-h-80 overflow-y-auto no-scrollbar">
-                  {suggestions.map((item, idx) => {
-                    const isHighlighted = activeSuggestionIndex === idx;
-                    return (
-                      <div
-                        key={idx}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          selectSuggestion(item);
-                        }}
-                        onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                        className={`flex items-center gap-3 px-6 py-2.5 cursor-pointer transition-colors ${
-                          isHighlighted 
-                            ? 'bg-slate-100/80 dark:bg-slate-800/60' 
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }`}
-                      >
-                        {item.type === 'recent' ? (
-                          <Clock className="text-slate-400" size={14} />
-                        ) : item.type === 'team' ? (
-                          <Layers className="text-emerald-500" size={14} />
-                        ) : (
-                          <User className="text-indigo-500" size={14} />
-                        )}
-                        
-                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                          {item.label}
-                        </span>
-                        
-                        {item.subLabel && (
-                          <span className="text-[10px] text-slate-405 dark:text-slate-500 font-semibold ml-auto">
-                            {item.subLabel}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+            {/* Google Search Bar Style */}
+            <div className="flex items-center gap-3.5 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-full shadow-md hover:shadow-lg focus-within:shadow-lg focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 transition-all duration-300 w-full mb-2">
+              <Search className="text-slate-400 dark:text-slate-550 flex-shrink-0" size={20} />
+              <input
+                type="text"
+                placeholder="Search students, mentors, USN, team ID, branch, or topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent border-none outline-none text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-405"
+                autoFocus
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-slate-450 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <X size={18} />
+                </button>
               )}
             </div>
 
@@ -1538,6 +1437,50 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
                 ) : (
                   <div className="space-y-6 w-full">
+                    {recentSearches.length > 0 && (
+                      <div className="glass-panel p-6 border border-slate-200 dark:border-slate-800">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <Clock size={14} className="text-indigo-500" /> Recent Searches
+                          </h3>
+                          <button
+                            onClick={() => {
+                              setRecentSearches([]);
+                              localStorage.removeItem('recent_searches');
+                            }}
+                            className="text-[10px] font-black text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 uppercase tracking-wider cursor-pointer transition-colors"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {recentSearches.map((term, index) => (
+                            <div
+                              key={index}
+                              className="group flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/40 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-800/80 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              onClick={() => setSearchQuery(term)}
+                            >
+                              <span>{term}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRecentSearches(prev => {
+                                    const updated = prev.filter((_, i) => i !== index);
+                                    localStorage.setItem('recent_searches', JSON.stringify(updated));
+                                    return updated;
+                                  });
+                                }}
+                                className="text-slate-400 hover:text-rose-500 transition-colors rounded p-0.5"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* All Users Directory Grid */}
                     <div className="glass-panel border border-slate-200 dark:border-slate-800 overflow-hidden">
                       <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/20">
                         <div className="flex items-center gap-2">
@@ -1561,15 +1504,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           ))}
                         </div>
                       </div>
-                      {allUsersLoading ? (
+                      {directoryError && allUsers.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <p className="text-xs text-rose-500 font-bold bg-rose-500/10 border border-rose-500/25 px-4 py-3 rounded-2xl inline-block">
+                            Network directory temporarily offline. Please search above. (Error: {directoryError})
+                          </p>
+                        </div>
+                      ) : allUsersLoading ? (
                         <div className="flex items-center justify-center gap-2 py-16 text-slate-400 text-xs font-semibold">
                           <div className="w-6 h-6 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
                           Loading platform directory...
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5 max-h-[550px] overflow-y-auto no-scrollbar">
-                          {(Array.isArray(allUsers) ? allUsers : [])
-                            .filter(u => u && (userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor))
+                          {allUsers
+                            .filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor)
                             .map((user) => (
                             <div
                               key={user.id}
