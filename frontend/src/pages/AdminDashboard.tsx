@@ -1866,7 +1866,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                     <select
                                       value=""
                                       onChange={(e) => handleMoveStudent(member.id, Number(e.target.value))}
-                                      className="bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-650 dark:text-slate-400 outline-none cursor-pointer"
+                                      className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-650 dark:text-slate-400 outline-none cursor-pointer"
                                     >
                                       <option value="" disabled>Move Student...</option>
                                       <option value="0">Remove from Team (No Team)</option>
@@ -2092,7 +2092,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-905/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
                   {selectedUser.is_mentor ? (
                     <>
                       <div>
