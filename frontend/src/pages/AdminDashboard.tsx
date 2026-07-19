@@ -201,6 +201,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [branchFilter, setBranchFilter] = useState('');
   const [themeFilter, setThemeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [teamsSearchText, setTeamsSearchText] = useState('');
   const [rejectingTeamId, setRejectingTeamId] = useState<number | null>(null);
   const [rejectionReasonText, setRejectionReasonText] = useState('');
 
@@ -318,6 +319,17 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Sync URL search query parameters to teamsSearchText in Teams tab
+  useEffect(() => {
+    if (activeTab === 'teams') {
+      const params = new URLSearchParams(window.location.search);
+      const teamSearch = params.get('teamSearch');
+      if (teamSearch) {
+        setTeamsSearchText(teamSearch);
+      }
+    }
+  }, [activeTab, window.location.search]);
 
   // Fallback directory populator in case /admin/users fails (e.g. during backend deployment rollout)
   useEffect(() => {
@@ -566,7 +578,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     const matchesBranch = !branchFilter || (t.members || []).some(m => (m.branch || "N/A").trim().toUpperCase() === branchFilter);
     const matchesTheme = !themeFilter || (t.project_topic || "N/A").trim().toUpperCase() === themeFilter;
     const matchesStatus = !statusFilter || t.mentor_status === statusFilter;
-    return matchesBranch && matchesTheme && matchesStatus;
+    const matchesSearch = !teamsSearchText || 
+      (t.name || "").toLowerCase().includes(teamsSearchText.toLowerCase()) || 
+      String(t.id) === teamsSearchText || 
+      (t.mentor_name || "").toLowerCase().includes(teamsSearchText.toLowerCase()) ||
+      (t.project_topic || "").toLowerCase().includes(teamsSearchText.toLowerCase());
+    return matchesBranch && matchesTheme && matchesStatus && matchesSearch;
   });
 
   const filteredMentors = (mentors || []).filter(m => 
@@ -1411,7 +1428,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           (searchResults.teams || []).map((team) => (
                             <div
                               key={team.id}
-                              onClick={() => navigate(`/my-teams/${team.id}`)}
+                              onClick={() => navigate(`/admin/teams?teamSearch=${encodeURIComponent(team.name)}`)}
                               className="glass-panel p-4 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-all cursor-pointer flex justify-between items-center border hover:border-slate-300 dark:hover:border-slate-700"
                             >
                               <div className="space-y-1.5 flex-1 pr-4">
@@ -1756,7 +1773,30 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             className="space-y-6"
           >
             {/* Filters Section */}
-            <div className="glass-panel p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="glass-panel p-5 grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <Search size={10} /> Search Name / Topic / Mentor
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={teamsSearchText}
+                    onChange={(e) => setTeamsSearchText(e.target.value)}
+                    placeholder="Search teams..."
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-3.5 pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-350 outline-none placeholder-slate-400"
+                  />
+                  {teamsSearchText && (
+                    <button
+                      onClick={() => setTeamsSearchText('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-405 uppercase tracking-wider flex items-center gap-1">
                   <Filter size={10} /> Branch
@@ -2213,7 +2253,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       <div
                         onClick={() => {
                           setSelectedUser(null);
-                          navigate(`/my-teams/${selectedUser.group!.id}`);
+                          navigate(`/admin/teams?teamSearch=${encodeURIComponent(selectedUser.group!.name)}`);
                         }}
                         className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 hover:border-indigo-100 dark:hover:border-indigo-900/40 transition cursor-pointer flex justify-between items-center group/tile"
                       >
