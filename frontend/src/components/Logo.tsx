@@ -13,7 +13,7 @@ export default function Logo({
   const graphic = (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
-      viewBox="40 40 120 120" 
+      viewBox="60 70 80 58" 
       style={{ width: size, height: size }}
       className="flex-shrink-0 object-contain animate-fade-in"
     >
@@ -28,39 +28,11 @@ export default function Logo({
           <stop offset="0%" stopColor="#6366f1" />
           <stop offset="100%" stopColor="#4f46e5" />
         </linearGradient>
-        {/* Tassel Gold Gradient */}
-        <linearGradient id="tassel-gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#d97706" />
-        </linearGradient>
         {/* Soft Drop Shadow */}
         <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#0f172a" floodOpacity="0.22" />
         </filter>
       </defs>
-      
-      {/* Outer Tech Ring */}
-      <circle 
-        cx="100" 
-        cy="100" 
-        r="54" 
-        fill="none" 
-        stroke="url(#logo-cap-gradient)" 
-        strokeWidth="1.25" 
-        strokeDasharray="4 3" 
-        opacity="0.3" 
-      />
-
-      {/* Inner Accent Ring */}
-      <circle 
-        cx="100" 
-        cy="100" 
-        r="48" 
-        fill="none" 
-        stroke="url(#logo-cap-gradient)" 
-        strokeWidth="0.75" 
-        opacity="0.12" 
-      />
 
       {/* Main Cap Group with Shadow */}
       <g filter="url(#soft-shadow)">
@@ -101,17 +73,17 @@ export default function Logo({
           strokeWidth="0.75" 
         />
 
-        {/* Tassel Gold String */}
+        {/* Tassel Blue String */}
         <path 
           d="M 100,90 L 129,91.5 L 129,112" 
           fill="none" 
-          stroke="url(#tassel-gold-gradient)" 
+          stroke="url(#logo-cap-gradient)" 
           strokeWidth="1.75" 
           strokeLinecap="round" 
         />
         <polygon 
           points="125.5,112 132.5,112 134,120.5 124,120.5" 
-          fill="url(#tassel-gold-gradient)" 
+          fill="url(#logo-cap-gradient)" 
         />
       </g>
     </svg>
