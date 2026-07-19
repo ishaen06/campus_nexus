@@ -1521,50 +1521,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
                 ) : (
                   <div className="space-y-6 w-full">
-                    {recentSearches.length > 0 && (
-                      <div className="glass-panel p-6 border border-slate-200 dark:border-slate-800">
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            <Clock size={14} className="text-indigo-500" /> Recent Searches
-                          </h3>
-                          <button
-                            onClick={() => {
-                              setRecentSearches([]);
-                              localStorage.removeItem('recent_searches');
-                            }}
-                            className="text-[10px] font-black text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 uppercase tracking-wider cursor-pointer transition-colors"
-                          >
-                            Clear All
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {recentSearches.map((term, index) => (
-                            <div
-                              key={index}
-                              className="group flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/40 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-800/80 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                              onClick={() => setSearchQuery(term)}
-                            >
-                              <span>{term}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRecentSearches(prev => {
-                                    const updated = prev.filter((_, i) => i !== index);
-                                    localStorage.setItem('recent_searches', JSON.stringify(updated));
-                                    return updated;
-                                  });
-                                }}
-                                className="text-slate-400 hover:text-rose-500 transition-colors rounded p-0.5"
-                              >
-                                <X size={10} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* All Users Directory Grid */}
                     <div className="glass-panel border border-slate-200 dark:border-slate-800 overflow-hidden">
                       <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/20">
                         <div className="flex items-center gap-2">
