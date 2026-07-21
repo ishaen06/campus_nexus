@@ -541,7 +541,7 @@ export default function MyTeam() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  <Users className="text-indigo-600 dark:text-indigo-400" /> Group Chat
+                  <Users className="text-indigo-600 dark:text-indigo-400" /> Create Team
                 </h3>
                 <button 
                   onClick={() => setShowCreateGroup(false)}
@@ -599,7 +599,7 @@ export default function MyTeam() {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Members</label>
                   {connections.filter(c => c.status === 'ACCEPTED').length === 0 ? (
-                    <p className="text-sm text-slate-400 italic">No matches available to create a group.</p>
+                    <p className="text-sm text-slate-400 italic">No matches available to create a team.</p>
                   ) : (
                     <div className="max-h-48 overflow-y-auto space-y-2.5 pr-2 no-scrollbar">
                       {connections.filter(c => c.status === 'ACCEPTED').map(conn => (
@@ -671,7 +671,7 @@ export default function MyTeam() {
                   disabled={!groupName.trim()}
                   className="w-full bg-indigo-600 text-white font-black py-4 px-4 rounded-2xl shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  Create Group Chat
+                  Create Team
                 </motion.button>
               </form>
             </motion.div>
