@@ -405,7 +405,7 @@ export default function Layout() {
                 <img 
                   src="/college_logo.png" 
                   alt="RV College of Engineering Logo" 
-                  className="w-full h-auto object-contain dark:brightness-200 dark:contrast-125 dark:hue-rotate-180 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" 
+                  className="w-full h-auto object-contain transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] dark:brightness-0 dark:invert opacity-90 hover:opacity-100" 
                 />
               </div>
             )}
