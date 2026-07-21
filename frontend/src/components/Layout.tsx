@@ -486,17 +486,17 @@ export default function Layout() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-100/60 dark:bg-slate-900/40 rounded-xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+            <div className="flex items-center justify-center gap-2.5 py-1 select-none">
               <span className={cn(
-                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
-                theme === 'dark' ? "text-slate-100" : "text-slate-500 font-semibold"
+                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300",
+                theme === 'dark' ? "text-slate-100" : "text-slate-400 font-semibold"
               )}>
                 Dark
               </span>
               
               <button
                 onClick={toggleTheme}
-                className="w-9 h-5 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center"
+                className="w-9 h-5 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center shrink-0"
               >
                 <div
                   className={cn(
@@ -513,8 +513,8 @@ export default function Layout() {
               </button>
 
               <span className={cn(
-                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
-                theme === 'light' ? "text-slate-900" : "text-slate-500 font-semibold"
+                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300",
+                theme === 'light' ? "text-slate-900 font-black" : "text-slate-500 font-semibold"
               )}>
                 Light
               </span>
