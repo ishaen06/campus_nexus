@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { motion } from 'framer-motion';
-import { Sparkles, Camera, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Camera, X, Eye, EyeOff, Lock, ChevronLeft } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import Logo from '../components/Logo';
 
@@ -22,6 +22,11 @@ export default function ProfileSetup() {
   const [fullName, setFullName] = useState('');
   const [isMentor, setIsMentor] = useState<boolean | null>(null);
   const [roleSelected, setRoleSelected] = useState(false);
+  const [pendingRole, setPendingRole] = useState<boolean | null>(null); // role chosen but password not yet verified
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [usn, setUsn] = useState('');
   const [branch, setBranch] = useState('');
   const [cycle, setCycle] = useState('P');
@@ -133,7 +138,105 @@ export default function ProfileSetup() {
     }
   };
 
+  // Password gate: shown after role is selected but before verified
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const correctPassword = pendingRole ? 'mentor123' : 'student123';
+    if (passwordInput === correctPassword) {
+      setIsMentor(pendingRole);
+      setPasswordVerified(true);
+      setRoleSelected(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password. Please try again.');
+      setPasswordInput('');
+    }
+  };
+
   if (!roleSelected) {
+    // Password gate screen
+    if (pendingRole !== null && !passwordVerified) {
+      return (
+        <div className="min-h-screen py-12 px-4 flex items-center justify-center bg-transparent w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-sm w-full glass-panel p-8 text-center"
+          >
+            <div className="flex justify-center mb-6">
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+                pendingRole 
+                  ? 'bg-emerald-500/10 border-2 border-emerald-500/30' 
+                  : 'bg-indigo-500/10 border-2 border-indigo-500/30'
+              }`}>
+                <Lock size={28} className={pendingRole ? 'text-emerald-400' : 'text-indigo-400'} />
+              </div>
+            </div>
+
+            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+              {pendingRole ? 'Mentor Access' : 'Student Access'}
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-xs font-semibold">
+              Enter your access password to continue
+            </p>
+
+            <form onSubmit={handlePasswordSubmit} className="mt-6 text-left space-y-4">
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoFocus
+                  value={passwordInput}
+                  onChange={e => { setPasswordInput(e.target.value); setPasswordError(''); }}
+                  placeholder="Enter access password"
+                  className="w-full px-4 py-3 pr-12 glass-input rounded-2xl outline-none font-semibold text-slate-900 dark:text-white text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-1"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {passwordError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="text-xs font-semibold text-rose-500 dark:text-rose-400 text-center"
+                  >
+                    {passwordError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={!passwordInput.trim()}
+                className={`w-full py-3 px-4 rounded-2xl font-black text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                  pendingRole
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20'
+                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20'
+                }`}
+              >
+                Continue
+              </button>
+            </form>
+
+            <button
+              onClick={() => { setPendingRole(null); setPasswordInput(''); setPasswordError(''); }}
+              className="mt-4 flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors mx-auto cursor-pointer"
+            >
+              <ChevronLeft size={14} /> Back to role selection
+            </button>
+          </motion.div>
+        </div>
+      );
+    }
+
+    // Role selection screen
     return (
       <div className="min-h-screen py-12 px-4 flex items-center justify-center bg-transparent w-full">
         <motion.div 
@@ -150,8 +253,9 @@ export default function ProfileSetup() {
           <div className="flex flex-col gap-4 mt-8">
             <button
               onClick={() => {
-                setIsMentor(false);
-                setRoleSelected(true);
+                setPendingRole(false);
+                setPasswordInput('');
+                setPasswordError('');
               }}
               className="py-5 px-6 rounded-2xl border-2 border-indigo-500/20 hover:border-indigo-500 bg-white/5 hover:bg-indigo-500/5 transition-all text-left group cursor-pointer"
             >
@@ -161,8 +265,9 @@ export default function ProfileSetup() {
             
             <button
               onClick={() => {
-                setIsMentor(true);
-                setRoleSelected(true);
+                setPendingRole(true);
+                setPasswordInput('');
+                setPasswordError('');
               }}
               className="py-5 px-6 rounded-2xl border-2 border-emerald-500/20 hover:border-emerald-500 bg-white/5 hover:bg-emerald-500/5 transition-all text-left group cursor-pointer"
             >
