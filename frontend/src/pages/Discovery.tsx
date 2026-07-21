@@ -178,6 +178,7 @@ export default function Discovery() {
   };
 
   const filteredUsers = users.filter(user => {
+    if ((user as any).is_admin || (user as any).role === 'admin' || user.bio?.includes('Platform Administrator')) return false;
     if (cycleFilter !== 'all') {
       const uCycle = (user.cycle || '').toUpperCase();
       if (uCycle !== cycleFilter.toUpperCase()) return false;
