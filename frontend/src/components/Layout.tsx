@@ -476,41 +476,52 @@ export default function Layout() {
               )}
             </div>
 
-            {!isCollapsed && (
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 rounded-xl border border-white/5">
-                <span className={cn(
-                  "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
-                  theme === 'dark' ? "text-[#38bdf8]" : "text-slate-500 font-semibold"
-                )}>
-                  Dark
-                </span>
-                
-                <button
-                  onClick={toggleTheme}
-                  className="w-9 h-5 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center"
+          {/* Theme Toggle Switch */}
+          {isCollapsed ? (
+            <div className="flex items-center justify-center pt-2 border-t border-slate-200/10 dark:border-white/5">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
+                title="Toggle Light/Dark Theme"
+              >
+                {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-100/60 dark:bg-slate-900/40 rounded-xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+              <span className={cn(
+                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
+                theme === 'dark' ? "text-slate-100" : "text-slate-500 font-semibold"
+              )}>
+                Dark
+              </span>
+              
+              <button
+                onClick={toggleTheme}
+                className="w-9 h-5 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center"
+              >
+                <div
+                  className={cn(
+                    "w-4 h-4 rounded-full bg-[#fafafa] dark:bg-[#1e293b] flex items-center justify-center transition-all duration-300 shadow-sm absolute",
+                    theme === 'dark' ? "left-[2px]" : "left-[18px]"
+                  )}
                 >
-                  <div
-                    className={cn(
-                      "w-4 h-4 rounded-full bg-[#fafafa] dark:bg-[#1e293b] flex items-center justify-center transition-all duration-300 shadow-sm absolute",
-                      theme === 'dark' ? "left-[2px]" : "left-[18px]"
-                    )}
-                  >
-                    {theme === 'dark' ? (
-                      <Moon size={11} className="text-[#2d3139]" strokeWidth={2.5} />
-                    ) : (
-                      <Sun size={11} className="text-amber-500" strokeWidth={2.5} />
-                    )}
-                  </div>
-                </button>
+                  {theme === 'dark' ? (
+                    <Moon size={11} className="text-[#2d3139]" strokeWidth={2.5} />
+                  ) : (
+                    <Sun size={11} className="text-amber-500" strokeWidth={2.5} />
+                  )}
+                </div>
+              </button>
 
-                <span className={cn(
-                  "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
-                  theme === 'light' ? "text-slate-900" : "text-slate-500 font-semibold"
-                )}>
-                  Light
-                </span>
-              </div>
-            )}
+              <span className={cn(
+                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
+                theme === 'light' ? "text-slate-900" : "text-slate-500 font-semibold"
+              )}>
+                Light
+              </span>
+            </div>
+          )}
           </div>
         </nav>
       )}
