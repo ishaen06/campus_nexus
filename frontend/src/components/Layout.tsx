@@ -449,30 +449,28 @@ export default function Layout() {
               )}
 
               {currentUser && (
-                <div 
-                  className={cn(
-                    "glass-panel p-3 border border-white/10 flex items-center transition-all cursor-pointer group hover:bg-slate-900/60",
-                    isCollapsed ? "justify-center rounded-2xl" : "justify-between rounded-2xl"
-                  )}
-                  title={isCollapsed ? `${currentUser.full_name} (${isMentor ? 'Mentor' : getStudentSub(currentUser)})` : undefined}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="shrink-0">
+                isCollapsed ? (
+                  <div className="flex items-center justify-center w-full py-1 cursor-pointer">
+                    <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={38} />
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-center justify-between w-full p-2.5 bg-slate-100/50 dark:bg-slate-900/40 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 border border-slate-200/60 dark:border-white/10 rounded-xl transition-all duration-300 text-left group backdrop-blur-md cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
                       <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={36} />
-                    </div>
-                    {!isCollapsed && (
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-slate-100 truncate group-hover:text-indigo-400 transition-colors">
-                          {currentUser.full_name}
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                          {currentUser?.full_name || 'Loading...'}
                         </p>
-                        <p className="text-[10px] text-slate-400 truncate">
-                          {isMentor ? (currentUser.department || 'Mentor') : getStudentSub(currentUser)}
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                          {currentUser?.is_mentor ? `${currentUser.post || 'Mentor'} (${currentUser.department || 'N/A'})` : getStudentSub(currentUser)}
                         </p>
                       </div>
-                    )}
+                    </div>
+                    <ChevronDown size={16} className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0 ml-2" />
                   </div>
-                  {!isCollapsed && <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-200 transition-colors shrink-0" />}
-                </div>
+                )
               )}
             </div>
 
