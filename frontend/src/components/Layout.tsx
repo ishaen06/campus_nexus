@@ -401,11 +401,15 @@ export default function Layout() {
 
           <div className="p-4 border-t border-white/10 space-y-4">
             {!isCollapsed && (
-              <div className="px-2">
-                <img 
-                  src="/college_logo.png" 
-                  alt="RV College of Engineering Logo" 
-                  className="w-full h-auto object-contain transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] dark:brightness-0 dark:invert opacity-90 hover:opacity-100" 
+              <div className="flex items-center justify-center w-full pb-1">
+                <img
+                  src="/rvce_logo_header.png"
+                  alt="RV College of Engineering"
+                  className="w-full object-contain"
+                  style={{
+                    filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none',
+                    maxHeight: '90px'
+                  }}
                 />
               </div>
             )}
