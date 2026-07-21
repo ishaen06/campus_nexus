@@ -135,7 +135,7 @@ export default function ProfileSetup() {
 
   if (!roleSelected) {
     return (
-      <div className="min-h-screen pt-20 px-4 md:px-0 flex items-center justify-center bg-transparent">
+      <div className="min-h-screen py-12 px-4 flex items-center justify-center bg-transparent w-full">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -176,7 +176,7 @@ export default function ProfileSetup() {
   }
 
   return (
-    <div className="min-h-screen pt-20 px-4 md:px-0">
+    <div className="min-h-screen py-12 px-4 flex items-center justify-center bg-transparent w-full">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

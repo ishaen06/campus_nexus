@@ -305,275 +305,259 @@ export default function Layout() {
       navItems.push(profileItem);
     }
   }
+  const isProfileSetup = location.pathname === '/profile-setup';
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
+    <div className={cn("min-h-screen flex flex-col md:flex-row", !isProfileSetup && "pb-20 md:pb-0")}>
       {/* Desktop Sidebar */}
-      <nav className={cn(
-        "hidden md:flex flex-col fixed left-0 top-0 h-screen bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50",
-        isCollapsed ? "w-20" : "w-64"
-      )}>
-        <div className="p-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            {!isCollapsed && (
-              <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
-                <Logo size={44} showText={false} />
-                <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                  <span className="text-[#1e3a8a] dark:text-[#3b82f6]">Campus</span> Nexus
-                </span>
-              </Link>
-            )}
+      {!isProfileSetup && (
+        <nav className={cn(
+          "hidden md:flex flex-col fixed left-0 top-0 h-screen bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.4)] z-50",
+          isCollapsed ? "w-20" : "w-64"
+        )}>
+          <div className="p-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              {!isCollapsed && (
+                <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
+                  <Logo size={44} showText={false} />
+                  <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    <span className="text-[#1e3a8a] dark:text-[#3b82f6]">Campus</span> Nexus
+                  </span>
+                </Link>
+              )}
+              {isCollapsed && (
+                <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="mx-auto">
+                  <Logo size={36} showText={false} />
+                </Link>
+              )}
+              {!isCollapsed && (
+                <button
+                  onClick={toggleSidebar}
+                  className="p-1.5 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
+                  title="Collapse Sidebar"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+            </div>
             {isCollapsed && (
-              <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="mx-auto">
-                <Logo size={36} showText={false} />
-              </Link>
-            )}
-            {!isCollapsed && (
               <button
                 onClick={toggleSidebar}
-                className="p-1.5 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
-                title="Collapse Sidebar"
+                className="mx-auto p-1.5 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
+                title="Expand Sidebar"
               >
-                <ChevronLeft size={16} />
+                <ChevronRight size={16} />
               </button>
             )}
           </div>
-          {isCollapsed && (
-            <button
-              onClick={toggleSidebar}
-              className="mx-auto p-1.5 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
-              title="Expand Sidebar"
-            >
-              <ChevronRight size={16} />
-            </button>
-          )}
-        </div>
 
-        <div className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
-          {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
-            const isActive = item.path.startsWith('/admin')
-              ? location.pathname === item.path
-              : location.pathname.startsWith(item.path);
-            const Icon = item.icon;
-            const danger = (item as any).danger;
-            
-            const isAdminPath = item.path.startsWith('/admin');
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                title={isCollapsed ? item.name : undefined}
-                className={cn(
-                  "flex items-center transition-all duration-300 font-medium relative",
-                  isCollapsed ? "justify-center p-3 rounded-xl mx-auto w-12" : "justify-between px-4 py-3",
-                  isAdminPath
-                    ? (isActive
-                        ? "border-l-4 border-[#1e3a8a] dark:border-blue-500 text-[#1e3a8a] dark:text-blue-400 bg-[#1e3a8a]/5 dark:bg-blue-950/20 rounded-none pl-3 font-semibold"
-                        : "border-l-4 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100/30 dark:hover:bg-slate-900/30 hover:text-slate-900 dark:hover:text-slate-100 rounded-none pl-3"
-                      )
-                    : (isActive
-                        ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl")
-                        : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl")
-                      )
-                )}
-              >
-                <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
-                  <Icon 
-                    size={20} 
-                    className={cn(
-                      isActive && !danger && (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400" : "text-indigo-400")
-                    )} 
-                    strokeWidth={isActive ? 2.5 : 2} 
-                  />
-                  <span className="flex items-center gap-2">
-                    {!isCollapsed && item.name}
-                    {!isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
-                      <span className="h-2 w-2 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
-                    )}
-                    {!isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                      <span className="h-2 w-2 rounded-full bg-rose-500 ring-4 ring-rose-500/20 animate-pulse" />
-                    )}
-                  </span>
-                </div>
-                {isCollapsed && (item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                )}
-                {isCollapsed && item.name === 'Notifications' && hasUnreadNotifications && (
-                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                )}
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="p-3 space-y-2.5 flex-shrink-0">
-          {/* RVCE Logo */}
-          {!isCollapsed && (
-            <div className="flex items-center justify-center w-full pb-1">
-              <img
-                src="/rvce_logo_header.png"
-                alt="RV College of Engineering"
-                className="w-full object-contain"
-                style={{
-                  filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none',
-                  maxHeight: '90px'
-                }}
-              />
-            </div>
-          )}
-
-          {/* Profile Card */}
-          <div 
-            className="relative"
-            onMouseEnter={handleMouseEnterProfile}
-            onMouseLeave={handleMouseLeaveProfile}
-          >
-            {showProfileDropdown && (
-              <div className={cn(
-                "absolute bg-slate-100/95 dark:bg-slate-950/90 border border-slate-200/80 dark:border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-50",
-                isCollapsed ? "left-full bottom-0 ml-2 w-40" : "bottom-full left-0 right-0 mb-2"
-              )}>
-                <button
-                  onClick={() => {
-                    setShowProfileDropdown(false);
-                    navigate('/profile/edit');
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <UserIcon size={14} />
-                  Edit Profile
-                </button>
-                <button
-                  onClick={() => {
-                    setShowProfileDropdown(false);
-                    handleLogout();
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <LogOut size={14} />
-                  Log out
-                </button>
-              </div>
-            )}
-
-            {isCollapsed ? (
-              <div className="flex items-center justify-center w-full py-1 cursor-pointer">
-                <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={38} />
-              </div>
-            ) : (
-              <div
-                className="flex items-center justify-between w-full p-2.5 bg-slate-100/50 dark:bg-slate-900/40 hover:bg-slate-200/50 dark:hover:bg-slate-900/60 border border-slate-200/60 dark:border-white/10 rounded-xl transition-all duration-300 text-left group backdrop-blur-md cursor-default"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={36} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                      {currentUser?.full_name || 'Loading...'}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-                      {currentUser?.is_mentor ? `${currentUser.post || 'Mentor'} (${currentUser.department || 'N/A'})` : getStudentSub(currentUser)}
-                    </p>
-                  </div>
-                </div>
-                <ChevronDown size={16} className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0 ml-2" />
-              </div>
-            )}
-          </div>
-
-          {/* Theme Toggle Switch */}
-          {isCollapsed ? (
-            <div className="flex items-center justify-center pt-2 border-t border-slate-200/10 dark:border-white/5">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg bg-transparent border border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 transition cursor-pointer"
-                title="Toggle Light/Dark Theme"
-              >
-                {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2.5 pt-2.5 border-t border-slate-200/10 dark:border-white/5">
-              <span className={cn(
-                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
-                theme === 'dark' ? "text-white" : "text-slate-400 font-semibold"
-              )}>
-                Dark
-              </span>
-              
-              <button
-                onClick={toggleTheme}
-                className="w-9 h-5 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center"
-              >
-                <div
-                  className={cn(
-                    "w-4 h-4 rounded-full bg-[#fafafa] dark:bg-[#1e293b] flex items-center justify-center transition-all duration-300 shadow-sm absolute",
-                    theme === 'dark' ? "left-[2px]" : "left-[18px]"
-                  )}
-                >
-                  {theme === 'dark' ? (
-                    <Moon size={11} className="text-[#2d3139]" strokeWidth={2.5} />
-                  ) : (
-                    <Sun size={11} className="text-amber-500" strokeWidth={2.5} />
-                  )}
-                </div>
-              </button>
-
-              <span className={cn(
-                "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
-                theme === 'light' ? "text-slate-900" : "text-slate-500 font-semibold"
-              )}>
-                Light
-              </span>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Mobile Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-955/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2">
-        <div className="flex justify-around items-center pb-2 px-2 w-full">
-          {navItems
-            .map((item) => {
+          <div className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
+            {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
               const isActive = item.path.startsWith('/admin')
                 ? location.pathname === item.path
                 : location.pathname.startsWith(item.path);
               const Icon = item.icon;
+              const danger = (item as any).danger;
+              
               const isAdminPath = item.path.startsWith('/admin');
               return (
                 <Link
                   key={item.name}
                   to={item.path}
+                  title={isCollapsed ? item.name : undefined}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
-                    isActive 
-                      ? (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400 scale-110" : "text-indigo-400 scale-110") 
-                      : "text-slate-400 hover:text-slate-200"
+                    "flex items-center transition-all duration-300 font-medium relative",
+                    isCollapsed ? "justify-center p-3 rounded-xl mx-auto w-12" : "justify-between px-4 py-3",
+                    isAdminPath
+                      ? (isActive
+                          ? "border-l-4 border-[#1e3a8a] dark:border-blue-500 text-[#1e3a8a] dark:text-blue-400 bg-[#1e3a8a]/5 dark:bg-blue-950/20 rounded-none pl-3 font-semibold"
+                          : "border-l-4 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100/30 dark:hover:bg-slate-900/30 hover:text-slate-900 dark:hover:text-slate-100 rounded-none pl-3"
+                        )
+                      : (isActive
+                          ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl")
+                          : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl")
+                        )
                   )}
                 >
-                  <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[10px] font-medium opacity-0 hidden">{item.name}</span>
-                  {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                    <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                  <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
+                    <Icon size={20} className={cn("shrink-0", danger ? "text-red-400" : (isActive ? (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400" : "text-indigo-400") : "text-slate-400"))} />
+                    {!isCollapsed && <span className="text-sm font-semibold tracking-wide">{item.name}</span>}
+                  </div>
+                  {!isCollapsed && (item as any).badge !== undefined && (item as any).badge > 0 && (
+                    <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded-full font-bold">
+                      {(item as any).badge}
+                    </span>
                   )}
                   {item.name === 'Notifications' && hasUnreadNotifications && (
-                    <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                  )}
+                  {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                    <span className="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
                   )}
                 </Link>
               );
             })}
-          <button
-            onClick={toggleTheme}
-            className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
-          >
-            {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
-          </button>
-        </div>
-      </nav>
+          </div>
+
+          <div className="p-4 border-t border-white/10 space-y-4">
+            {!isCollapsed && (
+              <div className="px-2">
+                <img 
+                  src="/college_logo.png" 
+                  alt="RV College of Engineering Logo" 
+                  className="w-full h-auto object-contain dark:brightness-200 dark:contrast-125 dark:hue-rotate-180 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" 
+                />
+              </div>
+            )}
+            
+            {/* Profile Card */}
+            <div 
+              className="relative"
+              onMouseEnter={handleMouseEnterProfile}
+              onMouseLeave={handleMouseLeaveProfile}
+            >
+              {showProfileDropdown && (
+                <div className={cn(
+                  "absolute bg-slate-100/95 dark:bg-slate-950/90 border border-slate-200/80 dark:border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-50",
+                  isCollapsed ? "left-full bottom-0 ml-2 w-40" : "bottom-full left-0 right-0 mb-2"
+                )}>
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      navigate('/profile/edit');
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <UserIcon size={14} />
+                    Edit Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    Log out
+                  </button>
+                </div>
+              )}
+
+              {currentUser && (
+                <div 
+                  className={cn(
+                    "glass-panel p-3 border border-white/10 flex items-center transition-all cursor-pointer group hover:bg-slate-900/60",
+                    isCollapsed ? "justify-center rounded-2xl" : "justify-between rounded-2xl"
+                  )}
+                  title={isCollapsed ? `${currentUser.full_name} (${isMentor ? 'Mentor' : getStudentSub(currentUser)})` : undefined}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="shrink-0">
+                      <Avatar config={currentUser?.profile_photo ? { photo: currentUser.profile_photo } : null} name={currentUser?.full_name || ''} size={36} />
+                    </div>
+                    {!isCollapsed && (
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-100 truncate group-hover:text-indigo-400 transition-colors">
+                          {currentUser.full_name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {isMentor ? (currentUser.department || 'Mentor') : getStudentSub(currentUser)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {!isCollapsed && <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-200 transition-colors shrink-0" />}
+                </div>
+              )}
+            </div>
+
+            {!isCollapsed && (
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 rounded-xl border border-white/5">
+                <span className={cn(
+                  "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
+                  theme === 'dark' ? "text-[#38bdf8]" : "text-slate-500 font-semibold"
+                )}>
+                  Dark
+                </span>
+                
+                <button
+                  onClick={toggleTheme}
+                  className="w-9 h-5 rounded-full bg-[#d2d6dc] dark:bg-[#475569] relative transition-colors duration-300 focus:outline-none cursor-pointer p-0.5 border border-slate-300/40 dark:border-slate-500/40 shadow-inner flex items-center"
+                >
+                  <div
+                    className={cn(
+                      "w-4 h-4 rounded-full bg-[#fafafa] dark:bg-[#1e293b] flex items-center justify-center transition-all duration-300 shadow-sm absolute",
+                      theme === 'dark' ? "left-[2px]" : "left-[18px]"
+                    )}
+                  >
+                    {theme === 'dark' ? (
+                      <Moon size={11} className="text-[#2d3139]" strokeWidth={2.5} />
+                    ) : (
+                      <Sun size={11} className="text-amber-500" strokeWidth={2.5} />
+                    )}
+                  </div>
+                </button>
+
+                <span className={cn(
+                  "text-[10px] font-black tracking-wider uppercase transition-colors duration-300 select-none",
+                  theme === 'light' ? "text-slate-900" : "text-slate-500 font-semibold"
+                )}>
+                  Light
+                </span>
+              </div>
+            )}
+          </div>
+        </nav>
+      )}
+
+      {/* Mobile Bottom Bar */}
+      {!isProfileSetup && (
+        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-955/70 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.5)] z-50 pb-safe pt-2">
+          <div className="flex justify-around items-center pb-2 px-2 w-full">
+            {navItems
+              .map((item) => {
+                const isActive = item.path.startsWith('/admin')
+                  ? location.pathname === item.path
+                  : location.pathname.startsWith(item.path);
+                const Icon = item.icon;
+                const isAdminPath = item.path.startsWith('/admin');
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    className={cn(
+                      "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
+                      isActive 
+                        ? (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400 scale-110" : "text-indigo-400 scale-110") 
+                        : "text-slate-400 hover:text-slate-200"
+                    )}
+                  >
+                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium opacity-0 hidden">{item.name}</span>
+                    {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                      <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                    )}
+                    {item.name === 'Notifications' && hasUnreadNotifications && (
+                      <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                    )}
+                  </Link>
+                );
+              })}
+            <button
+              onClick={toggleTheme}
+              className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+            >
+              {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* Main Content Area */}
       <main className={cn(
-        "flex-1 relative min-h-screen",
-        isCollapsed ? "md:ml-20" : "md:ml-64",
+        "flex-1 relative min-h-screen w-full",
+        !isProfileSetup && (isCollapsed ? "md:ml-20" : "md:ml-64"),
         isLocked && isAdmin ? "blur-sm pointer-events-none select-none" : ""
       )}>
         <Outlet />
