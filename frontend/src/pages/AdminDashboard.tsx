@@ -391,6 +391,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const handleBan = async (userId: number, reportId?: number) => {
     if (!window.confirm("Are you sure you want to ban this user?")) return;
     
+    if (reportId) {
+      setReports(prev => prev.filter(r => r.id !== reportId));
+    }
     try {
       await api.post(`/admin/ban/${userId}`);
       if (reportId) {
@@ -400,16 +403,17 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       fetchReports();
     } catch (err: any) {
       alert("Failed to ban user");
+      fetchReports();
     }
   };
 
   const handleDismissReport = async (reportId: number) => {
-    if (!window.confirm("Are you sure you want to dismiss this report?")) return;
+    setReports(prev => prev.filter(r => r.id !== reportId));
     try {
       await api.post(`/admin/reports/${reportId}/dismiss`);
-      fetchReports();
     } catch (err: any) {
-      alert("Failed to dismiss report");
+      console.error("Failed to dismiss report", err);
+      fetchReports();
     }
   };
 

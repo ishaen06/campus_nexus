@@ -76,10 +76,19 @@ def ban_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_mon
     return {"message": f"User {user['full_name']} has been banned."}
 
 @router.post("/reports/{report_id}/dismiss")
-def dismiss_report(report_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
-    result = db.reports.delete_one({"id": report_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Report not found")
+def dismiss_report(report_id: str, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    from bson import ObjectId
+    query_conditions = []
+    try:
+        numeric_id = int(report_id)
+        query_conditions.append({"id": numeric_id})
+    except ValueError:
+        pass
+    query_conditions.append({"id": str(report_id)})
+    if ObjectId.is_valid(report_id):
+        query_conditions.append({"_id": ObjectId(report_id)})
+        
+    db.reports.delete_many({"$or": query_conditions})
     return {"message": "Report dismissed successfully"}
 
 
