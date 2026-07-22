@@ -388,15 +388,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   }, [mentors, teams, allUsers.length]);
 
-  const handleBan = async (userId: number) => {
+  const handleBan = async (userId: number, reportId?: number) => {
     if (!window.confirm("Are you sure you want to ban this user?")) return;
     
     try {
       await api.post(`/admin/ban/${userId}`);
+      if (reportId) {
+        await api.post(`/admin/reports/${reportId}/dismiss`).catch(() => {});
+      }
       alert("User has been banned.");
       fetchReports();
     } catch (err: any) {
       alert("Failed to ban user");
+    }
+  };
+
+  const handleDismissReport = async (reportId: number) => {
+    if (!window.confirm("Are you sure you want to dismiss this report?")) return;
+    try {
+      await api.post(`/admin/reports/${reportId}/dismiss`);
+      fetchReports();
+    } catch (err: any) {
+      alert("Failed to dismiss report");
     }
   };
 
@@ -678,13 +691,22 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center flex-shrink-0 w-full md:w-auto mt-2 md:mt-0">
+                <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto mt-2 md:mt-0">
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleDismissReport(report.id)}
+                    className="w-full md:w-auto px-5 py-2.5 font-bold rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-300 text-sm shadow-sm cursor-pointer"
+                  >
+                    Dismiss
+                  </motion.button>
+
                   {report.reported && (
                     <motion.button 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => handleBan(report.reported!.id)}
-                      className="w-full md:w-auto px-6 py-3 font-extrabold rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-700 dark:hover:text-white transition-all duration-300 text-sm shadow-sm cursor-pointer"
+                      onClick={() => handleBan(report.reported!.id, report.id)}
+                      className="w-full md:w-auto px-6 py-2.5 font-extrabold rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-700 dark:hover:text-white transition-all duration-300 text-sm shadow-sm cursor-pointer"
                     >
                       Ban User
                     </motion.button>

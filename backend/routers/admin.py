@@ -75,6 +75,13 @@ def ban_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_mon
     db.users.update_one({"id": user_id}, {"$set": {"is_banned": True}})
     return {"message": f"User {user['full_name']} has been banned."}
 
+@router.post("/reports/{report_id}/dismiss")
+def dismiss_report(report_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    result = db.reports.delete_one({"id": report_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"message": "Report dismissed successfully"}
+
 
 from fastapi.responses import FileResponse
 import os
