@@ -213,18 +213,25 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
     def get_group_date(g):
         c_at = g.get("created_at")
         if c_at:
+            dt = None
             if isinstance(c_at, str):
                 try:
                     from dateutil.parser import parse
-                    return parse(c_at)
+                    dt = parse(c_at)
                 except Exception:
                     pass
-                try:
-                    import datetime
-                    return datetime.datetime.fromisoformat(c_at.replace("Z", "+00:00"))
-                except Exception:
-                    pass
-            return c_at
+                if dt is None:
+                    try:
+                        import datetime
+                        dt = datetime.datetime.fromisoformat(c_at.replace("Z", "+00:00"))
+                    except Exception:
+                        pass
+            elif hasattr(c_at, "strftime"):
+                dt = c_at
+            
+            if dt and hasattr(dt, "tzinfo") and dt.tzinfo is not None:
+                dt = dt.replace(tzinfo=None)
+            return dt
         return None
 
     valid_groups = []
