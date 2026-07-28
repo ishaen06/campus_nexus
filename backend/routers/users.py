@@ -175,8 +175,8 @@ def get_discovery(
         "is_verified": True,
         "is_banned": False,
         "is_mentor": False,
-        "is_admin": {"$ne": True},
-        "role": {"$ne": "admin"}
+        "is_admin": False,
+        "role": {"$nin": ["admin"]}
     }
     
     # Apply smart cycle matchmaking filter if user is a team admin
