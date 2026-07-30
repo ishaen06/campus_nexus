@@ -141,7 +141,7 @@ export default function ProfileSetup() {
   // Password gate: shown after role is selected but before verified
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const correctPassword = pendingRole ? 'mentor123' : 'student123';
+    const correctPassword = pendingRole ? '123@mentor' : 'student123';
     if (passwordInput === correctPassword) {
       setIsMentor(pendingRole);
       setPasswordVerified(true);
