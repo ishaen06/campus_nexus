@@ -1344,3 +1344,26 @@ def add_or_update_branch(payload: AddBranchRequest, admin = Depends(get_admin_us
     
     return {"status": "success", "message": f"Branch '{code}' configured successfully."}
 
+@router.delete("/academic-settings/branches/{code}")
+def delete_branch(code: str, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    from services.academic_service import get_academic_settings
+    branch_code = code.strip().upper()
+    settings = get_academic_settings(db)
+    
+    b_map = dict(settings.get("branch_mappings", {}))
+    c_map = dict(settings.get("cycle_mappings", {}))
+    
+    if branch_code in b_map or branch_code in c_map:
+        b_map.pop(branch_code, None)
+        c_map.pop(branch_code, None)
+        
+        db.academic_settings.update_one(
+            {"_id": "global"}, 
+            {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}}, 
+            upsert=True
+        )
+        return {"status": "success", "message": f"Branch '{branch_code}' removed successfully."}
+    else:
+        raise HTTPException(status_code=404, detail=f"Branch code '{branch_code}' not found")
+
+

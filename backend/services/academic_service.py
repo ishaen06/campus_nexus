@@ -4,7 +4,6 @@ from fastapi import HTTPException, status
 
 DEFAULT_BRANCH_NAMES = {
     "CS": "Computer Science Engineering",
-    "IS": "Information Science Engineering",
     "EC": "Electronics and Communication Engineering",
     "ECE": "Electronics and Communication Engineering",
     "EE": "Electrical and Electronics Engineering",
@@ -25,7 +24,6 @@ DEFAULT_BRANCH_NAMES = {
 
 DEFAULT_CYCLE_MAPPINGS = {
     "CS": "C",
-    "IS": "C",
     "AI": "C",
     "AIML": "C",
     "CY": "C",
@@ -121,10 +119,19 @@ def get_academic_settings(db):
             "branch_mappings": DEFAULT_BRANCH_NAMES,
             "cycle_mappings": DEFAULT_CYCLE_MAPPINGS
         }
-        try:
-            db.academic_settings.insert_one(settings)
-        except Exception:
-            pass
+    else:
+        # Cleanup removed branches like 'IS' from DB settings document if present
+        b_map = dict(settings.get("branch_mappings", {}))
+        c_map = dict(settings.get("cycle_mappings", {}))
+        if "IS" in b_map or "IS" in c_map:
+            b_map.pop("IS", None)
+            c_map.pop("IS", None)
+            settings["branch_mappings"] = b_map
+            settings["cycle_mappings"] = c_map
+            try:
+                db.academic_settings.update_one({"_id": "global"}, {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}})
+            except Exception:
+                pass
     return settings
 
 def calculate_academic_year(joining_year: int, session_start_month: int = 8) -> int:

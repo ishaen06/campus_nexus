@@ -340,6 +340,16 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
+  const handleDeleteBranch = async (code: string) => {
+    if (!window.confirm(`Are you sure you want to remove the '${code}' branch?`)) return;
+    try {
+      await api.delete(`/admin/academic-settings/branches/${code}`);
+      fetchAcademicSettings();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to remove branch");
+    }
+  };
+
   // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -2181,6 +2191,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           <th className="pb-3">Department Name</th>
                           <th className="pb-3 text-center">Students</th>
                           <th className="pb-3 text-center">Subject Cycle</th>
+                          <th className="pb-3 text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-850 font-semibold text-slate-700 dark:text-slate-300">
@@ -2224,6 +2235,15 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                     P-Cycle
                                   </button>
                                 </div>
+                              </td>
+                              <td className="py-3.5 text-right">
+                                <button
+                                  onClick={() => handleDeleteBranch(code)}
+                                  title={`Remove ${code} branch`}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
                               </td>
                             </tr>
                           );
