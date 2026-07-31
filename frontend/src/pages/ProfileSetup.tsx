@@ -52,14 +52,11 @@ export default function ProfileSetup() {
         setIsMentor(userIsMentor);
         setRoleSelected(true);
         if (userIsMentor) {
-          if (res.data.department && res.data.post && res.data.bio) {
+          if (res.data.department && res.data.post) {
             navigate('/mentor-dashboard');
           }
         } else {
-          // If student has bio, they are ready
-          if (res.data.bio) {
-            navigate('/discovery');
-          }
+          navigate('/discovery');
         }
       } else {
         setIsMentor(null);
@@ -67,8 +64,8 @@ export default function ProfileSetup() {
       }
       
       const isComplete = userIsMentor === true 
-        ? (res.data.department && res.data.post && res.data.bio)
-        : (userIsMentor === false && res.data.bio);
+        ? (res.data.department && res.data.post)
+        : (userIsMentor === false);
       setShowSkip(!!isComplete);
       
       setBranch(res.data.branch || '');
@@ -106,11 +103,6 @@ export default function ProfileSetup() {
     if (isMentor) {
       if (!department.trim() || !post.trim()) {
         alert('Please fill out your department and post/designation.');
-        return;
-      }
-    } else {
-      if (!bio.trim()) {
-        alert('Please provide a short bio.');
         return;
       }
     }
@@ -425,12 +417,11 @@ export default function ProfileSetup() {
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 text-left">Short Bio</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 text-left">Short Bio (Optional)</label>
             <textarea
-              required
               rows={3}
               className="w-full px-4 py-3 glass-input rounded-2xl outline-none resize-none text-slate-900 dark:text-white"
-              placeholder="Tell us a little bit about yourself..."
+              placeholder="Tell us a little bit about yourself (optional)..."
               value={bio} onChange={e => setBio(e.target.value)}
             />
           </div>

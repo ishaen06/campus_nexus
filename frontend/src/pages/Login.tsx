@@ -144,11 +144,7 @@ export default function Login() {
       } else if (meRes.data.is_mentor) {
         navigate('/mentor-dashboard');
       } else {
-        if (meRes.data.usn && meRes.data.bio) {
-          navigate('/discovery');
-        } else {
-          navigate('/profile-setup');
-        }
+        navigate('/discovery');
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Google Authentication failed');

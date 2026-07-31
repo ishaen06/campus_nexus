@@ -459,10 +459,10 @@ export default function ProfileEdit() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">About Me</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">About Me (Optional)</label>
                   <textarea
-                    required
                     rows={4}
+                    placeholder="Write a brief bio about yourself (optional)..."
                     className="w-full px-4 py-3 glass-input rounded-2xl outline-none resize-none font-medium shadow-sm leading-relaxed"
                     value={bio} onChange={e => setBio(e.target.value)}
                   />
