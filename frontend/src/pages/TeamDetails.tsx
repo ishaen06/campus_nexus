@@ -98,7 +98,7 @@ export default function TeamDetails() {
   const studentMembers = (team.members || []).filter((m: any) => !m.is_mentor);
 
   return (
-    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-8 px-4 md:px-8 pb-24">
+    <div className="w-full max-w-full lg:max-w-6xl mx-auto py-8 px-4 md:px-8 pb-24 overflow-x-hidden">
       {/* Back Button */}
       <button
         onClick={() => navigate('/my-teams')}
@@ -159,20 +159,20 @@ export default function TeamDetails() {
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
             <Users size={15} className="text-indigo-400" /> Team Members ({studentMembers.length})
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 max-w-full">
             {studentMembers.map((member) => {
               const isAdmin = member.id === team.created_by;
               return (
-                <div key={member.id} className="py-4.5 flex gap-4 items-center border-b border-slate-100 dark:border-slate-800/40">
+                <div key={member.id} className="py-4 flex gap-3.5 items-center border-b border-slate-100 dark:border-slate-800/40 min-w-0">
                   <Avatar config={member.profile_photo ? { photo: member.profile_photo } : null} name={member.full_name} size={40} />
                   <div className="min-w-0 flex-1 text-left">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      {member.full_name}
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 truncate">
+                      <span className="truncate">{member.full_name}</span>
                       {isAdmin && (
-                        <span className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-300 text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>
+                        <span className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-300 text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">Admin</span>
                       )}
                     </span>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center flex-wrap gap-1.5 mt-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase">
                         {member.usn || 'No USN'}
                       </span>
@@ -193,7 +193,7 @@ export default function TeamDetails() {
                         </>
                       )}
                     </div>
-                    <span className="text-[9px] text-slate-400 block mt-1">{member.email}</span>
+                    <span className="text-[9px] text-slate-400 block mt-1 truncate">{member.email}</span>
                   </div>
 
 

@@ -309,7 +309,7 @@ export default function Layout() {
   const isProfileSetup = location.pathname === '/profile-setup';
 
   return (
-    <div className={cn("min-h-screen flex flex-col md:flex-row", !isProfileSetup && "pb-20 md:pb-0")}>
+    <div className={cn("min-h-screen flex flex-col md:flex-row overflow-x-hidden max-w-full", !isProfileSetup && "pb-20 md:pb-0")}>
       {/* Desktop Sidebar */}
       {!isProfileSetup && (
         <nav className={cn(
@@ -570,7 +570,7 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <main className={cn(
-        "flex-1 relative min-h-screen w-full",
+        "flex-1 relative min-h-screen min-w-0 max-w-full overflow-x-hidden",
         !isProfileSetup && (isCollapsed ? "md:ml-20" : "md:ml-64"),
         isLocked && isAdmin ? "blur-sm pointer-events-none select-none" : ""
       )}>
