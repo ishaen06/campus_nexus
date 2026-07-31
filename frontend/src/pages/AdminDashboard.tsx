@@ -295,9 +295,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     setAcademicSettings({ ...academicSettings, cycle_mappings: updatedCycles });
     try {
       await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update cycle mapping", err);
-      alert("Failed to save cycle mapping change.");
+      alert(err.response?.data?.detail || err.message || "Failed to save cycle mapping change.");
       fetchAcademicSettings();
     }
   };
