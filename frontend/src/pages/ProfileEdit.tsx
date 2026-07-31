@@ -18,6 +18,7 @@ const GOALS_LIST = [
 
 export default function ProfileEdit() {
   const [fullName, setFullName] = useState('');
+  const [usn, setUsn] = useState('');
   const [branch, setBranch] = useState('');
   const [year, setYear] = useState('');
   const [cycle, setCycle] = useState('');
@@ -211,6 +212,7 @@ export default function ProfileEdit() {
     api.get('/users/me').then(res => {
       setFullName(res.data.full_name || '');
       setIsMentor(res.data.is_mentor || false);
+      setUsn(res.data.usn || '');
       setBranch(res.data.branch || '');
       setYear(res.data.year_of_study ? res.data.year_of_study.toString() : '1');
       setBio(res.data.bio || '');
@@ -247,10 +249,19 @@ export default function ProfileEdit() {
         setSaving(false);
         return;
       }
+    } else if (usn.trim()) {
+      const cleanUsn = usn.trim().toLowerCase();
+      const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
+      if (!pattern.test(cleanUsn)) {
+        alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV25CS088)");
+        setSaving(false);
+        return;
+      }
     }
     try {
       await api.put('/users/me/profile', {
         full_name: fullName,
+        usn: isMentor ? null : (usn.trim() ? usn.trim().toUpperCase() : null),
         department: isMentor ? department : null,
         post: isMentor ? post : null,
         bio,
@@ -414,7 +425,17 @@ export default function ProfileEdit() {
                     </>
                   )}
                   {!isMentor && (
-                    <div className="col-span-2 space-y-3 text-left">
+                    <div className="col-span-2 space-y-4 text-left">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">USN (University Seat Number)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 1RV25CS088"
+                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-bold shadow-sm uppercase tracking-wider text-slate-800 dark:text-slate-100"
+                          value={usn}
+                          onChange={e => setUsn(e.target.value)}
+                        />
+                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
                           <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Branch</span>
