@@ -247,6 +247,8 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
             month_str = dt.strftime("%b %Y")
             monthly_trend[month_str] = monthly_trend.get(month_str, 0) + 1
         
+    evaluations_completed = db.evaluations.count_documents({})
+
     return {
         "counts": {
             "total_students": total_students,
@@ -260,7 +262,8 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
             "active_projects": active_projects,
             "pending_approvals": pending_approvals,
             "students_without_teams": students_without_teams,
-            "teams_without_mentors": teams_without_mentors
+            "teams_without_mentors": teams_without_mentors,
+            "evaluations_completed": evaluations_completed
         },
         "students_by_branch": branch_counts,
         "teams_by_department": dept_counts,

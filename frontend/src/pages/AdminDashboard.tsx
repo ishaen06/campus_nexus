@@ -26,7 +26,8 @@ import {
   Briefcase,
   UserCheck,
   UserX,
-  AlertTriangle
+  AlertTriangle,
+  Award
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -52,6 +53,7 @@ interface AnalyticsData {
     pending_approvals?: number;
     students_without_teams?: number;
     teams_without_mentors?: number;
+    evaluations_completed?: number;
   };
   students_by_branch: Record<string, number>;
   teams_by_department: Record<string, number>;
@@ -1084,6 +1086,31 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       </div>
                       <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
                         Teams Without Mentors
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Card 9: Evaluations Completed */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                    className="relative overflow-hidden rounded-3xl p-5 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-indigo-950/30 border border-indigo-100 dark:border-indigo-900/30 shadow-sm dark:shadow-lg flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-300"
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+                        <Award size={20} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                        Evaluations
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                        {analytics.counts.evaluations_completed ?? 0}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider">
+                        Evaluations Completed
                       </div>
                     </div>
                   </motion.div>
