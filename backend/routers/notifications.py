@@ -149,7 +149,7 @@ def create_notification(
 
 @router.get("/has-unread")
 def has_unread_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    is_admin = current_user.get("is_admin", False) or (current_user.get("email") in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
+    is_admin = current_user.get("is_admin", False) or (current_user.get("email") == "ishaen.vihaan@gmail.com")
     query = {}
     if not is_admin:
         u_dept = (current_user.get("branch_code") or current_user.get("branch") or current_user.get("department") or "").strip().upper()
@@ -184,7 +184,7 @@ def mark_notifications_seen(current_user = Depends(get_current_user), db = Depen
 
 @router.get("", response_model=List[dict])
 def get_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    is_admin = current_user.get("is_admin", False) or (current_user.get("email") in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
+    is_admin = current_user.get("is_admin", False) or (current_user.get("email") == "ishaen.vihaan@gmail.com")
     query = {}
     if not is_admin:
         u_dept = (current_user.get("branch_code") or current_user.get("branch") or current_user.get("department") or "").strip().upper()

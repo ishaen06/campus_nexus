@@ -20,7 +20,7 @@ router = APIRouter()
 
 def get_admin_user(current_user = Depends(get_current_user)):
     email = (current_user.get("email") or "").lower().strip()
-    is_admin = current_user.get("is_admin", False) or (email in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
+    is_admin = current_user.get("is_admin", False) or (email == "ishaen.vihaan@gmail.com")
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
@@ -111,8 +111,8 @@ def download_student_marks(admin = Depends(get_admin_user), db = Depends(get_mon
 @router.get("/analytics")
 def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     # 1. Basic Counts
-    total_students = db.users.count_documents({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]}})
-    total_mentors = db.users.count_documents({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]}})
+    total_students = db.users.count_documents({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}})
+    total_mentors = db.users.count_documents({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}})
     total_teams = db.group_chats.count_documents({})
     approved_teams = db.group_chats.count_documents({"mentor_status": "APPROVED"})
     pending_teams = db.group_chats.count_documents({"mentor_status": "PENDING"})
@@ -163,7 +163,7 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
         
     # 4. Mentor Workload
     mentor_workload = {}
-    for mentor in db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]}}):
+    for mentor in db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}):
         email = mentor.get("email")
         name = mentor.get("full_name") or email
         count = db.group_chats.count_documents({"mentor_email": email, "mentor_status": "APPROVED"})
@@ -419,7 +419,7 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
 
 @router.get("/mentors")
 def get_admin_mentors(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
-    mentors = list(db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]}}))
+    mentors = list(db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}))
     results = []
     
     for m in mentors:
@@ -775,7 +775,7 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
         return df, "Student List Report", (15, 45, 60, 25, 20, 15, 20, 77)
 
     elif dataset == "mentors":
-        mentors = list(db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$nin": ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]}}))
+        mentors = list(db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}))
         data = []
         for m in mentors:
             count = db.group_chats.count_documents({
