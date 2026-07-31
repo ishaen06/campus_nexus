@@ -30,6 +30,7 @@ interface NotificationItem {
   id: number;
   title: string;
   content: string;
+  target_department?: string;
   files: Attachment[];
   sender_email: string;
   sender_name: string;
@@ -59,6 +60,7 @@ export default function Notifications() {
 
   // Compose Box Modal/Floating Box State
   const [isComposing, setIsComposing] = useState(false);
+  const [targetDept, setTargetDept] = useState('ALL');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -227,6 +229,7 @@ export default function Notifications() {
     const formData = new FormData();
     formData.append("title", subject);
     formData.append("content", body);
+    formData.append("target_department", targetDept);
     selectedFiles.forEach(file => {
       formData.append("files", file);
     });
@@ -241,6 +244,7 @@ export default function Notifications() {
       // Reset compose state
       setSubject('');
       setBody('');
+      setTargetDept('ALL');
       setSelectedFiles([]);
       setIsComposing(false);
       
@@ -499,8 +503,14 @@ export default function Notifications() {
                       <div className="text-xs font-black text-slate-800 dark:text-slate-200">
                         {selectedNotif.sender_name}
                       </div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                        &lt;{selectedNotif.sender_email}&gt; • to me
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span>&lt;{selectedNotif.sender_email}&gt;</span>
+                        <span>•</span>
+                        <span className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full text-[9px] font-extrabold border border-indigo-200 dark:border-indigo-800/60">
+                          {selectedNotif.target_department && selectedNotif.target_department !== 'ALL' 
+                            ? `To: ${selectedNotif.target_department} Dept` 
+                            : 'To: All Members'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -619,12 +629,31 @@ export default function Notifications() {
             {/* Compose form */}
             <form onSubmit={handleSendNotification} className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 space-y-4">
               
-              {/* To field (All members indicator) */}
-              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">To:</span>
-                <span className="text-xs text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/45 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/35 font-bold">
-                  All Students & Mentors &lt;everyone@campusnexus.edu&gt;
-                </span>
+              {/* To field (Department-wise selection) */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold shrink-0">To:</span>
+                <div className="flex-1 min-w-0">
+                  <select
+                    value={targetDept}
+                    onChange={e => setTargetDept(e.target.value)}
+                    className="w-full text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-extrabold px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm truncate"
+                  >
+                    <option value="ALL">All Students & Mentors &lt;everyone@campusnexus.edu&gt;</option>
+                    <option value="CS">Computer Science Engineering (CS) &lt;cs@campusnexus.edu&gt;</option>
+                    <option value="AI">Artificial Intelligence & Machine Learning (AI/AIML) &lt;ai@campusnexus.edu&gt;</option>
+                    <option value="CY">Cyber Security (CY) &lt;cy@campusnexus.edu&gt;</option>
+                    <option value="DS">Data Science (DS) &lt;ds@campusnexus.edu&gt;</option>
+                    <option value="EC">Electronics & Communication (EC/ECE) &lt;ec@campusnexus.edu&gt;</option>
+                    <option value="EE">Electrical & Electronics (EE/EEE) &lt;ee@campusnexus.edu&gt;</option>
+                    <option value="ME">Mechanical Engineering (ME) &lt;me@campusnexus.edu&gt;</option>
+                    <option value="CV">Civil Engineering (CV) &lt;cv@campusnexus.edu&gt;</option>
+                    <option value="BT">Biotechnology (BT) &lt;bt@campusnexus.edu&gt;</option>
+                    <option value="CH">Chemical Engineering (CH) &lt;ch@campusnexus.edu&gt;</option>
+                    <option value="ETE">Electronics & Telecommunication (ETE) &lt;ete@campusnexus.edu&gt;</option>
+                    <option value="IEM">Industrial Engineering & Management (IEM) &lt;iem@campusnexus.edu&gt;</option>
+                    <option value="AS">Aerospace Engineering (AS/ASE) &lt;as@campusnexus.edu&gt;</option>
+                  </select>
+                </div>
               </div>
 
               {/* Subject Title field */}

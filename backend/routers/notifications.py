@@ -16,12 +16,21 @@ router = APIRouter()
 # Max file limit: 25MB
 MAX_FILE_SIZE = 25 * 1024 * 1024
 
-def send_notification_emails(title: str, content: str, attachments: List[dict], db):
-    """Background task to send email notifications to all registered users."""
-    print("[Background task] Commencing email notification dispatch...")
+def send_notification_emails(title: str, content: str, attachments: List[dict], db, target_department: str = "ALL"):
+    """Background task to send email notifications to all or department-specific registered users."""
+    print(f"[Background task] Commencing email notification dispatch (Target: {target_department})...")
     
-    # Query all users
-    users = list(db.users.find({}, {"email": 1, "full_name": 1}))
+    target_clean = (target_department or "ALL").strip().upper()
+    users = list(db.users.find({}, {"email": 1, "full_name": 1, "branch": 1, "branch_code": 1, "department": 1}))
+    
+    if target_clean != "ALL":
+        filtered_users = []
+        for u in users:
+            u_dept = (u.get("branch_code") or u.get("branch") or u.get("department") or "").strip().upper()
+            if u_dept == target_clean or target_clean in u_dept or u_dept in target_clean:
+                filtered_users.append(u)
+        users = filtered_users
+
     emails = [u["email"] for u in users if u.get("email") and u["email"] != "token"]
     
     # Construct email message body
@@ -29,7 +38,6 @@ def send_notification_emails(title: str, content: str, attachments: List[dict], 
     if attachments:
         attachment_sec = "\n\nAttachments:\n"
         for att in attachments:
-            # We construct a full URL for downloading. We default to localhost, but let it adapt.
             attachment_sec += f"- {att['name']} (Download Link: http://localhost:8000{att['url']})\n"
             
     email_body = f"""Hello,
@@ -38,6 +46,7 @@ College has posted a new notification:
 
 --------------------------------------------------
 Subject: {title}
+Audience: {target_department if target_clean != 'ALL' else 'All Students & Mentors'}
 Date: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC
 --------------------------------------------------
 
@@ -53,7 +62,6 @@ Campus Nexus Team
     
     for dest_email in emails:
         try:
-            # Send email to each user
             send_email(
                 to_email=dest_email,
                 subject=f"[Notification] {title}",
@@ -71,6 +79,7 @@ def create_notification(
     background_tasks: BackgroundTasks,
     title: str = Form(...),
     content: str = Form(...),
+    target_department: Optional[str] = Form("ALL"),
     files: Optional[List[UploadFile]] = File(None),
     admin = Depends(get_admin_user),
     db = Depends(get_mongo_db)
@@ -82,13 +91,9 @@ def create_notification(
     
     if files:
         for file in files:
-            # Skip empty files
             if not file.filename:
                 continue
                 
-            # Perform file size verification (25MB limit)
-            # Since UploadFile doesn't have an immediate size field, we'll read up to limit
-            # Or we can read it to memory, check size, then write
             contents = file.file.read()
             size = len(contents)
             
@@ -98,7 +103,6 @@ def create_notification(
                     detail=f"File {file.filename} exceeds the maximum size limit of 25MB."
                 )
                 
-            # Reset file pointer or write contents directly
             file_id = str(uuid.uuid4())
             safe_filename = f"notification_{file_id}_{file.filename}"
             file_path = os.path.join("uploads", safe_filename)
@@ -116,10 +120,12 @@ def create_notification(
             
     # Save notification record in database
     notif_id = get_next_sequence_value("notifications")
+    dept_target = (target_department or "ALL").strip().upper()
     notif_doc = {
         "id": notif_id,
         "title": title,
         "content": content,
+        "target_department": dept_target,
         "files": saved_attachments,
         "sender_email": admin["email"],
         "sender_name": admin["full_name"],
@@ -134,22 +140,27 @@ def create_notification(
         title, 
         content, 
         saved_attachments, 
-        db
+        db,
+        dept_target
     )
     
-    # Return saved doc (without ObjectId)
     notif_doc.pop("_id", None)
     return notif_doc
 
 @router.get("/has-unread")
 def has_unread_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    """
-    Returns { has_unread: bool } by comparing the latest notification ID in the DB
-    against the user's last_seen_notif_id stored in their user record.
-    This is the server-side approach — reliable across all devices and browser sessions.
-    """
-    # Get the most recent notification
-    latest = db.notifications.find_one({}, sort=[("id", -1)])
+    is_admin = current_user.get("is_admin", False) or (current_user.get("email") in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
+    query = {}
+    if not is_admin:
+        u_dept = (current_user.get("branch_code") or current_user.get("branch") or current_user.get("department") or "").strip().upper()
+        query = {
+            "$or": [
+                {"target_department": {"$in": ["ALL", None, ""]}},
+                {"target_department": {"$regex": f"^{u_dept}$", "$options": "i"}}
+            ]
+        }
+        
+    latest = db.notifications.find_one(query, sort=[("id", -1)])
     if not latest:
         return {"has_unread": False}
     
@@ -161,10 +172,6 @@ def has_unread_notifications(current_user = Depends(get_current_user), db = Depe
 
 @router.post("/mark-seen")
 def mark_notifications_seen(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    """
-    Marks all current notifications as seen for this user by recording the latest
-    notification ID into their user record (last_seen_notif_id).
-    """
     latest = db.notifications.find_one({}, sort=[("id", -1)])
     latest_id = latest["id"] if latest else 0
     
@@ -177,8 +184,18 @@ def mark_notifications_seen(current_user = Depends(get_current_user), db = Depen
 
 @router.get("", response_model=List[dict])
 def get_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    # Fetch all notifications sorted by id / created_at descending
-    notifs = list(db.notifications.find().sort("id", -1))
+    is_admin = current_user.get("is_admin", False) or (current_user.get("email") in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
+    query = {}
+    if not is_admin:
+        u_dept = (current_user.get("branch_code") or current_user.get("branch") or current_user.get("department") or "").strip().upper()
+        query = {
+            "$or": [
+                {"target_department": {"$in": ["ALL", None, ""]}},
+                {"target_department": {"$regex": f"^{u_dept}$", "$options": "i"}}
+            ]
+        }
+        
+    notifs = list(db.notifications.find(query).sort("id", -1))
     for n in notifs:
         n.pop("_id", None)
     return notifs
