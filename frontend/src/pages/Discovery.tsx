@@ -90,6 +90,9 @@ export default function Discovery() {
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
 
+  // Swipe counter — ensures recycled cards get fresh component instances with new keys
+  const [swipeCounter, setSwipeCounter] = useState(0);
+
   // Static branch options used instead of dynamic extraction
 
   const fetchUsers = async () => {
@@ -139,6 +142,8 @@ export default function Discovery() {
   };
 
   const handleSwipeLeft = async (userId: number) => {
+    // Increment swipe counter so recycled users get fresh component instances
+    setSwipeCounter(c => c + 1);
     // Optimistic UI update: Recycle the user to the bottom of the stack instantly
     setUsers(prev => {
       const index = prev.findIndex(u => u.id === userId);
@@ -303,7 +308,7 @@ export default function Discovery() {
 
                   return (
                     <SwipeableCard 
-                      key={user.id} 
+                      key={`${user.id}-${swipeCounter}`} 
                       user={user} 
                       index={index} 
                       onSwipeRight={() => handleSwipeRight(user.id)}
@@ -506,11 +511,16 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
     setExitDirection(direction);
   };
 
-  // Once exit animation completes, call the actual handler
+  // Once exit animation completes, reset state and call the actual handler
   const handleExitComplete = () => {
-    if (exitDirection === 'right') {
+    const dir = exitDirection;
+    // Reset motion value and state BEFORE calling handler
+    // so recycled cards start fresh
+    x.set(0);
+    setExitDirection(null);
+    if (dir === 'right') {
       onSwipeRight();
-    } else if (exitDirection === 'left') {
+    } else if (dir === 'left') {
       onSwipeLeft();
     }
   };
