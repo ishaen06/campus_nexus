@@ -72,7 +72,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         if picture:
             avatar_config = {"emoji": "👨‍💻", "bg": 0, "google_picture": picture}
             
-        is_admin_account = email in ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]
+        is_admin_account = (email == "ishaen.vihaan@gmail.com")
         
         user = {
             "id": new_user_id,
@@ -104,7 +104,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             update_fields["is_verified"] = True
             user["is_verified"] = True
             
-        is_admin_account = email in ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"]
+        is_admin_account = (email == "ishaen.vihaan@gmail.com")
         if is_admin_account:
             if not user.get("is_admin", False):
                 update_fields["is_admin"] = True
@@ -112,17 +112,18 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             if not user.get("is_mentor", False):
                 update_fields["is_mentor"] = True
                 user["is_mentor"] = True
-        elif is_student_email:
+        else:
             if user.get("is_admin") is not False:
                 update_fields["is_admin"] = False
                 user["is_admin"] = False
-            if user.get("is_mentor") is not False:
-                update_fields["is_mentor"] = False
-                user["is_mentor"] = False
-            # Ensure branch_code and joining_year are populated
-            if parsed_info.get("branch_code") and not user.get("branch_code"):
-                update_fields["branch_code"] = parsed_info.get("branch_code")
-            if parsed_info.get("joining_year") and not user.get("joining_year"):
+            if is_student_email:
+                if user.get("is_mentor") is not False:
+                    update_fields["is_mentor"] = False
+                    user["is_mentor"] = False
+                # Ensure branch_code and joining_year are populated
+                if parsed_info.get("branch_code") and not user.get("branch_code"):
+                    update_fields["branch_code"] = parsed_info.get("branch_code")
+                if parsed_info.get("joining_year") and not user.get("joining_year"):
                 update_fields["joining_year"] = parsed_info.get("joining_year")
                 
         if update_fields:

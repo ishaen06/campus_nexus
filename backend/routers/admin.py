@@ -20,7 +20,7 @@ router = APIRouter()
 
 def get_admin_user(current_user = Depends(get_current_user)):
     email = (current_user.get("email") or "").lower().strip()
-    is_admin = current_user.get("is_admin", False) or (email in ["ishaen.vihaan@gmail.com", "ishaen06@gmail.com"])
+    is_admin = current_user.get("is_admin", False) or (email == "ishaen.vihaan@gmail.com")
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
