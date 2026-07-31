@@ -20,7 +20,7 @@ router = APIRouter()
 
 def get_admin_user(current_user = Depends(get_current_user)):
     email = (current_user.get("email") or "").lower().strip()
-    is_admin = current_user.get("is_admin", False) or (email == "ishaen.vihaan@gmail.com")
+    is_admin = current_user.get("is_admin", False) or (email in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
@@ -1321,7 +1321,14 @@ def update_admin_academic_settings(payload: AcademicSettingsUpdateRequest, admin
     if update_data:
         db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
         
-    return {"status": "success", "message": "Academic settings updated successfully."}
+    updated_settings = get_academic_settings(db)
+    return {
+        "status": "success",
+        "message": "Academic settings updated successfully.",
+        "session_start_month": updated_settings.get("session_start_month", 8),
+        "branch_mappings": updated_settings.get("branch_mappings", {}),
+        "cycle_mappings": updated_settings.get("cycle_mappings", {})
+    }
 
 @router.post("/academic-settings/branches")
 def add_or_update_branch(payload: AddBranchRequest, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):

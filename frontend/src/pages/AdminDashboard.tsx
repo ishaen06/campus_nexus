@@ -298,10 +298,14 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
   const handleUpdateCycle = async (code: string, newCycle: 'C' | 'P') => {
     if (!academicSettings) return;
-    const updatedCycles = { ...academicSettings.cycle_mappings, [code]: newCycle };
-    setAcademicSettings({ ...academicSettings, cycle_mappings: updatedCycles });
+    const currentMappings = academicSettings.cycle_mappings || {};
+    const updatedCycles = { ...currentMappings, [code]: newCycle };
+    setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: updatedCycles } : prev);
     try {
-      await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
+      const res = await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
+      if (res.data?.cycle_mappings) {
+        setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: res.data.cycle_mappings } : prev);
+      }
     } catch (err: any) {
       console.error("Failed to update cycle mapping", err);
       alert(err.response?.data?.detail || err.message || "Failed to save cycle mapping change.");
