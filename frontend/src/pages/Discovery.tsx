@@ -196,76 +196,79 @@ export default function Discovery() {
 
   return (
     <div className="relative flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16 w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-100 dark:border-slate-800/80 mb-8 justify-center w-full max-w-sm md:max-w-4xl mx-auto">
-        <button
-          onClick={() => setActiveTab('people')}
-          className={`px-6 py-3 text-xs font-bold uppercase tracking-wider relative transition-all ${
-            activeTab === 'people' 
-              ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-          }`}
-        >
-          People
-          {activeTab === 'people' && (
-            <motion.div layoutId="discoveryTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('teams')}
-          className={`px-6 py-3 text-xs font-bold uppercase tracking-wider relative transition-all ${
-            activeTab === 'teams' 
-              ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-          }`}
-        >
-          Teams
-          {activeTab === 'teams' && (
-            <motion.div layoutId="discoveryTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
-          )}
-        </button>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="md:absolute md:top-4 md:right-8 flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/30 dark:bg-slate-900/35 backdrop-blur-xl rounded-2xl md:rounded-full border border-slate-200/30 dark:border-slate-800/40 shadow-[0_8px_30px_rgb(0,0,0,0.02)] text-xs mb-8 md:mb-0 z-40">
-        <div className="flex items-center gap-1.5 bg-white/60 dark:bg-slate-950/40 px-3 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Cycle:</label>
-          <select
-            value={cycleFilter}
-            onChange={(e) => setCycleFilter(e.target.value)}
-            className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0"
-          >
-            <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Cycles</option>
-            <option value="P" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Physics</option>
-            <option value="C" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Chemistry</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-1.5 bg-white/60 dark:bg-slate-950/40 px-3 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <label className="text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">Branch:</label>
-          <select
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-            className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0 max-w-[130px] truncate"
-          >
-            <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Branches</option>
-            {BRANCH_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {(cycleFilter !== 'all' || branchFilter !== 'all') && (
+      {/* Header: Navigation Tabs & Filter Controls */}
+      <div className="w-full max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-8">
+        {/* Navigation Tabs */}
+        <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => {
-              setCycleFilter('all');
-              setBranchFilter('all');
-            }}
-            className="px-3 py-1.5 text-[10px] font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-350 transition-colors cursor-pointer bg-white/60 dark:bg-slate-950/40 rounded-full border border-slate-200/30 dark:border-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-900"
+            onClick={() => setActiveTab('people')}
+            className={`px-6 py-2 text-xs font-bold uppercase tracking-wider relative transition-all cursor-pointer ${
+              activeTab === 'people' 
+                ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+            }`}
           >
-            Clear
+            People
+            {activeTab === 'people' && (
+              <motion.div layoutId="discoveryTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+            )}
           </button>
-        )}
+          <button
+            onClick={() => setActiveTab('teams')}
+            className={`px-6 py-2 text-xs font-bold uppercase tracking-wider relative transition-all cursor-pointer ${
+              activeTab === 'teams' 
+                ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+            }`}
+          >
+            Teams
+            {activeTab === 'teams' && (
+              <motion.div layoutId="discoveryTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-sm text-xs">
+          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
+            <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cycle:</label>
+            <select
+              value={cycleFilter}
+              onChange={(e) => setCycleFilter(e.target.value)}
+              className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0"
+            >
+              <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Cycles</option>
+              <option value="P" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Physics</option>
+              <option value="C" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Chemistry</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
+            <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Branch:</label>
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0 max-w-[130px] truncate"
+            >
+              <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Branches</option>
+              {BRANCH_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {(cycleFilter !== 'all' || branchFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setCycleFilter('all');
+                setBranchFilter('all');
+              }}
+              className="px-3 py-1.5 text-[10px] font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-350 transition-colors cursor-pointer bg-white/80 dark:bg-slate-950/60 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+            >
+              Reset
+            </button>
+          )}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
