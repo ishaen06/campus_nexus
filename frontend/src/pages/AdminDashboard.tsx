@@ -2275,9 +2275,16 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Session Start Month</label>
                     <select
                       value={academicSettings?.session_start_month || 8}
-                      onChange={(e) => {
+                      onChange={async (e) => {
+                        const newMonth = Number(e.target.value);
                         if (!academicSettings) return;
-                        setAcademicSettings({ ...academicSettings, session_start_month: Number(e.target.value) });
+                        setAcademicSettings({ ...academicSettings, session_start_month: newMonth });
+                        try {
+                          await api.put('/admin/academic-settings', { session_start_month: newMonth });
+                        } catch (err: any) {
+                          alert(err.response?.data?.detail || "Failed to update session start month");
+                          fetchAcademicSettings();
+                        }
                       }}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
                     >

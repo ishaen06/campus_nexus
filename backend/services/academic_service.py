@@ -119,19 +119,23 @@ def get_academic_settings(db):
             "branch_mappings": DEFAULT_BRANCH_NAMES,
             "cycle_mappings": DEFAULT_CYCLE_MAPPINGS
         }
-    else:
-        # Cleanup removed branches like 'IS' from DB settings document if present
-        b_map = dict(settings.get("branch_mappings", {}))
-        c_map = dict(settings.get("cycle_mappings", {}))
-        if "IS" in b_map or "IS" in c_map:
-            b_map.pop("IS", None)
-            c_map.pop("IS", None)
-            settings["branch_mappings"] = b_map
-            settings["cycle_mappings"] = c_map
-            try:
-                db.academic_settings.update_one({"_id": "global"}, {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}})
-            except Exception:
-                pass
+        try:
+            db.academic_settings.insert_one(settings)
+        except Exception:
+            pass
+            
+    # Cleanup removed branches like 'IS' from DB settings document if present
+    b_map = dict(settings.get("branch_mappings", {}))
+    c_map = dict(settings.get("cycle_mappings", {}))
+    if "IS" in b_map or "IS" in c_map:
+        b_map.pop("IS", None)
+        c_map.pop("IS", None)
+        settings["branch_mappings"] = b_map
+        settings["cycle_mappings"] = c_map
+        try:
+            db.academic_settings.update_one({"_id": "global"}, {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}}, upsert=True)
+        except Exception:
+            pass
     return settings
 
 def calculate_academic_year(joining_year: int, session_start_month: int = 8) -> int:
