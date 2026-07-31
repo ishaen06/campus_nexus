@@ -122,7 +122,10 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
                     "id": {"$ne": current_user["id"]}
                 })
                 if existing:
-                    raise HTTPException(status_code=400, detail="USN already registered")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"This USN '{usn_clean.upper()}' is already registered to another student account. Each USN can only be used once."
+                    )
                 
                 update_data["usn"] = profile_data.usn.upper()
             else:

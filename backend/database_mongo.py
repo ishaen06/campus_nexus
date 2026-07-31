@@ -14,6 +14,12 @@ db = client[DB_NAME]
 def get_mongo_db():
     return db
 
+# Ensure USN uniqueness at database level
+try:
+    db.users.create_index("usn", unique=True, partialFilterExpression={"usn": {"$type": "string"}})
+except Exception as e:
+    pass
+
 def get_next_sequence_value(sequence_name: str) -> int:
     counter = db.counters.find_one_and_update(
         {"_id": sequence_name},
