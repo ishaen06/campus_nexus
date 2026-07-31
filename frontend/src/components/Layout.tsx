@@ -109,8 +109,7 @@ export default function Layout() {
         }
         
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
-          || (res.data.is_mentor === false && (!res.data.usn || !res.data.bio))
-          || (res.data.is_mentor === true && (!res.data.department || !res.data.post || !res.data.bio));
+          || (res.data.is_mentor === true && (!res.data.department || !res.data.post));
           
         if (needsSetup && location.pathname !== '/profile-setup') {
           navigate('/profile-setup');
