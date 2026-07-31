@@ -90,8 +90,33 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
                 import re
                 pattern = re.compile(r"^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$", re.IGNORECASE)
                 if not pattern.match(usn_clean):
-                    raise HTTPException(status_code=400, detail="USN must start with '1rv' or '1rz', have 2-digit year, 2 to 3 letter branch, and end with a 3-digit number (e.g. 1RV22CS001)")
+                    raise HTTPException(status_code=400, detail="USN must start with '1rv' or '1rz', have 2-digit year, 2 to 3 letter branch, and end with a 3-digit number (e.g. 1RV24CS001)")
                 
+                # Check USN match against college email ID
+                email_clean = (current_user.get("email") or "").strip().lower()
+                if email_clean.endswith("@rvce.edu.in"):
+                    email_prefix = email_clean.split("@")[0].strip()
+                    if email_prefix.startswith(("1rv", "1rz")):
+                        if usn_clean != email_prefix:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"USN '{usn_clean.upper()}' does not match your college email ID '{email_clean}'. Expected USN: {email_prefix.upper()}"
+                            )
+                    else:
+                        from services.academic_service import parse_rvce_email
+                        parsed = parse_rvce_email(email_clean)
+                        if parsed.get("is_valid_rvce_student"):
+                            b_code = parsed.get("branch_code", "").lower()
+                            yy_str = str(parsed.get("joining_year", 2025))[-2:]
+                            usn_match = re.match(r"^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$", usn_clean)
+                            if usn_match:
+                                u_yy, u_branch = usn_match.group(2), usn_match.group(3)
+                                if u_branch.lower() != b_code.lower() or u_yy != yy_str:
+                                    raise HTTPException(
+                                        status_code=400,
+                                        detail=f"USN branch/year ({u_branch.upper()}/{u_yy}) does not match your college email details ({b_code.upper()}/{yy_str})."
+                                    )
+
                 existing = db.users.find_one({
                     "usn": {"$regex": f"^{usn_clean}$", "$options": "i"},
                     "id": {"$ne": current_user["id"]}

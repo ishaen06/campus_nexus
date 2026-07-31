@@ -20,6 +20,7 @@ const GOALS_LIST = [
 
 export default function ProfileSetup() {
   const [fullName, setFullName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [isMentor, setIsMentor] = useState<boolean | null>(null);
   const [roleSelected, setRoleSelected] = useState(false);
   const [pendingRole, setPendingRole] = useState<boolean | null>(null); // role chosen but password not yet verified
@@ -46,6 +47,7 @@ export default function ProfileSetup() {
     api.get('/users/me').then(res => {
       setFullName(res.data.full_name || '');
       const userEmail = (res.data.email || '').toLowerCase().trim();
+      setUserEmail(userEmail);
       const isRvce = userEmail.endsWith('@rvce.edu.in');
       const userIsMentor = isRvce ? false : res.data.is_mentor;
       
@@ -111,8 +113,35 @@ export default function ProfileSetup() {
       const cleanUsn = usn.trim().toLowerCase();
       const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
       if (!pattern.test(cleanUsn)) {
-        alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV25CS088)");
+        alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV24CS001)");
         return;
+      }
+
+      // Validate USN matches college email ID prefix
+      const cleanEmail = (userEmail || '').trim().toLowerCase();
+      if (cleanEmail.endsWith('@rvce.edu.in')) {
+        const emailPrefix = cleanEmail.split('@')[0].trim();
+        if (emailPrefix.startsWith('1rv') || emailPrefix.startsWith('1rz')) {
+          if (cleanUsn !== emailPrefix) {
+            alert(`USN validation error: Your USN (${cleanUsn.toUpperCase()}) does not match your college email ID (${cleanEmail}). Expected USN: ${emailPrefix.toUpperCase()}`);
+            return;
+          }
+        } else {
+          const match = cleanEmail.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
+          if (match) {
+            const emailBranch = match[2].toLowerCase();
+            const emailYear = match[3];
+            const usnMatch = cleanUsn.match(/^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$/);
+            if (usnMatch) {
+              const usnYear = usnMatch[2];
+              const usnBranch = usnMatch[3].toLowerCase();
+              if (usnBranch !== emailBranch || usnYear !== emailYear) {
+                alert(`USN validation error: USN branch/year (${usnBranch.toUpperCase()}/${usnYear}) does not match your college email details (${emailBranch.toUpperCase()}/${emailYear}).`);
+                return;
+              }
+            }
+          }
+        }
       }
     }
 
