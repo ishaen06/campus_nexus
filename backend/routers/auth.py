@@ -45,7 +45,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
     if not validate_email_domain(email):
         raise HTTPException(
             status_code=403,
-            detail="Access restricted: Only official @rvce.edu.in student emails or authorized admin accounts (ishaen06@gmail.com, ishaen.vihaan@gmail.com) are permitted."
+            detail="Access restricted: Only official @rvce.edu.in student emails or authorized admin accounts are permitted."
         )
 
     # Check if user already exists
