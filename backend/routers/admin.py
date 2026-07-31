@@ -290,7 +290,10 @@ def get_all_users(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
                     group_info = {
                         "id": group["id"],
                         "name": group["name"],
-                        "project_topic": group.get("project_topic") or "N/A"
+                        "project_topic": group.get("project_topic") or "N/A",
+                        "project_sub_topic": group.get("project_sub_topic") or "N/A",
+                        "project_theme": group.get("project_theme") or group.get("theme") or "N/A",
+                        "mentor_name": group.get("mentor_name") or "Unassigned"
                     }
         formatted_users.append({
             "id": u["id"],
@@ -349,7 +352,10 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
                     group_info = {
                         "id": group["id"],
                         "name": group["name"],
-                        "project_topic": group.get("project_topic") or "N/A"
+                        "project_topic": group.get("project_topic") or "N/A",
+                        "project_sub_topic": group.get("project_sub_topic") or "N/A",
+                        "project_theme": group.get("project_theme") or group.get("theme") or "N/A",
+                        "mentor_name": group.get("mentor_name") or "Unassigned"
                     }
         formatted_users.append({
             "id": u["id"],

@@ -86,7 +86,14 @@ interface MatchedUser {
   is_mentor: boolean;
   bio: string;
   cycle: string;
-  group: { id: number; name: string; project_topic: string } | null;
+  group: { 
+    id: number; 
+    name: string; 
+    project_topic: string;
+    project_sub_topic?: string;
+    project_theme?: string;
+    mentor_name?: string;
+  } | null;
 }
 
 interface MatchedTeam {
@@ -2646,43 +2653,80 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   )}
                 </div>
 
-                {selectedUser.bio && (
+                {/* Onboarding Bio (Displayed only for Mentors) */}
+                {selectedUser.is_mentor && selectedUser.bio && (
                   <div className="border-l-4 border-indigo-500 bg-indigo-50/10 p-3.5 rounded-r-2xl border border-y-indigo-100/10 border-r-indigo-100/10">
-                    <span className="block text-[9px] font-bold text-indigo-500 uppercase tracking-widest mb-1">Onboarding Bio</span>
+                    <span className="block text-[9px] font-bold text-indigo-500 uppercase tracking-widest mb-1">Mentor Bio</span>
                     <p className="text-slate-700 dark:text-slate-300 text-sm font-semibold leading-relaxed italic">"{selectedUser.bio}"</p>
                   </div>
                 )}
 
-                {/* Group Details */}
+                {/* Group & Project Details for Students */}
                 {!selectedUser.is_mentor && (
-                  <div className="space-y-2">
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned Team Details</span>
+                  <div className="space-y-3 text-left">
+                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned Team & Project Details</span>
                     {selectedUser.group ? (
                       <div
                         onClick={() => {
                           setSelectedUser(null);
                           navigate(`/admin/teams?teamSearch=${encodeURIComponent(selectedUser.group!.name)}`);
                         }}
-                        className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 hover:border-indigo-100 dark:hover:border-indigo-900/40 transition cursor-pointer flex justify-between items-center group/tile"
+                        className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 transition cursor-pointer space-y-3 group/tile shadow-sm"
                       >
-                        <div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-slate-800/80">
                           <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-sm text-slate-900 dark:text-white group-hover/tile:text-indigo-600 dark:group-hover/tile:text-indigo-400 transition-colors">{selectedUser.group.name}</span>
-                            <span className="text-[9px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900">
-                              ID: {selectedUser.group.id}
+                            <span className="font-black text-sm text-slate-900 dark:text-white group-hover/tile:text-indigo-600 dark:group-hover/tile:text-indigo-400 transition-colors">
+                              {selectedUser.group.name}
+                            </span>
+                            <span className="text-[9px] font-black uppercase bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800">
+                              Team ID: {selectedUser.group.id}
                             </span>
                           </div>
-                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5">
-                            <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">Topic:</span>
-                            <span className="text-slate-700 dark:text-slate-355 font-semibold">{selectedUser.group.project_topic}</span>
+                          <div className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 group-hover/tile:text-indigo-600 dark:group-hover/tile:text-indigo-400 group-hover/tile:translate-x-0.5 transition-all">
+                            <ChevronRight size={15} />
                           </div>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-800/80 flex items-center justify-center text-slate-400 group-hover/tile:text-indigo-600 dark:group-hover/tile:text-indigo-400 group-hover/tile:translate-x-0.5 transition-all">
-                          <ChevronRight size={16} />
+
+                        <div className="space-y-2 text-xs">
+                          {selectedUser.group.project_theme && selectedUser.group.project_theme !== "N/A" && (
+                            <div>
+                              <span className="block text-[9px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-0.5">Project Theme</span>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold bg-indigo-50/70 dark:bg-indigo-950/30 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/40 inline-block">
+                                🎨 {selectedUser.group.project_theme}
+                              </span>
+                            </div>
+                          )}
+
+                          <div>
+                            <span className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mb-0.5">Project Topic</span>
+                            <span className="text-slate-800 dark:text-slate-200 font-semibold block leading-snug">
+                              📌 {selectedUser.group.project_topic || 'Not specified'}
+                            </span>
+                          </div>
+
+                          {selectedUser.group.project_sub_topic && selectedUser.group.project_sub_topic !== "N/A" && (
+                            <div>
+                              <span className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mb-0.5">Sub-Topic / Domain</span>
+                              <span className="text-slate-600 dark:text-slate-400 font-medium block">
+                                💡 {selectedUser.group.project_sub_topic}
+                              </span>
+                            </div>
+                          )}
+
+                          {selectedUser.group.mentor_name && (
+                            <div className="pt-1.5 border-t border-slate-200/40 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
+                              <span className="text-slate-400 font-medium">Assigned Mentor:</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                👨‍🏫 {selectedUser.group.mentor_name}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-405 font-medium italic">This student is not currently assigned to any team.</p>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                        <p className="text-xs text-slate-400 font-medium italic">This student is not currently assigned to any team or project.</p>
+                      </div>
                     )}
                   </div>
                 )}
