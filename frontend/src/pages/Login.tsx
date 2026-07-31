@@ -142,9 +142,17 @@ export default function Login() {
       } else if (meRes.data.is_mentor === null || meRes.data.is_mentor === undefined) {
         navigate('/profile-setup');
       } else if (meRes.data.is_mentor) {
-        navigate('/mentor-dashboard');
+        if (!meRes.data.department || !meRes.data.post) {
+          navigate('/profile-setup');
+        } else {
+          navigate('/mentor-dashboard');
+        }
       } else {
-        navigate('/discovery');
+        if (!meRes.data.usn) {
+          navigate('/profile-setup');
+        } else {
+          navigate('/discovery');
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Google Authentication failed');

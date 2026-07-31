@@ -84,6 +84,12 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
         update_data["goals"] = None
         
     elif is_mentor is False:
+        usn_val = (profile_data.usn or "").strip()
+        current_usn = (current_user.get("usn") or "").strip()
+        
+        if not usn_val and not current_usn:
+            raise HTTPException(status_code=400, detail="USN is mandatory for student account setup.")
+            
         if profile_data.usn is not None:
             usn_clean = profile_data.usn.strip().lower()
             if usn_clean:
@@ -129,7 +135,8 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
                 
                 update_data["usn"] = profile_data.usn.upper()
             else:
-                update_data["usn"] = None
+                if not current_usn:
+                    raise HTTPException(status_code=400, detail="USN is mandatory for student account setup.")
                 
         if profile_data.branch is not None:
             update_data["branch"] = profile_data.branch

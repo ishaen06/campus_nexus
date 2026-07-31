@@ -106,10 +106,10 @@ export default function Layout() {
           return;
         }
         
-        // Only redirect to profile-setup if mentor role is not yet chosen,
-        // or if mentor is missing required department/post fields.
-        // Students (is_mentor === false) are always considered complete.
+        // Redirect to profile-setup if mentor role is not yet chosen,
+        // or if student is missing USN, or if mentor is missing department/post.
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
+          || (res.data.is_mentor === false && !res.data.usn)
           || (res.data.is_mentor === true && (!res.data.department || !res.data.post));
           
         if (needsSetup && location.pathname !== '/profile-setup') {

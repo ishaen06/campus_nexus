@@ -58,7 +58,7 @@ export default function ProfileSetup() {
           if (res.data.department && res.data.post) {
             navigate('/mentor-dashboard');
           }
-        } else {
+        } else if (res.data.usn) {
           navigate('/discovery');
         }
       } else {
@@ -67,9 +67,9 @@ export default function ProfileSetup() {
       }
       
       const isComplete = userIsMentor === true 
-        ? (res.data.department && res.data.post)
-        : (userIsMentor === false);
-      setShowSkip(!!isComplete);
+        ? Boolean(res.data.department && res.data.post)
+        : Boolean(res.data.usn);
+      setShowSkip(isComplete);
       
       setUsn(res.data.usn || '');
       setBranch(res.data.branch || '');
@@ -109,7 +109,11 @@ export default function ProfileSetup() {
         alert('Please fill out your department and post/designation.');
         return;
       }
-    } else if (usn.trim()) {
+    } else {
+      if (!usn.trim()) {
+        alert('USN is mandatory for student setup. Please enter your valid USN.');
+        return;
+      }
       const cleanUsn = usn.trim().toLowerCase();
       const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
       if (!pattern.test(cleanUsn)) {
