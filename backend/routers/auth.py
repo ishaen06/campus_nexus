@@ -72,7 +72,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         if picture:
             avatar_config = {"emoji": "👨‍💻", "bg": 0, "google_picture": picture}
             
-        is_admin_account = (email == "ishaen.vihaan@gmail.com")
+        is_admin_account = (email in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
         
         user = {
             "id": new_user_id,
@@ -85,7 +85,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             "year_of_study": None,  # Calculated dynamically at runtime
             "hashed_password": "",  # No password needed for Google OAuth
             "cycle": None,          # Resolved dynamically from Admin settings
-            "is_mentor": False if is_student_email else (True if is_admin_account else None),
+            "is_mentor": False,
             "department": "Admin Office" if is_admin_account else None,
             "post": "Chief Administrator" if is_admin_account else None,
             "is_verified": True,     # Google emails are pre-verified
@@ -104,14 +104,14 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
             update_fields["is_verified"] = True
             user["is_verified"] = True
             
-        is_admin_account = (email == "ishaen.vihaan@gmail.com")
+        is_admin_account = (email in {"ishaen.vihaan@gmail.com", "ishaen06@gmail.com"})
         if is_admin_account:
             if not user.get("is_admin", False):
                 update_fields["is_admin"] = True
                 user["is_admin"] = True
-            if not user.get("is_mentor", False):
-                update_fields["is_mentor"] = True
-                user["is_mentor"] = True
+            if user.get("is_mentor") is not False:
+                update_fields["is_mentor"] = False
+                user["is_mentor"] = False
         else:
             if user.get("is_admin") is not False:
                 update_fields["is_admin"] = False

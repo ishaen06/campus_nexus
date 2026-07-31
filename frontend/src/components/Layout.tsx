@@ -85,9 +85,9 @@ export default function Layout() {
     api.get('/users/me')
       .then(res => {
         setCurrentUser(res.data);
-        const userIsAdmin = res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com';
+        const userIsAdmin = res.data.is_admin || res.data.email === 'ishaen.vihaan@gmail.com' || res.data.email === 'ishaen06@gmail.com';
         setIsAdmin(userIsAdmin);
-        setIsMentor(res.data.is_mentor);
+        setIsMentor(userIsAdmin ? false : res.data.is_mentor);
         
         if (userIsAdmin) {
           const lastVerified = localStorage.getItem('adminLastVerified');
