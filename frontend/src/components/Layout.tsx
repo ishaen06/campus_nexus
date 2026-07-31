@@ -79,6 +79,8 @@ export default function Layout() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  const [authLoading, setAuthLoading] = useState(true);
+
   useEffect(() => {
     api.get('/users/me')
       .then(res => {
@@ -88,10 +90,6 @@ export default function Layout() {
         setIsMentor(res.data.is_mentor);
         
         if (userIsAdmin) {
-          // Always check lock status on every page load / navigation
-          // This catches the case where the admin just logged in fresh (Layout may
-          // already have isAdmin=true from a previous session, so the [isAdmin]
-          // useEffect would never re-fire — this guarantees the lock always shows)
           const lastVerified = localStorage.getItem('adminLastVerified');
           if (!lastVerified) {
             setIsLocked(true);
@@ -108,6 +106,9 @@ export default function Layout() {
           return;
         }
         
+        // Only redirect to profile-setup if mentor role is not yet chosen,
+        // or if mentor is missing required department/post fields.
+        // Students (is_mentor === false) are always considered complete.
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
           || (res.data.is_mentor === true && (!res.data.department || !res.data.post));
           
@@ -117,8 +118,13 @@ export default function Layout() {
       })
       .catch(() => {
         navigate('/login');
+      })
+      .finally(() => {
+        setAuthLoading(false);
       });
-  }, [location.pathname, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount only — prevents glitch/flicker on every navigation
+
 
   const getStudentSub = (user: any) => {
     if (!user) return '';
@@ -306,6 +312,18 @@ export default function Layout() {
     }
   }
   const isProfileSetup = location.pathname === '/profile-setup';
+
+  // Don't render anything until initial auth check completes — prevents flash/glitch
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+          <span className="text-slate-400 text-sm font-medium tracking-wide">Loading Campus Nexus…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("min-h-screen flex flex-col md:flex-row overflow-x-hidden max-w-full", !isProfileSetup && "pb-20 md:pb-0")}>
