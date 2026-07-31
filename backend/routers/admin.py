@@ -1260,3 +1260,86 @@ def download_admin_report(
         
     else:
         raise HTTPException(status_code=400, detail="Invalid format specified. Use csv, excel, or pdf.")
+
+
+# --- Academic Settings & Cycle Management Endpoints ---
+
+class AcademicSettingsUpdateRequest(BaseModel):
+    session_start_month: Optional[int] = None
+    branch_mappings: Optional[dict] = None
+    cycle_mappings: Optional[dict] = None
+
+class AddBranchRequest(BaseModel):
+    code: str
+    name: str
+    cycle: str
+
+@router.get("/academic-settings")
+def get_admin_academic_settings(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    from services.academic_service import get_academic_settings, DEFAULT_BRANCH_NAMES, DEFAULT_CYCLE_MAPPINGS
+    settings = get_academic_settings(db)
+    
+    # Calculate student count per branch code
+    students = list(db.users.find({"is_mentor": False}))
+    branch_counts = {}
+    for s in students:
+        b_code = (s.get("branch_code") or s.get("branch") or "UNKNOWN").upper().strip()
+        branch_counts[b_code] = branch_counts.get(b_code, 0) + 1
+        
+    return {
+        "session_start_month": settings.get("session_start_month", 8),
+        "branch_mappings": settings.get("branch_mappings", DEFAULT_BRANCH_NAMES),
+        "cycle_mappings": settings.get("cycle_mappings", DEFAULT_CYCLE_MAPPINGS),
+        "branch_counts": branch_counts,
+        "total_students": len(students)
+    }
+
+@router.put("/academic-settings")
+def update_admin_academic_settings(payload: AcademicSettingsUpdateRequest, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    from services.academic_service import get_academic_settings
+    settings = get_academic_settings(db)
+    
+    update_data = {}
+    if payload.session_start_month is not None:
+        if not (1 <= payload.session_start_month <= 12):
+            raise HTTPException(status_code=400, detail="Session start month must be between 1 and 12")
+        update_data["session_start_month"] = payload.session_start_month
+        
+    if payload.branch_mappings is not None:
+        update_data["branch_mappings"] = payload.branch_mappings
+        
+    if payload.cycle_mappings is not None:
+        update_data["cycle_mappings"] = payload.cycle_mappings
+        
+    if update_data:
+        db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
+        
+    return {"status": "success", "message": "Academic settings updated successfully."}
+
+@router.post("/academic-settings/branches")
+def add_or_update_branch(payload: AddBranchRequest, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+    from services.academic_service import get_academic_settings
+    code = payload.code.strip().upper()
+    name = payload.name.strip()
+    cycle = payload.cycle.strip().upper()
+    
+    if not code or not name:
+        raise HTTPException(status_code=400, detail="Branch code and branch name are required")
+    if cycle not in ["C", "P"]:
+        raise HTTPException(status_code=400, detail="Subject cycle must be 'C' or 'P'")
+        
+    settings = get_academic_settings(db)
+    b_map = dict(settings.get("branch_mappings", {}))
+    c_map = dict(settings.get("cycle_mappings", {}))
+    
+    b_map[code] = name
+    c_map[code] = cycle
+    
+    db.academic_settings.update_one(
+        {"_id": "global"}, 
+        {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}}, 
+        upsert=True
+    )
+    
+    return {"status": "success", "message": f"Branch '{code}' configured successfully."}
+

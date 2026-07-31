@@ -37,8 +37,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_mongo
     return user_clean
 
 @router.get("/me", response_model=UserResponse)
-def get_me(current_user = Depends(get_current_user)):
-    return current_user
+def get_me(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    from services.academic_service import enrich_user_academic_profile
+    return enrich_user_academic_profile(current_user, db)
 
 @router.put("/me/profile", response_model=UserResponse)
 def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -215,10 +216,11 @@ def get_discovery(
     discovery_feed = []
     current_user_obj = MongoUser(current_user)
     
+    from services.academic_service import enrich_user_academic_profile
     for u in users:
         u_obj = MongoUser(u)
         ai_data = calculate_compatibility(current_user_obj, u_obj)
-        user_dict = dict(u)
+        user_dict = enrich_user_academic_profile(dict(u), db)
         user_dict.pop("_id", None)
         user_dict["is_online"] = u_obj.is_online
         

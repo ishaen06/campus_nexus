@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -293,6 +293,7 @@ export default function Layout() {
     if (!hasAdminLink) {
       navItems.push(
         { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 } as any,
+        { name: 'Academic Settings', path: '/admin/academic', icon: GraduationCap } as any,
         { name: 'Global Search', path: '/admin/search', icon: Search } as any,
         { name: 'Mentors', path: '/admin/mentors', icon: UserIcon } as any,
         { name: 'Teams', path: '/admin/teams', icon: Users } as any,

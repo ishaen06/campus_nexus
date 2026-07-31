@@ -144,7 +144,7 @@ interface TeamData {
 }
 
 interface AdminDashboardProps {
-  tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports';
+  tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports' | 'academic';
 }
 
 export default function AdminDashboard({ tab }: AdminDashboardProps) {
@@ -198,6 +198,22 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   // Team management states
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
+
+  // Academic Settings states
+  const [academicSettings, setAcademicSettings] = useState<{
+    session_start_month: number;
+    branch_mappings: Record<string, string>;
+    cycle_mappings: Record<string, string>;
+    branch_counts: Record<string, number>;
+    total_students: number;
+  } | null>(null);
+  const [academicLoading, setAcademicLoading] = useState(true);
+  const [academicSaving, setAcademicSaving] = useState(false);
+  const [newBranchCode, setNewBranchCode] = useState('');
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchCycle, setNewBranchCycle] = useState<'C' | 'P'>('C');
+  const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
+  const [previewEmail, setPreviewEmail] = useState('ishaensbethur.cs25@rvce.edu.in');
   const [branchFilter, setBranchFilter] = useState('');
   const [themeFilter, setThemeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -261,6 +277,69 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
+  const fetchAcademicSettings = async () => {
+    setAcademicLoading(true);
+    try {
+      const res = await api.get('/admin/academic-settings');
+      setAcademicSettings(res.data);
+    } catch (err) {
+      console.error("Failed to fetch academic settings", err);
+    } finally {
+      setAcademicLoading(false);
+    }
+  };
+
+  const handleUpdateCycle = async (code: string, newCycle: 'C' | 'P') => {
+    if (!academicSettings) return;
+    const updatedCycles = { ...academicSettings.cycle_mappings, [code]: newCycle };
+    setAcademicSettings({ ...academicSettings, cycle_mappings: updatedCycles });
+    try {
+      await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
+    } catch (err) {
+      console.error("Failed to update cycle mapping", err);
+      alert("Failed to save cycle mapping change.");
+      fetchAcademicSettings();
+    }
+  };
+
+  const handleSaveAcademicSettings = async () => {
+    if (!academicSettings) return;
+    setAcademicSaving(true);
+    try {
+      await api.put('/admin/academic-settings', {
+        session_start_month: academicSettings.session_start_month,
+        branch_mappings: academicSettings.branch_mappings,
+        cycle_mappings: academicSettings.cycle_mappings
+      });
+      alert("Academic settings updated successfully!");
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to update settings");
+    } finally {
+      setAcademicSaving(false);
+    }
+  };
+
+  const handleAddBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBranchCode || !newBranchName) {
+      alert("Please provide both branch code and full name.");
+      return;
+    }
+    try {
+      await api.post('/admin/academic-settings/branches', {
+        code: newBranchCode,
+        name: newBranchName,
+        cycle: newBranchCycle
+      });
+      setNewBranchCode('');
+      setNewBranchName('');
+      setIsAddBranchOpen(false);
+      fetchAcademicSettings();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to add branch");
+    }
+  };
+
   // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -296,6 +375,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     fetchAnalytics();
     fetchMentorsData();
     fetchTeamsData();
+    fetchAcademicSettings();
     // Fetch all users for the search directory
     const fetchAllUsers = async () => {
       setAllUsersLoading(true);
@@ -621,6 +701,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {activeTab === 'search' && "Global Database Search"}
               {activeTab === 'mentors' && "Mentor Workloads"}
               {activeTab === 'teams' && "Teams & Project Roster"}
+              {activeTab === 'academic' && "Academic Settings & Subject Cycle Configuration"}
             </h1>
             <p className="text-slate-500 text-sm font-semibold mt-1">
               {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
@@ -628,6 +709,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {activeTab === 'search' && "Query users, mentors, and student groups across the database."}
               {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
               {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
+              {activeTab === 'academic' && "Centralized academic profile generation, branch mappings, subject cycle allocation, and academic session settings."}
             </p>
           </div>
         </div>
@@ -2036,6 +2118,286 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 )}
               </div>
             )}
+          </motion.div>
+        ) : activeTab === 'academic' ? (
+          <motion.div 
+            key="academic"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-8 text-left"
+          >
+            {/* Header Control Panel */}
+            <div className="glass-panel p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <GraduationCap className="text-indigo-600 dark:text-indigo-400" size={22} />
+                  Branch & Subject Cycle Configuration
+                </h2>
+                <p className="text-xs text-slate-400 font-semibold mt-1">
+                  Assign each engineering department to C Cycle or P Cycle. Changes apply live across all student profiles immediately.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setIsAddBranchOpen(true)}
+                  className="px-4 py-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <UserPlus size={14} /> Add New Branch
+                </button>
+                <button
+                  onClick={handleSaveAcademicSettings}
+                  disabled={academicSaving}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Check size={14} /> {academicSaving ? "Saving..." : "Save Global Settings"}
+                </button>
+              </div>
+            </div>
+
+            {/* Main Content Grid: Left Table, Right Controls & Live Preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Branch & Cycle Table */}
+              <div className="lg:col-span-2 glass-panel p-6 space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    Active Departments ({Object.keys(academicSettings?.branch_mappings || {}).length})
+                  </h3>
+                  <span className="text-xs font-bold text-slate-400">
+                    Total Enrolled Students: {academicSettings?.total_students || 0}
+                  </span>
+                </div>
+
+                {academicLoading ? (
+                  <div className="py-12 text-center text-slate-400 animate-pulse font-medium">
+                    Loading academic branch configuration...
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200/50 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                          <th className="pb-3">Code</th>
+                          <th className="pb-3">Department Name</th>
+                          <th className="pb-3 text-center">Students</th>
+                          <th className="pb-3 text-center">Subject Cycle</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-850 font-semibold text-slate-700 dark:text-slate-300">
+                        {Object.entries(academicSettings?.branch_mappings || {}).map(([code, name]) => {
+                          const currentCycle = academicSettings?.cycle_mappings?.[code] || 'P';
+                          const count = academicSettings?.branch_counts?.[code] || 0;
+
+                          return (
+                            <tr key={code} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                              <td className="py-3.5">
+                                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                                  {code}
+                                </span>
+                              </td>
+                              <td className="py-3.5 font-bold text-slate-800 dark:text-slate-100">{name}</td>
+                              <td className="py-3.5 text-center">
+                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                                  {count}
+                                </span>
+                              </td>
+                              <td className="py-3.5 text-center">
+                                <div className="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                                  <button
+                                    onClick={() => handleUpdateCycle(code, 'C')}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                      currentCycle === 'C'
+                                        ? 'bg-emerald-500 text-white shadow-md'
+                                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                    }`}
+                                  >
+                                    C-Cycle
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateCycle(code, 'P')}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                      currentCycle === 'P'
+                                        ? 'bg-indigo-600 text-white shadow-md'
+                                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                    }`}
+                                  >
+                                    P-Cycle
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Side: Session Config & Live Email Parser Preview */}
+              <div className="space-y-6">
+                {/* Academic Session Calendar Config */}
+                <div className="glass-panel p-6 space-y-4">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <Calendar size={16} className="text-indigo-500" /> Academic Session Calendar
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                    Select the month when the new academic session begins. Student academic promotion (1st Year → 2nd Year) is computed dynamically relative to this month.
+                  </p>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Session Start Month</label>
+                    <select
+                      value={academicSettings?.session_start_month || 8}
+                      onChange={(e) => {
+                        if (!academicSettings) return;
+                        setAcademicSettings({ ...academicSettings, session_start_month: Number(e.target.value) });
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+                    >
+                      <option value={7}>July (Semester Start)</option>
+                      <option value={8}>August (Standard Academic Session)</option>
+                      <option value={9}>September (Late Session)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live Email Parsing & Academic Profile Preview */}
+                <div className="glass-panel p-6 space-y-4">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <Activity size={16} className="text-emerald-500" /> Live Profile Auto-Generation Tester
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                    Test how Campus Nexus automatically extracts and resolves academic profiles from student Google email addresses:
+                  </p>
+                  <div>
+                    <input
+                      type="email"
+                      value={previewEmail}
+                      onChange={(e) => setPreviewEmail(e.target.value)}
+                      placeholder="e.g. student.cs25@rvce.edu.in"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none"
+                    />
+                  </div>
+
+                  {(() => {
+                    const clean = previewEmail.trim().toLowerCase();
+                    const isRvce = clean.endsWith('@rvce.edu.in');
+                    if (!isRvce) {
+                      return (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl text-xs text-amber-700 dark:text-amber-400 font-semibold">
+                          ⚠️ Non-RVCE email. Login will be restricted to whitelisted admin accounts.
+                        </div>
+                      );
+                    }
+                    
+                    // Simple frontend regex parse simulation
+                    const match = clean.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
+                    const bCode = match ? match[2].toUpperCase() : 'CS';
+                    const yy = match ? 2000 + Number(match[3]) : 2025;
+                    const fullBranch = academicSettings?.branch_mappings?.[bCode] || `${bCode} Engineering`;
+                    const cycle = academicSettings?.cycle_mappings?.[bCode] || 'P';
+                    const yearsPassed = new Date().getFullYear() - yy;
+                    const yearOfStudy = Math.max(1, Math.min(4, yearsPassed + 1));
+
+                    return (
+                      <div className="p-4 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-500">Branch Name:</span>
+                          <span className="font-black text-slate-800 dark:text-slate-100">{fullBranch}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-500">Joining Year:</span>
+                          <span className="font-black text-slate-800 dark:text-slate-100">{yy}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-500">Academic Year:</span>
+                          <span className="font-black text-indigo-600 dark:text-indigo-400">{yearOfStudy}{yearOfStudy === 1 ? 'st' : yearOfStudy === 2 ? 'nd' : 'th'} Year</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-500">Subject Cycle:</span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-400">{cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            {/* Add Branch Modal */}
+            <AnimatePresence>
+              {isAddBranchOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="max-w-md w-full glass-panel p-6 space-y-5"
+                  >
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <h3 className="font-black text-base text-slate-800 dark:text-white flex items-center gap-2">
+                        <UserPlus size={18} className="text-indigo-600" /> Configure New Branch
+                      </h3>
+                      <button onClick={() => setIsAddBranchOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleAddBranch} className="space-y-4 text-left">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Branch Code (Short)</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. CY, DS, AI"
+                          value={newBranchCode}
+                          onChange={(e) => setNewBranchCode(e.target.value.toUpperCase())}
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Full Branch Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Cyber Security Engineering"
+                          value={newBranchName}
+                          onChange={(e) => setNewBranchName(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Initial Subject Cycle</label>
+                        <select
+                          value={newBranchCycle}
+                          onChange={(e) => setNewBranchCycle(e.target.value as 'C' | 'P')}
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none cursor-pointer"
+                        >
+                          <option value="C">C-Cycle (Chemistry)</option>
+                          <option value="P">P-Cycle (Physics)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddBranchOpen(false)}
+                          className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-500/20 cursor-pointer"
+                        >
+                          Add Branch
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </motion.div>
         ) : (
           <motion.div 

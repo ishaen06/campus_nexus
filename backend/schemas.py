@@ -19,6 +19,8 @@ class UserResponse(BaseModel):
     is_mentor: Optional[bool] = None
     is_banned: bool = False
     cycle: Optional[str] = None
+    joining_year: Optional[int] = None
+    branch_code: Optional[str] = None
     department: Optional[str] = None
     post: Optional[str] = None
     is_online: bool = False
