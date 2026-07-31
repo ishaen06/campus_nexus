@@ -7,8 +7,10 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle, 
-  Search
+  Search,
+  Award
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 
 interface MemberItem {
@@ -33,11 +35,11 @@ interface TeamItem {
 }
 
 export default function MentorDashboard() {
-  const [teams, setTeams] = useState<TeamItem[]>([]);
+  const [allTeams, setAllTeams] = useState<TeamItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [acceptedCount, setAcceptedCount] = useState(0);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'evaluated'>('active');
+  const navigate = useNavigate();
   
   // Rejection Modal states
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -45,24 +47,43 @@ export default function MentorDashboard() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [submittingAction, setSubmittingAction] = useState(false);
 
-  const fetchPendingTeams = async () => {
+  const fetchMentorTeams = async () => {
     try {
       const res = await api.get('/chat/groups/mentor/teams');
-      const approved = res.data.filter((t: any) => t.mentor_status === 'APPROVED');
-      const pending = res.data.filter((t: any) => t.mentor_status === 'PENDING');
-      setAcceptedCount(approved.length);
-      setPendingCount(pending.length);
-      setTeams(pending);
+      setAllTeams(res.data || []);
     } catch (err) {
-      console.error("Error fetching pending groups:", err);
+      console.error("Error fetching mentor groups:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPendingTeams();
+    fetchMentorTeams();
   }, []);
+
+  const approvedTeams = allTeams.filter((t: any) => t.mentor_status === 'APPROVED');
+  const pendingTeams = allTeams.filter((t: any) => t.mentor_status === 'PENDING');
+  const evaluatedTeams = allTeams.filter((t: any) => t.mentor_status === 'COMPLETED');
+
+  const acceptedCount = approvedTeams.length;
+  const pendingCount = pendingTeams.length;
+  const evaluatedCount = evaluatedTeams.length;
+
+  const currentTabTeams = activeTab === 'pending' 
+    ? pendingTeams 
+    : activeTab === 'evaluated' 
+      ? evaluatedTeams 
+      : approvedTeams;
+
+  const filteredTeams = currentTabTeams.filter(t => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    const nameMatch = t.name.toLowerCase().includes(query);
+    const topicMatch = t.project_topic?.toLowerCase().includes(query) || false;
+    const memberMatch = t.members.some(m => m.full_name.toLowerCase().includes(query));
+    return nameMatch || topicMatch || memberMatch;
+  });
 
   const handleApproveTeam = async (teamId: number) => {
     if (!confirm('Are you sure you want to approve this team? This will assign you as their mentor and record their details.')) return;
@@ -72,7 +93,7 @@ export default function MentorDashboard() {
         action: 'APPROVE'
       });
       alert('Team approved successfully!');
-      await fetchPendingTeams();
+      await fetchMentorTeams();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to approve team');
     } finally {
@@ -100,7 +121,7 @@ export default function MentorDashboard() {
       setShowRejectModal(false);
       setRejectingTeamId(null);
       alert('Team request rejected.');
-      await fetchPendingTeams();
+      await fetchMentorTeams();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to reject team');
     } finally {
@@ -108,20 +129,11 @@ export default function MentorDashboard() {
     }
   };
 
-  const filteredTeams = teams.filter(t => {
-    const query = searchQuery.toLowerCase().trim();
-    if (!query) return true;
-    const nameMatch = t.name.toLowerCase().includes(query);
-    const topicMatch = t.project_topic?.toLowerCase().includes(query) || false;
-    const memberMatch = t.members.some(m => m.full_name.toLowerCase().includes(query));
-    return nameMatch || topicMatch || memberMatch;
-  });
-
   if (loading) {
     return (
       <div className="pt-20 text-center flex flex-col items-center h-screen justify-center pb-32">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mb-4"></div>
-        <p className="text-gray-500 font-medium tracking-wide">Loading Confirmations...</p>
+        <p className="text-gray-500 font-medium tracking-wide">Loading Mentor Dashboard...</p>
       </div>
     );
   }
@@ -129,18 +141,25 @@ export default function MentorDashboard() {
   return (
     <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-8 px-4 md:px-8 pb-24">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-          <FolderGit className="text-indigo-600 w-9 h-9" /> Pending Confirmations
-        </h1>
-        <p className="text-gray-500 font-medium mt-1">Review student team registrations and topic choices awaiting confirmation</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            <FolderGit className="text-indigo-600 w-9 h-9" /> Mentor Dashboard
+          </h1>
+          <p className="text-gray-500 font-medium mt-1">Manage project teams, review registrations, and grade phase evaluations</p>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
-        <div className="glass-panel p-4 flex items-center justify-between border border-emerald-500/10 hover:border-emerald-500/20 transition-all">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8 text-left">
+        <div 
+          onClick={() => setActiveTab('active')}
+          className={`glass-panel p-4 flex items-center justify-between border cursor-pointer transition-all ${
+            activeTab === 'active' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-emerald-500/10 hover:border-emerald-500/20'
+          }`}
+        >
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Groups Accepted</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Teams</span>
             <span className="text-2xl font-black text-emerald-500 mt-1 block">{acceptedCount}</span>
           </div>
           <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
@@ -148,9 +167,14 @@ export default function MentorDashboard() {
           </div>
         </div>
 
-        <div className="glass-panel p-4 flex items-center justify-between border border-amber-500/10 hover:border-amber-500/20 transition-all">
+        <div 
+          onClick={() => setActiveTab('pending')}
+          className={`glass-panel p-4 flex items-center justify-between border cursor-pointer transition-all ${
+            activeTab === 'pending' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-amber-500/10 hover:border-amber-500/20'
+          }`}
+        >
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Groups Pending</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Requests</span>
             <span className="text-2xl font-black text-amber-500 mt-1 block">{pendingCount}</span>
           </div>
           <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
@@ -158,36 +182,75 @@ export default function MentorDashboard() {
           </div>
         </div>
 
-        <div className="glass-panel p-4 flex items-center justify-between border border-indigo-500/10 hover:border-indigo-500/20 transition-all">
+        <div 
+          onClick={() => setActiveTab('evaluated')}
+          className={`glass-panel p-4 flex items-center justify-between border cursor-pointer transition-all ${
+            activeTab === 'evaluated' ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-indigo-500/10 hover:border-indigo-500/20'
+          }`}
+        >
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Available Slots</span>
-            <span className="text-2xl font-black text-indigo-500 mt-1 block">{Math.max(0, 25 - acceptedCount)}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Evaluated Teams</span>
+            <span className="text-2xl font-black text-indigo-500 mt-1 block">{evaluatedCount}</span>
           </div>
           <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
+            <Award size={24} />
+          </div>
+        </div>
+
+        <div className="glass-panel p-4 flex items-center justify-between border border-slate-500/10 transition-all">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Available Slots</span>
+            <span className="text-2xl font-black text-slate-400 mt-1 block">{Math.max(0, 25 - acceptedCount)}</span>
+          </div>
+          <div className="p-3 bg-slate-500/10 rounded-xl text-slate-400">
             <FolderGit size={24} />
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Tab Navigation & Search Bar */}
       <div className="glass-panel p-4 mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:max-w-md">
+        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full sm:w-auto">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'active' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Active Teams ({acceptedCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'pending' ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Pending ({pendingCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('evaluated')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'evaluated' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Evaluated Teams ({evaluatedCount})
+          </button>
+        </div>
+
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by team name, topic, or member..."
-            className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs outline-none font-semibold text-slate-100"
+            placeholder="Search team name, topic, or member..."
+            className="w-full pl-9 pr-4 py-2 glass-input rounded-xl text-xs outline-none font-semibold text-slate-800 dark:text-slate-100"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="text-xs font-bold text-slate-400 bg-slate-900/10 dark:bg-slate-950/40 px-4 py-2.5 rounded-xl border border-white/5 shadow-sm shrink-0">
-          Pending: <span className="text-amber-500 font-black">{teams.length} request(s)</span>
-        </div>
       </div>
 
       {/* Warning Notice */}
-      {teams.length > 0 && (
+      {activeTab === 'pending' && pendingTeams.length > 0 && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-4 rounded-2xl flex gap-3 text-xs font-medium leading-relaxed mb-6 text-left">
           <AlertCircle size={20} className="shrink-0 animate-pulse" />
           <div>
@@ -232,8 +295,14 @@ export default function MentorDashboard() {
                       )}
                     </p>
                   </div>
-                  <span className="text-[10px] font-black px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full uppercase tracking-wider">
-                    Pending
+                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    team.mentor_status === 'COMPLETED' 
+                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                      : team.mentor_status === 'APPROVED'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  }`}>
+                    {team.mentor_status === 'COMPLETED' ? 'Evaluated & Completed' : team.mentor_status === 'APPROVED' ? 'Active Mentored' : 'Pending'}
                   </span>
                 </div>
 
@@ -268,22 +337,34 @@ export default function MentorDashboard() {
 
               {/* Action Buttons */}
               <div className="flex md:flex-col justify-center items-center gap-2.5 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => triggerRejectModal(team.id)}
-                  disabled={submittingAction}
-                  className="flex-1 md:flex-none w-full md:w-36 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
-                >
-                  <XCircle size={14} /> Disapprove
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleApproveTeam(team.id)}
-                  disabled={submittingAction}
-                  className="flex-1 md:flex-none w-full md:w-36 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
-                >
-                  <CheckCircle2 size={14} /> Approve
-                </button>
+                {team.mentor_status === 'PENDING' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => triggerRejectModal(team.id)}
+                      disabled={submittingAction}
+                      className="flex-1 md:flex-none w-full md:w-36 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
+                    >
+                      <XCircle size={14} /> Disapprove
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproveTeam(team.id)}
+                      disabled={submittingAction}
+                      className="flex-1 md:flex-none w-full md:w-36 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
+                    >
+                      <CheckCircle2 size={14} /> Approve
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/team-details/${team.id}`)}
+                    className="flex-1 md:flex-none w-full md:w-44 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer uppercase tracking-wider"
+                  >
+                    <Award size={14} /> {team.mentor_status === 'COMPLETED' ? 'View Evaluation Book' : 'Grade & Evaluate'}
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}

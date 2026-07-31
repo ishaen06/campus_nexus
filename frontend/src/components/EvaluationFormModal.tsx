@@ -1412,6 +1412,29 @@ export default function EvaluationFormModal({
             >
               Cancel
             </button>
+            {isMentor && team?.mentor_status !== 'COMPLETED' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm("Are you sure you want to end evaluation for this project? This will mark the project as COMPLETED, finalize all grades, and move the team to the Evaluated Teams section.")) return;
+                  try {
+                    await api.post(`/chat/groups/${team.id}/mentor-action`, {
+                      action: 'COMPLETE'
+                    });
+                    alert('Evaluation completed successfully! This project has been marked as Completed and moved to Evaluated Teams.');
+                    if (onSaveSuccess) {
+                      onSaveSuccess({ ...team, mentor_status: 'COMPLETED' });
+                    }
+                    onClose();
+                  } catch (err: any) {
+                    alert(err.response?.data?.detail || 'Failed to complete evaluation');
+                  }
+                }}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-emerald-600/15 cursor-pointer uppercase tracking-wider"
+              >
+                <CheckCircle2 size={14} /> End Evaluation
+              </button>
+            )}
             {(isMentor || activeTab === 'info') && (
               <button
                 onClick={handleSave}

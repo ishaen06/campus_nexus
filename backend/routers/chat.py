@@ -1247,6 +1247,11 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
                     "group_id": group_id,
                     "user_id": mentor_user["id"]
                 })
+    elif action in {"COMPLETE", "END_EVALUATION"}:
+        update_fields["mentor_status"] = "COMPLETED"
+        update_fields["evaluated_at"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        update_fields["is_completed"] = True
+        update_fields["is_public"] = False
     elif action == "REJECT":
         update_fields["mentor_status"] = "REJECTED"
         update_fields["mentor_token"] = None
@@ -1257,7 +1262,7 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
         if mentor_user:
             db.group_members.delete_many({"group_id": group_id, "user_id": mentor_user["id"]})
     else:
-        raise HTTPException(status_code=400, detail="Invalid action. Use APPROVE or REJECT.")
+        raise HTTPException(status_code=400, detail="Invalid action. Use APPROVE, REJECT, or COMPLETE.")
         
     db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
     

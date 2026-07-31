@@ -8,7 +8,8 @@ import {
   Download, 
   Award, 
   MessageSquare,
-  FileText
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
@@ -53,6 +54,7 @@ export default function TeamDetails() {
   const { teamId } = useParams<{ teamId: string }>();
   const [team, setTeam] = useState<TeamItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [completingEval, setCompletingEval] = useState(false);
 
   const [evalModalOpen, setEvalModalOpen] = useState(false);
   const [initialStudentId, setInitialStudentId] = useState<number | null>(null);
@@ -62,7 +64,7 @@ export default function TeamDetails() {
   const fetchTeamDetails = async () => {
     try {
       const res = await api.get('/chat/groups/mentor/teams');
-      const found = res.data.find((t: any) => t.id === Number(teamId) && t.mentor_status === 'APPROVED');
+      const found = res.data.find((t: any) => t.id === Number(teamId) && (t.mentor_status === 'APPROVED' || t.mentor_status === 'COMPLETED'));
       if (found) {
         setTeam(found);
       } else {
@@ -71,9 +73,25 @@ export default function TeamDetails() {
       }
     } catch (err) {
       console.error("Error fetching team details:", err);
-      navigate('/my-teams');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEndEvaluation = async () => {
+    if (!team) return;
+    if (!confirm("Are you sure you want to end evaluation for this project? This will mark the project as COMPLETED, finalize all grades, and move the team to the Evaluated Teams section.")) return;
+    setCompletingEval(true);
+    try {
+      await api.post(`/chat/groups/${team.id}/mentor-action`, {
+        action: 'COMPLETE'
+      });
+      setTeam(prev => prev ? { ...prev, mentor_status: 'COMPLETED' } : prev);
+      alert('Evaluation completed successfully! This project has been marked as Completed and moved to Evaluated Teams.');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to complete evaluation');
+    } finally {
+      setCompletingEval(false);
     }
   };
 
@@ -283,6 +301,23 @@ export default function TeamDetails() {
               <FileText size={15} />
               Open / Edit Evaluation Sheets (Fillable Form)
             </button>
+
+            {team.mentor_status === 'COMPLETED' ? (
+              <div className="w-full py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-black flex items-center justify-center gap-2 uppercase tracking-wider mt-1">
+                <CheckCircle2 size={16} />
+                Evaluation Ended & Project Completed
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleEndEvaluation}
+                disabled={completingEval}
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/15 cursor-pointer uppercase tracking-wider mt-1"
+              >
+                <CheckCircle2 size={16} />
+                {completingEval ? 'Ending Evaluation...' : 'End Evaluation & Complete Project'}
+              </button>
+            )}
           </div>
         </div>
 
