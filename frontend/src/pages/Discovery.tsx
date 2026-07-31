@@ -463,23 +463,24 @@ export default function Discovery() {
 
 function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: { user: UserProfile, index: number, onSwipeRight: () => void, onSwipeLeft: () => void, mutualBadge: string | null }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+  const rotate = useTransform(x, [-300, 0, 300], [-18, 0, 18]);
+  const cardOpacity = useTransform(x, [-300, -200, 0, 200, 300], [0.5, 1, 1, 1, 0.5]);
   
-  // Like/Nope Overlay Opacities
-  const likeOpacity = useTransform(x, [20, 100], [0, 1]);
-  const nopeOpacity = useTransform(x, [-20, -100], [0, 1]);
+  // Like/Nope overlay opacities — appear smoothly as you drag
+  const likeOpacity = useTransform(x, [0, 60, 140], [0, 0.4, 1]);
+  const nopeOpacity = useTransform(x, [0, -60, -140], [0, 0.4, 1]);
 
-  const handleDragEnd = (_event: any, info: any) => {
-    if (info.offset.x > 100) {
-      onSwipeRight();
-    } else if (info.offset.x < -100) {
-      onSwipeLeft();
-    }
-  };
+  // Background glow colors that intensify with drag
+  const rightGlow = useTransform(x, [0, 80, 200], ['rgba(16,185,129,0)', 'rgba(16,185,129,0.06)', 'rgba(16,185,129,0.15)']);
+  const leftGlow = useTransform(x, [0, -80, -200], ['rgba(239,68,68,0)', 'rgba(239,68,68,0.06)', 'rgba(239,68,68,0.15)']);
 
-  // Only allow top card to be dragged
+  // State for programmatic exit animation (button clicks)
+  const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
+
   const isTop = index === 0;
+
+  // Scale for background cards: they subtly grow when top card is being dragged
+  const backgroundScale = useTransform(x, [-200, 0, 200], [1, 1 - index * 0.045, 1]);
 
   useEffect(() => {
     if (!isTop) {
@@ -487,35 +488,101 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
     }
   }, [isTop, x]);
 
+  const handleDragEnd = (_event: any, info: any) => {
+    const swipeThreshold = 80;
+    const velocityThreshold = 500;
+    
+    // Tinder-like: either distance OR velocity triggers a swipe
+    if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+      setExitDirection('right');
+    } else if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+      setExitDirection('left');
+    }
+    // Otherwise the card springs back (handled by Framer Motion automatically)
+  };
+
+  // Button-triggered swipes
+  const triggerSwipe = (direction: 'left' | 'right') => {
+    setExitDirection(direction);
+  };
+
+  // Once exit animation completes, call the actual handler
+  const handleExitComplete = () => {
+    if (exitDirection === 'right') {
+      onSwipeRight();
+    } else if (exitDirection === 'left') {
+      onSwipeLeft();
+    }
+  };
+
+  // Exit animation variants
+  const exitVariants = {
+    initial: { x: 0, opacity: 1, rotate: 0 },
+    exitLeft: { 
+      x: -600, 
+      opacity: 0, 
+      rotate: -25,
+      transition: { duration: 0.4, ease: [0.32, 0, 0.67, 0] as [number, number, number, number] } 
+    },
+    exitRight: { 
+      x: 600, 
+      opacity: 0, 
+      rotate: 25,
+      transition: { duration: 0.4, ease: [0.32, 0, 0.67, 0] as [number, number, number, number] } 
+    },
+  };
+
   return (
     <motion.div
-      className="absolute w-full h-[550px] origin-bottom"
+      className="absolute w-full h-[550px] origin-bottom touch-none"
       style={{
-        x: isTop ? x : 0,
-        rotate: isTop ? rotate : 0,
-        opacity: isTop ? opacity : 1,
+        x: isTop && !exitDirection ? x : undefined,
+        rotate: isTop && !exitDirection ? rotate : 0,
+        opacity: isTop ? cardOpacity : 1,
         zIndex: 1000 - index,
-        scaleX: 1 - index * 0.045,
-        scaleY: 1,
         y: index * 22,
       }}
-      drag={isTop ? "x" : false}
+      initial={false}
+      animate={
+        exitDirection === 'left' ? 'exitLeft' 
+        : exitDirection === 'right' ? 'exitRight' 
+        : { 
+            scaleX: isTop ? 1 : (backgroundScale as any), 
+            scaleY: 1, 
+            y: index * 22,
+            scale: isTop ? 1 : 1 - index * 0.045,
+          }
+      }
+      variants={exitVariants}
+      onAnimationComplete={() => {
+        if (exitDirection) handleExitComplete();
+      }}
+      drag={isTop && !exitDirection ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.9}
+      dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
       onDragEnd={handleDragEnd}
-      whileTap={{ cursor: "grabbing" }}
-      animate={{ scaleX: 1 - index * 0.045, scaleY: 1, y: index * 22 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      whileTap={isTop ? { cursor: "grabbing" } : undefined}
+      transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
-      <div className="discover-swipe-card w-full h-full overflow-hidden flex flex-col cursor-grab active:cursor-grabbing relative bg-white dark:bg-[#1e1e24]">
+      <div className="discover-swipe-card w-full h-full overflow-hidden flex flex-col cursor-grab active:cursor-grabbing relative bg-white dark:bg-[#1e1e24] select-none">
         
-        {/* Like Overlay */}
-        <motion.div style={{ opacity: likeOpacity }} className="absolute top-10 left-6 z-20 pointer-events-none transform -rotate-12 border-4 border-green-500 rounded-xl px-4 py-1">
-          <h2 className="text-4xl font-black text-green-500 uppercase tracking-widest">LIKE</h2>
+        {/* Like Overlay — fades in from left side as you drag right */}
+        <motion.div 
+          style={{ opacity: likeOpacity, backgroundColor: rightGlow }} 
+          className="absolute inset-0 z-10 pointer-events-none rounded-[inherit]"
+        />
+        <motion.div style={{ opacity: likeOpacity }} className="absolute top-10 left-6 z-20 pointer-events-none transform -rotate-12 border-4 border-green-500 rounded-xl px-4 py-1.5 bg-green-500/10 backdrop-blur-sm">
+          <h2 className="text-4xl font-black text-green-500 uppercase tracking-widest drop-shadow-sm">LIKE</h2>
         </motion.div>
         
-        {/* Nope Overlay */}
-        <motion.div style={{ opacity: nopeOpacity }} className="absolute top-10 right-6 z-20 pointer-events-none transform rotate-12 border-4 border-red-500 rounded-xl px-4 py-1">
-          <h2 className="text-4xl font-black text-red-500 uppercase tracking-widest">NOPE</h2>
+        {/* Nope Overlay — fades in from right side as you drag left */}
+        <motion.div 
+          style={{ opacity: nopeOpacity, backgroundColor: leftGlow }} 
+          className="absolute inset-0 z-10 pointer-events-none rounded-[inherit]"
+        />
+        <motion.div style={{ opacity: nopeOpacity }} className="absolute top-10 right-6 z-20 pointer-events-none transform rotate-12 border-4 border-red-500 rounded-xl px-4 py-1.5 bg-red-500/10 backdrop-blur-sm">
+          <h2 className="text-4xl font-black text-red-500 uppercase tracking-widest drop-shadow-sm">NOPE</h2>
         </motion.div>
 
         {/* Profile Image / Header Area */}
@@ -581,17 +648,17 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
           {/* Action Buttons */}
           <div className="absolute -top-8 right-6 flex gap-4">
             <motion.button 
-              whileHover={{ scale: 1.1, rotate: -5 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.stopPropagation(); onSwipeLeft(); }}
+              whileHover={{ scale: 1.12, rotate: -8, boxShadow: '0 8px 25px rgba(239,68,68,0.25)' }}
+              whileTap={{ scale: 0.88 }}
+              onClick={(e) => { e.stopPropagation(); triggerSwipe('left'); }}
               className="w-16 h-16 bg-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center text-rose-500 hover:text-rose-600 hover:bg-rose-50 transition-colors border border-white/80 cursor-pointer"
             >
               <X size={28} strokeWidth={3.5} />
             </motion.button>
             <motion.button 
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.stopPropagation(); onSwipeRight(); }}
+              whileHover={{ scale: 1.12, rotate: 8, boxShadow: '0 8px 25px rgba(16,185,129,0.3)' }}
+              whileTap={{ scale: 0.88 }}
+              onClick={(e) => { e.stopPropagation(); triggerSwipe('right'); }}
               className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center text-white transition-all border border-emerald-300/30 cursor-pointer"
             >
               <Check size={28} strokeWidth={3.5} />
@@ -602,3 +669,4 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
     </motion.div>
   );
 }
+
