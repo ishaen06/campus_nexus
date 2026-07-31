@@ -299,8 +299,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const handleUpdateCycle = async (code: string, newCycle: 'C' | 'P') => {
     if (!academicSettings) return;
     const currentMappings = academicSettings.cycle_mappings || {};
+    const previousCycle = currentMappings[code];
     const updatedCycles = { ...currentMappings, [code]: newCycle };
+    
+    // Optimistic UI update
     setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: updatedCycles } : prev);
+    
     try {
       const res = await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
       if (res.data?.cycle_mappings) {
@@ -308,8 +312,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       }
     } catch (err: any) {
       console.error("Failed to update cycle mapping", err);
-      alert(err.response?.data?.detail || err.message || "Failed to save cycle mapping change.");
-      fetchAcademicSettings();
+      // Revert optimistic update on failure
+      setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: { ...currentMappings, [code]: previousCycle } } : prev);
+      const errMsg = err.response?.data?.detail || (err.message === "Network Error" ? "Server connection timed out. Please try again." : err.message);
+      alert(`Cycle Update: ${errMsg}`);
     }
   };
 
