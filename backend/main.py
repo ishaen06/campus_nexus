@@ -7,6 +7,11 @@ import os, traceback
 
 app = FastAPI(title="Engineering Link (EL) API")
 
+@app.on_event("startup")
+async def startup_event():
+    from database_mongo import init_db
+    init_db()
+
 # Ensure uploads directory exists and mount it
 os.makedirs("uploads", exist_ok=True)
 app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -41,6 +46,11 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["not
 @app.get("/")
 def read_root():
     return {"message": "Welcome to EL API"}
+
+@app.get("/api/ping")
+def ping():
+    """Lightweight keepalive — used to wake Render from cold sleep before requests."""
+    return {"status": "ok"}
 
 @app.get("/api/debug/email-config")
 def debug_email_config():

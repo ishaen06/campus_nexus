@@ -305,17 +305,37 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     // Optimistic UI update
     setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: updatedCycles } : prev);
     
-    try {
+    const doUpdate = async () => {
       const res = await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
       if (res.data?.cycle_mappings) {
         setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: res.data.cycle_mappings } : prev);
       }
+    };
+
+    try {
+      await doUpdate();
     } catch (err: any) {
-      console.error("Failed to update cycle mapping", err);
-      // Revert optimistic update on failure
+      const isNetworkError = !err.response && (err.message === 'Network Error' || err.code === 'ERR_NETWORK');
+      if (isNetworkError) {
+        // Server may be cold-starting — ping to wake it, then retry once
+        try {
+          await api.get('/ping');
+        } catch (_) { /* ignore ping errors */ }
+        try {
+          await doUpdate();
+          return; // retry succeeded
+        } catch (retryErr: any) {
+          console.error('Cycle update retry also failed', retryErr);
+          setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: { ...currentMappings, [code]: previousCycle } } : prev);
+          alert(`Cycle Update: Server is starting up, please wait a moment and try again.`);
+          return;
+        }
+      }
+      // Non-network error (4xx/5xx): show real server message
+      console.error('Failed to update cycle mapping', err);
       setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: { ...currentMappings, [code]: previousCycle } } : prev);
-      const errMsg = err.response?.data?.detail || (err.message === "Network Error" ? "Server connection timed out. Please try again." : err.message);
-      alert(`Cycle Update: ${errMsg}`);
+      const errMsg = err.response?.data?.detail || err.message || 'Unknown error';
+      alert(`Cycle Update failed: ${errMsg}`);
     }
   };
 

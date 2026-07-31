@@ -8,17 +8,18 @@ load_env()
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGO_DB_NAME", "el_platform")
 
-client = MongoClient(MONGO_URL)
+client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
 db = client[DB_NAME]
 
 def get_mongo_db():
     return db
 
-# Ensure USN uniqueness at database level
-try:
-    db.users.create_index("usn", unique=True, partialFilterExpression={"usn": {"$type": "string"}})
-except Exception as e:
-    pass
+def init_db():
+    """Create required indexes. Called once at app startup."""
+    try:
+        db.users.create_index("usn", unique=True, sparse=True, partialFilterExpression={"usn": {"$type": "string"}})
+    except Exception:
+        pass
 
 def get_next_sequence_value(sequence_name: str) -> int:
     counter = db.counters.find_one_and_update(
