@@ -374,19 +374,6 @@ export default function ProfileSetup() {
             </div>
           ) : (
             <div className="space-y-3 text-left">
-              <div className="flex items-center justify-between bg-indigo-50/50 dark:bg-indigo-950/30 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">🎓</span>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Verified Academic Profile</p>
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Auto-extracted from your RVCE Google account</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                  ✓ Verified
-                </span>
-              </div>
-
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
                   <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Branch</span>
