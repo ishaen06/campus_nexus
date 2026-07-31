@@ -124,7 +124,7 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
                 if parsed_info.get("branch_code") and not user.get("branch_code"):
                     update_fields["branch_code"] = parsed_info.get("branch_code")
                 if parsed_info.get("joining_year") and not user.get("joining_year"):
-                update_fields["joining_year"] = parsed_info.get("joining_year")
+                    update_fields["joining_year"] = parsed_info.get("joining_year")
                 
         if update_fields:
             db.users.update_one({"email": email}, {"$set": update_fields})
