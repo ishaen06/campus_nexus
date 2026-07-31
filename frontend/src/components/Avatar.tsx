@@ -26,8 +26,8 @@ export default function Avatar({ config, name = "User", size = 48, className = "
       <img
         src={photo}
         alt={name}
-        className={`rounded-full object-cover shadow-inner select-none ${className}`}
-        style={{ width: size, height: size }}
+        className={`rounded-full object-cover shadow-inner select-none shrink-0 aspect-square ${className}`}
+        style={{ width: size, height: size, minWidth: size, minHeight: size, flexShrink: 0 }}
       />
     );
   }
@@ -39,10 +39,13 @@ export default function Avatar({ config, name = "User", size = 48, className = "
 
   return (
     <div
-      className={`rounded-full flex items-center justify-center font-bold text-white shadow-inner select-none ${className}`}
+      className={`rounded-full flex items-center justify-center font-bold text-white shadow-inner select-none shrink-0 aspect-square ${className}`}
       style={{
         width: size,
         height: size,
+        minWidth: size,
+        minHeight: size,
+        flexShrink: 0,
         background: BG_GRADIENTS[bgIndex],
         fontSize: size * 0.45
       }}
