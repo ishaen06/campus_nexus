@@ -18,10 +18,10 @@ const GOALS_LIST = [
 
 export default function ProfileEdit() {
   const [fullName, setFullName] = useState('');
-  const [usn, setUsn] = useState('');
   const [branch, setBranch] = useState('');
   const [year, setYear] = useState('');
   const [cycle, setCycle] = useState('');
+  const [joiningYear, setJoiningYear] = useState<number | null>(null);
   const [bio, setBio] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
@@ -211,11 +211,11 @@ export default function ProfileEdit() {
     api.get('/users/me').then(res => {
       setFullName(res.data.full_name || '');
       setIsMentor(res.data.is_mentor || false);
-      setUsn(res.data.usn || '');
       setBranch(res.data.branch || '');
-      setYear(res.data.year_of_study ? res.data.year_of_study.toString() : '');
+      setYear(res.data.year_of_study ? res.data.year_of_study.toString() : '1');
       setBio(res.data.bio || '');
       setCycle(res.data.cycle || '');
+      setJoiningYear(res.data.joining_year || null);
       setDepartment(res.data.department || '');
       setPost(res.data.post || '');
       setInterests(res.data.interests || []);
@@ -247,22 +247,10 @@ export default function ProfileEdit() {
         setSaving(false);
         return;
       }
-    } else {
-      const cleanUsn = usn.trim().toLowerCase();
-      const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
-      if (!pattern.test(cleanUsn)) {
-        alert("USN must start with '1rv' or '1rz', have 2-digit year, 2 to 3 letter branch, and end with a 3-digit number (e.g. 1RV22CS001)");
-        setSaving(false);
-        return;
-      }
     }
     try {
       await api.put('/users/me/profile', {
         full_name: fullName,
-        usn: isMentor ? null : usn.toUpperCase(),
-        branch: isMentor ? null : branch,
-        year_of_study: isMentor ? null : (parseInt(year) || null),
-        cycle: isMentor ? null : cycle,
         department: isMentor ? department : null,
         post: isMentor ? post : null,
         bio,
@@ -426,71 +414,47 @@ export default function ProfileEdit() {
                     </>
                   )}
                   {!isMentor && (
-                    <>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">USN</label>
-                        <input
-                          required
-                          type="text"
-                          placeholder="e.g. 1RV22CS001"
-                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm uppercase"
-                          value={usn} onChange={e => setUsn(e.target.value)}
-                        />
+                    <div className="col-span-2 space-y-3 text-left">
+                      <div className="flex items-center justify-between bg-indigo-50/50 dark:bg-indigo-950/30 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-lg">🎓</span>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Verified Academic Profile</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Derived automatically from your RVCE Google account</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                          ✓ Verified & Immutable
+                        </span>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Branch</label>
-                        <select
-                          required
-                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm cursor-pointer"
-                          value={branch} onChange={e => setBranch(e.target.value)}
-                        >
-                          <option value="" disabled hidden>Select Branch</option>
-                          <option value="ASE">Aerospace Eng (AS)</option>
-                          <option value="AI_ML">Artificial Intelligence (AI & ML)</option>
-                          <option value="BT">Biotechnology (BT)</option>
-                          <option value="CH">Chemical Eng (CH)</option>
-                          <option value="CV">Civil Eng (CV)</option>
-                          <option value="CSE">Computer Science (CSE)</option>
-                          <option value="CSE_CY">Cyber Security (CSE-CY)</option>
-                          <option value="CSE_DS">Data Science (CSE-DS)</option>
-                          <option value="EEE">Electrical & Electronics (EEE)</option>
-                          <option value="ECE">Electronics & Comm (ECE)</option>
-                          <option value="ETE">Electronics & Telecom (ETE)</option>
-                          <option value="IEM">Industrial Eng & Mgmt (IEM)</option>
-                          <option value="ME">Mechanical Eng (ME)</option>
-                        </select>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Branch</span>
+                          <span className="block text-xs font-black text-slate-800 dark:text-slate-100 truncate mt-0.5" title={branch}>
+                            {branch || 'Computer Science'}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Joining Year</span>
+                          <span className="block text-xs font-black text-slate-800 dark:text-slate-100 mt-0.5">
+                            {joiningYear || 2025}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Academic Year</span>
+                          <span className="block text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
+                            {year ? `${year}${year === '1' ? 'st' : year === '2' ? 'nd' : year === '3' ? 'rd' : 'th'} Year` : '1st Year'}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Subject Cycle</span>
+                          <span className="block text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            {cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Academic Cycle</label>
-                        <select
-                          required
-                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm cursor-pointer"
-                          value={cycle} onChange={e => setCycle(e.target.value)}
-                        >
-                          <option value="" disabled hidden>Select Cycle</option>
-                          <option value="P">Physics Cycle (P-Cycle)</option>
-                          <option value="C">Chemistry Cycle (C-Cycle)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Semester</label>
-                        <select
-                          required
-                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold shadow-sm cursor-pointer"
-                          value={year} onChange={e => setYear(e.target.value)}
-                        >
-                          <option value="" disabled hidden>Select Semester</option>
-                          <option value="1">1st Semester</option>
-                          <option value="2">2nd Semester</option>
-                          <option value="3">3rd Semester</option>
-                          <option value="4">4th Semester</option>
-                          <option value="5">5th Semester</option>
-                          <option value="6">6th Semester</option>
-                          <option value="7">7th Semester</option>
-                          <option value="8">8th Semester</option>
-                        </select>
-                      </div>
-                    </>
+                    </div>
                   )}
                 </div>
 
