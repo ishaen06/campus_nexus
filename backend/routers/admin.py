@@ -247,7 +247,7 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
             month_str = dt.strftime("%b %Y")
             monthly_trend[month_str] = monthly_trend.get(month_str, 0) + 1
         
-    evaluations_completed = db.evaluations.count_documents({})
+    evaluations_completed = db.group_chats.count_documents({"mentor_status": "COMPLETED"})
 
     return {
         "counts": {
