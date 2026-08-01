@@ -853,6 +853,17 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
         if not email_lower.endswith("@gmail.com"):
             raise HTTPException(status_code=400, detail="Mentor email must end with @gmail.com")
         
+        # Verify mentor email exists in registered mentors
+        mentor_user = db.users.find_one({
+            "email": {"$regex": f"^{email_lower}$", "$options": "i"},
+            "is_mentor": True
+        })
+        if not mentor_user:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid mentor email '{email_lower}'. No registered mentor found with this email. Please select a valid mentor from the dropdown."
+            )
+        
         # Only check the 25-team limit if assigning a NEW mentor
         if group.get("mentor_email") != email_lower:
             primary_change = True
@@ -908,6 +919,17 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
         
     if not group.get("project_topic") or not group.get("mentor_name") or not group.get("mentor_email"):
         raise HTTPException(status_code=400, detail="Project topic, mentor name, and mentor email must be provided first.")
+        
+    mentor_email_val = (group.get("mentor_email") or "").lower().strip()
+    mentor_user = db.users.find_one({
+        "email": {"$regex": f"^{mentor_email_val}$", "$options": "i"},
+        "is_mentor": True
+    })
+    if not mentor_user:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid mentor email '{group.get('mentor_email')}'. Selected mentor is not registered in the system."
+        )
         
     # Check 25-team limit for the mentor before submitting
     active_count = db.group_chats.count_documents({

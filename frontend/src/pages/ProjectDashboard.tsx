@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare } from 'lucide-react';
+import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare, Search, ChevronDown, AlertTriangle, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EvaluationFormModal from '../components/EvaluationFormModal';
 import { THEME_SUBTOPICS } from './MyTeam';
@@ -44,9 +44,13 @@ export default function ProjectDashboard() {
   const [loading, setLoading] = useState(true);
   const [evalModalOpen, setEvalModalOpen] = useState(false);
   const [evalModalLoading, setEvalModalLoading] = useState(false);
-  // Holds the freshly-fetched team passed directly to the evaluation modal
-  // (avoids the React batched state update timing bug where groups[0] is still stale)
   const [latestTeamForModal, setLatestTeamForModal] = useState<any>(null);
+
+  // Searchable Mentor Dropdown States
+  const [registeredMentors, setRegisteredMentors] = useState<any[]>([]);
+  const [mentorSearchQuery, setMentorSearchQuery] = useState('');
+  const [showMentorDropdown, setShowMentorDropdown] = useState(false);
+  const [mentorValidationError, setMentorValidationError] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -55,13 +59,15 @@ export default function ProjectDashboard() {
       const groupRes = await api.get('/chat/groups');
       const freshGroups = groupRes.data;
       setGroups(freshGroups);
-      // Seed latestTeamForModal so the evaluation modal always has fresh data
       if (freshGroups && freshGroups.length > 0) {
         setLatestTeamForModal(freshGroups[0]);
       }
       
       const meRes = await api.get('/users/me');
       setCurrentUser(meRes.data);
+
+      const mentorRes = await api.get('/users/mentors');
+      setRegisteredMentors(mentorRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -76,8 +82,6 @@ export default function ProjectDashboard() {
       const groupRes = await api.get('/chat/groups');
       const freshGroups = groupRes.data;
       setGroups(freshGroups);
-      // Store the fresh team directly so the modal gets it immediately
-      // (don't rely on groups[0] which is still stale due to React batching)
       if (freshGroups && freshGroups.length > 0) {
         setLatestTeamForModal(freshGroups[0]);
       }
@@ -101,11 +105,27 @@ export default function ProjectDashboard() {
       setProjectThemeInput(team.project_theme || '');
       setMentorNameInput(team.mentor_name || '');
       setMentorEmailInput(team.mentor_email || '');
+      if (team.mentor_name || team.mentor_email) {
+        setMentorSearchQuery(`${team.mentor_name || ''} (${team.mentor_email || ''})`.trim());
+      }
     }
   }, [groups]);
 
   const handleUpdateProjectDetails = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMentorValidationError(null);
+
+    const cleanEmail = mentorEmailInput.trim().toLowerCase();
+    if (registeredMentors.length > 0) {
+      const found = registeredMentors.find(m => (m.email || '').toLowerCase() === cleanEmail);
+      if (!found) {
+        const err = `Invalid mentor email "${mentorEmailInput}". No registered mentor found with this email. Please search and select an available mentor from the dropdown list.`;
+        setMentorValidationError(err);
+        alert(err);
+        return;
+      }
+    }
+
     try {
       const res = await api.put(`/chat/groups/${groups[0].id}/project-details`, {
         project_topic: topicInput,
@@ -119,18 +139,35 @@ export default function ProjectDashboard() {
       setGroups(updatedGroups);
       alert('Project details updated successfully!');
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to update project details');
+      const detailMsg = err.response?.data?.detail || 'Failed to update project details';
+      setMentorValidationError(detailMsg);
+      alert(detailMsg);
     }
   };
 
   const handleRequestApproval = async () => {
+    setMentorValidationError(null);
+
+    const cleanEmail = mentorEmailInput.trim().toLowerCase();
+    if (registeredMentors.length > 0) {
+      const found = registeredMentors.find(m => (m.email || '').toLowerCase() === cleanEmail);
+      if (!found) {
+        const err = `Invalid mentor email "${mentorEmailInput}". Selected mentor is not registered in the system. Please search and select a valid mentor from the dropdown.`;
+        setMentorValidationError(err);
+        alert(err);
+        return;
+      }
+    }
+
     if (!confirm('Are you sure you want to submit your team details to the mentor for approval?')) return;
     try {
       await api.post(`/chat/groups/${groups[0].id}/submit-approval`);
       alert('Approval request sent to mentor email!');
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to request mentor approval');
+      const detailMsg = err.response?.data?.detail || 'Failed to request mentor approval';
+      setMentorValidationError(detailMsg);
+      alert(detailMsg);
     }
   };
 
@@ -450,32 +487,138 @@ export default function ProjectDashboard() {
 
 
 
+                        {/* Searchable Registered Mentor Combobox */}
+                        <div className="relative">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span>Search & Select Available Mentor</span>
+                            {registeredMentors.length > 0 && (
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold lowercase">
+                                {registeredMentors.length} registered mentors
+                              </span>
+                            )}
+                          </label>
+
+                          <div className="relative">
+                            <Search size={14} className="absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="Type to search mentor by name, email, or department..."
+                              disabled={team.mentor_status === 'APPROVED'}
+                              className="w-full pl-9 pr-8 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75 focus:ring-2 focus:ring-indigo-500/20"
+                              value={mentorSearchQuery}
+                              onFocus={() => setShowMentorDropdown(true)}
+                              onChange={(e) => {
+                                setMentorSearchQuery(e.target.value);
+                                setShowMentorDropdown(true);
+                                setMentorValidationError(null);
+                              }}
+                            />
+                            <ChevronDown size={14} className="absolute right-3.5 top-3.5 text-gray-400 pointer-events-none" />
+                          </div>
+
+                          {/* Dropdown Menu */}
+                          {showMentorDropdown && team.mentor_status !== 'APPROVED' && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowMentorDropdown(false)} />
+                              <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-1.5 space-y-1">
+                                {registeredMentors.filter(m => {
+                                  const q = mentorSearchQuery.toLowerCase().trim();
+                                  if (!q) return true;
+                                  return (
+                                    (m.full_name || '').toLowerCase().includes(q) ||
+                                    (m.email || '').toLowerCase().includes(q) ||
+                                    (m.department || '').toLowerCase().includes(q)
+                                  );
+                                }).length === 0 ? (
+                                  <div className="px-4 py-3 text-xs text-slate-500 text-center font-medium">
+                                    No registered mentor found matching "{mentorSearchQuery}"
+                                  </div>
+                                ) : (
+                                  registeredMentors
+                                    .filter(m => {
+                                      const q = mentorSearchQuery.toLowerCase().trim();
+                                      if (!q) return true;
+                                      return (
+                                        (m.full_name || '').toLowerCase().includes(q) ||
+                                        (m.email || '').toLowerCase().includes(q) ||
+                                        (m.department || '').toLowerCase().includes(q)
+                                      );
+                                    })
+                                    .map(m => (
+                                      <div
+                                        key={m.id || m.email}
+                                        onClick={() => {
+                                          setMentorNameInput(m.full_name);
+                                          setMentorEmailInput(m.email);
+                                          setMentorSearchQuery(`${m.full_name} (${m.email})`);
+                                          setShowMentorDropdown(false);
+                                          setMentorValidationError(null);
+                                        }}
+                                        className="w-full text-left px-3.5 py-2.5 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors flex items-center justify-between group"
+                                      >
+                                        <div>
+                                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                                            {m.full_name}
+                                          </div>
+                                          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                            {m.email} {m.department ? `• ${m.department}` : ''}
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <span className={`inline-block text-[10px] font-black px-2 py-0.5 rounded-md ${
+                                            m.is_available ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+                                          }`}>
+                                            {m.active_teams_count}/25 Teams
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
                         <div>
                           <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mentor Name</label>
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Dr. Ramesh Kumar"
+                            placeholder="Selected mentor name"
                             disabled={team.mentor_status === 'APPROVED'}
                             className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75"
                             value={mentorNameInput}
-                            onChange={e => setMentorNameInput(e.target.value)}
+                            onChange={e => {
+                              setMentorNameInput(e.target.value);
+                              setMentorValidationError(null);
+                            }}
                           />
                         </div>
+
                         <div>
                           <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mentor Email</label>
                           <input
                             type="email"
                             required
-                            placeholder="e.g. mentor@gmail.com"
+                            placeholder="Selected mentor email"
                             pattern=".*@gmail\.com$"
                             title="Mentor email must end with @gmail.com"
                             disabled={team.mentor_status === 'APPROVED'}
                             className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75"
                             value={mentorEmailInput}
-                            onChange={e => setMentorEmailInput(e.target.value)}
+                            onChange={e => {
+                              setMentorEmailInput(e.target.value);
+                              setMentorValidationError(null);
+                            }}
                           />
                         </div>
+
+                        {mentorValidationError && (
+                          <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-start gap-2">
+                            <AlertTriangle size={16} className="shrink-0 mt-0.5 text-rose-500" />
+                            <div>{mentorValidationError}</div>
+                          </div>
+                        )}
 
                         {team.mentor_status !== 'APPROVED' && (
                           <div className="pt-2 flex flex-col gap-2">

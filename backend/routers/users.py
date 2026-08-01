@@ -339,3 +339,25 @@ def dismiss_user(user_id: int, current_user = Depends(get_current_user), db = De
     }
     db.dismissed_users.insert_one(dismiss)
     return {"message": "User dismissed from feed"}
+
+@router.get("/mentors")
+def get_registered_mentors(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    """Returns a list of all registered mentors in the system for searchable dropdown selection."""
+    mentors = list(db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}))
+    results = []
+    for m in mentors:
+        m_email = (m.get("email") or "").lower().strip()
+        active_teams_count = db.group_chats.count_documents({
+            "mentor_email": m_email,
+            "mentor_status": {"$in": ["PENDING", "APPROVED"]}
+        })
+        results.append({
+            "id": m.get("id"),
+            "full_name": m.get("full_name") or "Mentor",
+            "email": m_email,
+            "department": m.get("department") or m.get("post") or "Faculty",
+            "active_teams_count": active_teams_count,
+            "is_available": active_teams_count < 25
+        })
+    return results
+
