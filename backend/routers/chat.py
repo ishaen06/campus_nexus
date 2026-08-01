@@ -1276,6 +1276,33 @@ def mentor_action(group_id: int, payload: MentorActionRequest, current_user = De
     updated_group = db.group_chats.find_one({"id": group_id})
     return populate_group_response(updated_group, db, current_user)
 
+@router.post("/groups/{group_id}/complete-evaluation", response_model=GroupChatResponse)
+def complete_evaluation(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    """Dedicated endpoint to mark a team's evaluation as completed. 
+    Sets mentor_status to COMPLETED and is_completed to True."""
+    if not current_user.get("is_mentor", False):
+        raise HTTPException(status_code=403, detail="Only mentors can complete evaluations")
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if (group.get("mentor_email") or "").lower().strip() != (current_user.get("email") or "").lower().strip():
+        raise HTTPException(status_code=403, detail="You are not the assigned mentor for this team")
+    
+    update_fields = {
+        "mentor_status": "COMPLETED",
+        "evaluated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        "is_completed": True,
+        "is_public": False,
+    }
+    db.group_chats.update_one({"id": group_id}, {"$set": update_fields})
+    
+    # Regenerate spreadsheets to reflect completed evaluation
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    
+    updated_group = db.group_chats.find_one({"id": group_id})
+    return populate_group_response(updated_group, db, current_user)
+
 @router.put("/groups/{group_id}/marks", response_model=GroupChatResponse)
 def update_group_marks(group_id: int, marks: GroupMarksUpdate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     if not current_user.get("is_mentor", False):

@@ -1418,9 +1418,7 @@ export default function EvaluationFormModal({
                 onClick={async () => {
                   if (!confirm("Are you sure you want to end evaluation for this project? This will mark the project as COMPLETED, finalize all grades, and move the team to the Evaluated Teams section.")) return;
                   try {
-                    await api.post(`/chat/groups/${team.id}/mentor-action`, {
-                      action: 'COMPLETE'
-                    });
+                    await api.post(`/chat/groups/${team.id}/complete-evaluation`);
                     alert('Evaluation completed successfully! This project has been marked as Completed and moved to Evaluated Teams.');
                     if (onSaveSuccess) {
                       onSaveSuccess({ ...team, mentor_status: 'COMPLETED' });

@@ -94,9 +94,7 @@ export default function TeamDetails() {
     if (!confirm("Are you sure you want to end evaluation for this project? This will mark the project as COMPLETED, finalize all grades, and move the team to the Evaluated Teams section.")) return;
     setCompletingEval(true);
     try {
-      await api.post(`/chat/groups/${team.id}/mentor-action`, {
-        action: 'COMPLETE'
-      });
+      await api.post(`/chat/groups/${team.id}/complete-evaluation`);
       setTeam(prev => prev ? { ...prev, mentor_status: 'COMPLETED' } : prev);
       alert('Evaluation completed successfully! This project has been marked as Completed and moved to Evaluated Teams.');
     } catch (err: any) {
