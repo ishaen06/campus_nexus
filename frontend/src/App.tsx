@@ -43,6 +43,7 @@ function App() {
           <Route path="/mentor-dashboard" element={<MentorDashboard />} />
           <Route path="/my-teams" element={<MyTeams />} />
           <Route path="/my-teams/:teamId" element={<TeamDetails />} />
+          <Route path="/team-details/:teamId" element={<TeamDetails />} />
           <Route path="/chat/:connectionId" element={<Chat />} />
           <Route path="/chat/group/:groupId" element={<GroupChat />} />
           <Route path="/admin" element={<Navigate to="/admin/analytics" replace />} />

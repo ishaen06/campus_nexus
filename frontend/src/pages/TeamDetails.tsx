@@ -63,16 +63,27 @@ export default function TeamDetails() {
 
   const fetchTeamDetails = async () => {
     try {
-      const res = await api.get('/chat/groups/mentor/teams');
-      const found = res.data.find((t: any) => t.id === Number(teamId) && (t.mentor_status === 'APPROVED' || t.mentor_status === 'COMPLETED'));
+      let found = null;
+      try {
+        const res = await api.get('/chat/groups/mentor/teams');
+        found = res.data.find((t: any) => t.id === Number(teamId));
+      } catch {
+        // Fallback to direct group get
+      }
+      if (!found) {
+        const directRes = await api.get(`/chat/groups/${teamId}`);
+        found = directRes.data;
+      }
       if (found) {
         setTeam(found);
       } else {
-        alert('Team not found or you are not authorized to view this team.');
-        navigate('/my-teams');
+        alert('Team details could not be found.');
+        navigate('/mentor-dashboard');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching team details:", err);
+      alert(err.response?.data?.detail || 'Failed to load team details.');
+      navigate('/mentor-dashboard');
     } finally {
       setLoading(false);
     }

@@ -381,12 +381,15 @@ def get_group_details(group_id: int, current_user = Depends(get_current_user), d
         raise HTTPException(status_code=404, detail="Group not found")
         
     is_member = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
-    is_approved_mentor = (
-        current_user.get("is_mentor") and
-        (group.get("mentor_email") or "").lower().strip() == (current_user.get("email") or "").lower().strip() and
-        group.get("mentor_status") == "APPROVED"
+    is_mentor_or_admin = (
+        current_user.get("is_admin") or
+        (
+            current_user.get("is_mentor") and
+            (group.get("mentor_email") or "").lower().strip() == (current_user.get("email") or "").lower().strip() and
+            group.get("mentor_status") in ["APPROVED", "COMPLETED", "PENDING"]
+        )
     )
-    if not is_member and not is_approved_mentor:
+    if not is_member and not is_mentor_or_admin:
         raise HTTPException(status_code=403, detail="Not authorized to view this group")
         
     return build_group_response(group, db, current_user)
