@@ -662,8 +662,9 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
         x: isTop && !exitDirection ? x : undefined,
         rotate: isTop && !exitDirection ? rotate : 0,
         opacity: isTop ? cardOpacity : 1,
-        zIndex: 1000 - index,
+        zIndex: 30 - index,
         y: index * 22,
+
       }}
       initial={false}
       animate={
