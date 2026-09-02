@@ -325,23 +325,74 @@ def _get_year_of_study(joining_year: int) -> int:
         years_passed -= 1
     return max(1, min(4, years_passed + 1))
 
+def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
+    """Returns (branch_code, joining_year, year_of_study)."""
+    import re
+    from services.academic_service import parse_rvce_email
+
+    email = (u.get("email") or "").strip().lower()
+    usn = (u.get("usn") or "").strip().upper()
+    branch_code = (u.get("branch_code") or "").strip().upper()
+    joining_year = u.get("joining_year")
+
+    # 1. Direct short code in branch
+    if not branch_code:
+        b_val = (u.get("branch") or "").strip().upper()
+        if b_val in BRANCH_CLUSTERS:
+            branch_code = b_val
+
+    # 2. Check USN pattern (e.g., 1RV25CD001 -> 2025, CD)
+    if usn:
+        m = re.match(r"^1R[VZ](\d{2})([A-Z]{2,3})\d{3}$", usn)
+        if m:
+            yy, b = m.groups()
+            if not joining_year:
+                joining_year = 2000 + int(yy)
+            if not branch_code and b in BRANCH_CLUSTERS:
+                branch_code = b
+
+    # 3. If missing, try parsing valid RVCE email
+    if (not branch_code or not joining_year) and email.endswith("@rvce.edu.in"):
+        parsed = parse_rvce_email(email)
+        if parsed.get("is_valid_rvce_student"):
+            if not branch_code:
+                branch_code = parsed.get("branch_code", "")
+            if not joining_year:
+                joining_year = parsed.get("joining_year")
+
+    # Final defaults if still unresolved
+    if not joining_year:
+        joining_year = 2025
+    if not branch_code:
+        branch_code = "CS"
+
+    year_of_study = _get_year_of_study(int(joining_year))
+    return branch_code, int(joining_year), year_of_study
+
+
 def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     student_users = [u for u in member_users if not u.get("is_mentor")]
     size = len(student_users)
-    if size < 3 or size > 5:
-        return False, f"Team must contain 3 to 5 members (currently has {size})"
+    if size < 4 or size > 5:
+        return False, f"Formal project team must contain 4 or 5 members (currently has {size})"
 
-    # ── Determine academic year for each member ────────────────────────────
-    study_years = set()
+    # ── Extract academic info for each member ──────────────────────────────
+    member_data = []
     for u in student_users:
-        joining_year = u.get("joining_year")
-        if not joining_year:
-            return False, f"Member '{u.get('full_name')}' has no joining year set."
-        study_years.add(_get_year_of_study(int(joining_year)))
+        b_code, j_yr, y_study = _extract_user_academic_info(u)
+        member_data.append({
+            "user": u,
+            "branch_code": b_code,
+            "joining_year": j_yr,
+            "year_of_study": y_study,
+            "cluster": BRANCH_CLUSTERS.get(b_code)
+        })
 
+    study_years = {m["year_of_study"] for m in member_data}
     if len(study_years) > 1:
+        years_str = " & ".join(f"Year {y}" for y in sorted(study_years))
         return False, (
-            "Team members are from different academic years. "
+            f"Team members are from different academic years ({years_str}). "
             "All members must be in the same year of study."
         )
 
@@ -350,11 +401,9 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     # ── 1st Year: P/C Cycle balance ────────────────────────────────────────
     if year == 1:
         p_count, c_count = 0, 0
-        for u in student_users:
-            code = (u.get("branch_code") or "").strip().upper()
-            cycle = BRANCH_CYCLE_MAP_1ST_YEAR.get(code)
-            if not cycle:
-                return False, f"Member '{u.get('full_name')}' has an unrecognized branch code '{code}'."
+        for m in member_data:
+            code = m["branch_code"]
+            cycle = BRANCH_CYCLE_MAP_1ST_YEAR.get(code, "P")
             if cycle == "P":
                 p_count += 1
             else:
@@ -362,27 +411,23 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
 
         if size == 4 and (p_count != 2 or c_count != 2):
             return False, (
-                f"Cycle balance criteria failed: A team of 4 must have exactly "
-                f"2 P-Cycle and 2 C-Cycle members (Found {p_count} P-Cycle, {c_count} C-Cycle)."
+                f"1st Year Cycle Balance failed: Team of 4 must have exactly 2 P-Cycle and 2 C-Cycle members "
+                f"(Found {p_count} P-Cycle, {c_count} C-Cycle)."
             )
         if size == 5 and not ((p_count == 3 and c_count == 2) or (p_count == 2 and c_count == 3)):
             return False, (
-                f"Cycle balance criteria failed: A team of 5 must have either "
-                f"(3 P-Cycle + 2 C-Cycle) or (2 P-Cycle + 3 C-Cycle) members "
+                f"1st Year Cycle Balance failed: Team of 5 must have either (3 P + 2 C) or (2 P + 3 C) "
                 f"(Found {p_count} P-Cycle, {c_count} C-Cycle)."
             )
         return True, ""
 
     # ── 2nd Year (and above): Cluster-based branch combination ────────────
     branch_counts: dict[str, int] = {}
-    for u in student_users:
-        code = (u.get("branch_code") or "").strip().upper()
-        if not code:
-            return False, f"Member '{u.get('full_name')}' has no branch code set."
+    for m in member_data:
+        code = m["branch_code"]
         branch_counts[code] = branch_counts.get(code, 0) + 1
 
-    clusters_in_team = {BRANCH_CLUSTERS.get(code) for code in branch_counts}
-    clusters_in_team.discard(None)
+    clusters_in_team = {m["cluster"] for m in member_data if m["cluster"]}
 
     if len(clusters_in_team) == 0:
         return False, "Unable to determine cluster — ensure all members have valid branch codes."
@@ -390,7 +435,7 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
         cluster_labels = " / ".join(sorted(clusters_in_team))
         return False, (
             f"Team members belong to multiple clusters ({cluster_labels}). "
-            "All members must be from the same cluster (EC / CS / ME / CV)."
+            "All members must be from the same cluster (EC, CS, ME, or CV)."
         )
 
     cluster = next(iter(clusters_in_team))
@@ -399,10 +444,11 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     if not any(branch_counts == combo for combo in valid_combos):
         combo_strs = [" + ".join(f"{cnt} {br}" for br, cnt in combo.items()) for combo in valid_combos]
         combos_display = "\n  • " + "\n  • ".join(combo_strs)
+        current_str = " + ".join(f"{cnt} {br}" for br, cnt in sorted(branch_counts.items()))
         return False, (
-            f"Invalid branch combination for the {cluster} cluster. "
-            f"Current team: {', '.join(f'{cnt} {br}' for br, cnt in branch_counts.items())}. "
-            f"Valid combinations:{combos_display}"
+            f"Invalid branch combination for {cluster} Cluster. "
+            f"Current team: {current_str}. "
+            f"Approved {cluster} combinations:{combos_display}"
         )
 
     return True, ""
@@ -414,16 +460,19 @@ def build_group_response(group: dict, db, current_user = None) -> dict:
     member_users = list(db.users.find({"id": {"$in": member_ids}}))
     for u in member_users:
         u.pop("_id", None)
+        b_code, j_yr, y_study = _extract_user_academic_info(u)
+        u["branch_code"] = b_code
+        u["joining_year"] = j_yr
+        u["year_of_study"] = y_study
+        u["cluster"] = BRANCH_CLUSTERS.get(b_code)
+
     criteria_met, val_error = validate_team_criteria(member_users)
     
     # Query evaluations from evaluations collection
-    print(f"Database query executed: fetching evaluations for group_id: {group['id']}")
     evaluations = list(db.evaluations.find({"group_id": group["id"]}))
-    print(f"Query result: found {len(evaluations)} evaluations")
     
     student_evaluations_dict = {}
     for ev in evaluations:
-        print(f"Existing evaluation found for student {ev['student_id']}")
         student_evaluations_dict[str(ev["student_id"])] = {
             "phase1_detail_marks": ev.get("phase1_detail_marks") or {},
             "phase1_observations": ev.get("phase1_observations") or "",
@@ -433,6 +482,7 @@ def build_group_response(group: dict, db, current_user = None) -> dict:
             "phase3_observations": ev.get("phase3_observations") or "",
             "evaluator_id": ev.get("evaluator_id")
         }
+
         
     print(f"[Backend build_group_response] student_evaluations_dict: {student_evaluations_dict}")
 

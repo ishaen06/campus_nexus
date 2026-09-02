@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare, Search, ChevronDown, AlertTriangle } from 'lucide-react';
+import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare, Search, ChevronDown, AlertTriangle, Check } from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
 import EvaluationFormModal from '../components/EvaluationFormModal';
 import { THEME_SUBTOPICS, CLUSTER_THEMES, getYearOfStudy, getClusterForBranch } from './MyTeam';
@@ -646,6 +647,40 @@ export default function ProjectDashboard() {
                             <div>{mentorValidationError}</div>
                           </div>
                         )}
+
+                        {/* Team Criteria Status Notice */}
+                        <div className={`p-4 rounded-2xl border text-left ${
+                          team.criteria_met
+                            ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40'
+                            : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40'
+                        }`}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                              team.criteria_met
+                                ? 'text-emerald-700 dark:text-emerald-400'
+                                : 'text-amber-700 dark:text-amber-400'
+                            }`}>
+                              {team.criteria_met ? (
+                                <><Check size={14} className="stroke-[3]" /> Team Criteria Fulfilled</>
+                              ) : (
+                                <><AlertTriangle size={14} /> Team Criteria Incomplete</>
+                              )}
+                            </span>
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                              {(team.members || []).filter((m: any) => !m.is_mentor).length} / 5 Members
+                            </span>
+                          </div>
+                          {team.validation_error && (
+                            <p className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-line mt-1 font-medium leading-relaxed">
+                              {team.validation_error}
+                            </p>
+                          )}
+                          {team.criteria_met && (
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                              Your team fulfills all cluster and branch composition requirements and is ready for mentor submission!
+                            </p>
+                          )}
+                        </div>
 
                         {team.mentor_status !== 'APPROVED' && (
                           <div className="pt-2 flex flex-col gap-2">

@@ -4,7 +4,9 @@ import api, { getWsURL } from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, ArrowLeft, AlertTriangle, Users, Settings, X, Sparkles, UserMinus, UserPlus, Check, Lock } from 'lucide-react';
 import Avatar from '../components/Avatar';
-import { THEME_SUBTOPICS } from './MyTeam';
+import { THEME_SUBTOPICS, BRANCH_CLUSTER_MAP, getYearOfStudy, getClusterForBranch } from './MyTeam';
+
+
 
 interface GroupMessage {
   id?: number;
@@ -204,15 +206,63 @@ export default function GroupChat() {
     return null;
   };
 
+  const VALID_COMBINATIONS_MAP: Record<string, Record<string, number>[]> = {
+    EC: [
+      { EC: 3, EE: 1, ET: 1 }, { EC: 3, EE: 2 }, { EC: 3, ET: 2 },
+      { EC: 4, EE: 1 }, { EC: 4, ET: 1 }, { EC: 3, EE: 1 }, { EC: 3, ET: 1 },
+    ],
+    CS: [
+      { CS: 3, CI: 2 }, { CS: 2, CD: 1, CY: 1 },
+      { CD: 2, CS: 1, CY: 2 }, { CD: 1, CY: 1, CI: 2 },
+    ],
+    ME: [
+      { AS: 1, IM: 1, ME: 3 }, { AS: 2, IM: 1, ME: 2 }, { AS: 1, IM: 2, ME: 2 },
+    ],
+    CV: [
+      { CV: 1, CH: 2, BT: 2 }, { CV: 2, CH: 1, BT: 2 }, { CV: 1, CH: 1, BT: 2 },
+    ],
+  };
+
   const studentsInTeam = teamMembers.filter(uid => {
     const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
     return memberObj ? !memberObj.is_mentor : true;
   });
   const totalSize = studentsInTeam.length;
+  const isSizeValid = totalSize >= 4 && totalSize <= 5;
+
+  // Determine team academic year from members
+  const memberYears = studentsInTeam.map(uid => {
+    const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
+    const jy = memberObj?.joining_year;
+    return jy ? getYearOfStudy(Number(jy)) : 2;
+  });
+  const teamYear = memberYears[0] ?? 2;
+
+  // 1st Year: Cycle counts
   const pCount = studentsInTeam.filter(uid => getCycleOfUser(uid) === 'P').length;
   const cCount = studentsInTeam.filter(uid => getCycleOfUser(uid) === 'C').length;
-  const isSizeValid = totalSize >= 4 && totalSize <= 5;
-  const isBalanceValid = pCount >= 2 && cCount >= 2;
+  const isCycleBalanceValid = (totalSize === 4 && pCount === 2 && cCount === 2) ||
+    (totalSize === 5 && ((pCount === 3 && cCount === 2) || (pCount === 2 && cCount === 3)));
+
+  // 2nd Year: Cluster & branch combinations
+  const branchCounts: Record<string, number> = {};
+  studentsInTeam.forEach(uid => {
+    const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
+    const code = (memberObj?.branch_code || getBranchOfUser(uid) || 'CS').toUpperCase();
+    branchCounts[code] = (branchCounts[code] || 0) + 1;
+  });
+  const clustersInTeam = [...new Set(Object.keys(branchCounts).map(c => BRANCH_CLUSTER_MAP[c]).filter(Boolean))];
+  const teamCluster = clustersInTeam[0] || null;
+  const isSingleCluster = clustersInTeam.length === 1;
+
+  const clusterCombos = teamCluster ? (VALID_COMBINATIONS_MAP[teamCluster] || []) : [];
+  const isClusterComboValid = isSingleCluster && clusterCombos.some(combo =>
+    Object.keys(combo).length === Object.keys(branchCounts).length &&
+    Object.entries(combo).every(([br, cnt]) => branchCounts[br] === cnt)
+  );
+
+  const isBalanceValid = teamYear === 1 ? isCycleBalanceValid : isClusterComboValid;
+
 
   const handleSaveSettings = async () => {
     try {
@@ -473,10 +523,22 @@ export default function GroupChat() {
 
               {/* Team Criteria Validation Checklist */}
               <div className="space-y-3 mb-6 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 rounded-2xl text-left">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Team Formation Rules</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">
+                    Team Formation Rules ({teamYear >= 2 ? `Year 2: ${teamCluster || 'Cluster'} Combination` : 'Year 1: Cycle Balance'})
+                  </span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border ${
+                    isSizeValid && isBalanceValid 
+                      ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' 
+                      : 'bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'
+                  }`}>
+                    {isSizeValid && isBalanceValid ? '✓ Criteria Met' : '⚠️ Incomplete'}
+                  </span>
+                </div>
                 
+                {/* Rule 1: Size */}
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${isSizeValid ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'}`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center border shrink-0 ${isSizeValid ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'}`}>
                     {isSizeValid ? <Check size={10} className="stroke-[3.5]" /> : <AlertTriangle size={10} className="stroke-[2.5]" />}
                   </div>
                   <div className="flex flex-col">
@@ -489,22 +551,45 @@ export default function GroupChat() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${isBalanceValid ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'}`}>
-                    {isBalanceValid ? <Check size={10} className="stroke-[3.5]" /> : <AlertTriangle size={10} className="stroke-[2.5]" />}
+                {/* Rule 2: Cluster combination or Cycle Balance */}
+                {teamYear >= 2 ? (
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center border shrink-0 mt-0.5 ${isClusterComboValid ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'}`}>
+                      {isClusterComboValid ? <Check size={10} className="stroke-[3.5]" /> : <AlertTriangle size={10} className="stroke-[2.5]" />}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`text-xs font-bold ${isClusterComboValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                        {teamCluster ? `${teamCluster} Cluster Combination` : 'Single Cluster Requirement'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Current: {Object.entries(branchCounts).map(([br, n]) => `${n} ${br}`).join(' + ') || 'No members'}
+                      </span>
+                      {!isClusterComboValid && teamCluster && (
+                        <div className="text-[9px] text-indigo-600 dark:text-indigo-400 font-medium mt-1 bg-indigo-50/50 dark:bg-indigo-950/30 p-2 rounded-lg border border-indigo-100 dark:border-indigo-900/40">
+                          <span className="font-bold block uppercase tracking-wider mb-0.5">Approved {teamCluster} Combinations:</span>
+                          {VALID_COMBINATIONS_MAP[teamCluster]?.map(c => Object.entries(c).map(([br, n]) => `${n} ${br}`).join(' + ')).join(' • ')}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className={`text-xs font-bold ${isBalanceValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                      Cycle Balance (Exactly 50% P-Cycle & 50% C-Cycle)
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Found {pCount} P-Cycle, {cCount} C-Cycle.
-                    </span>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center border shrink-0 ${isCycleBalanceValid ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'}`}>
+                      {isCycleBalanceValid ? <Check size={10} className="stroke-[3.5]" /> : <AlertTriangle size={10} className="stroke-[2.5]" />}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`text-xs font-bold ${isCycleBalanceValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                        Cycle Balance (P-Cycle & C-Cycle Balance)
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Found {pCount} P-Cycle, {cCount} C-Cycle.
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="pt-2 border-t border-slate-200/50 dark:border-slate-800/80 text-[10px] text-slate-400 dark:text-slate-500 italic">
-                  * These rules are only enforced when submitting the team to a mentor for project approval.
+                  * Rules are verified when submitting the team to a mentor for project approval.
                 </div>
               </div>
 
@@ -558,10 +643,21 @@ export default function GroupChat() {
                             <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{name}</span>
                             <div className="flex items-center gap-2">
                               {branch && <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">{branch}</span>}
-                              {cycle && (
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${cycle === 'P' ? 'bg-violet-50 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/30' : 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'}`}>
-                                  {cycle}-Cycle
-                                </span>
+                              {teamYear >= 2 ? (
+                                (() => {
+                                  const cl = getClusterForBranch(branch || '');
+                                  return cl ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold border bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30">
+                                      {cl} Cluster
+                                    </span>
+                                  ) : null;
+                                })()
+                              ) : (
+                                cycle && (
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${cycle === 'P' ? 'bg-violet-50 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/30' : 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'}`}>
+                                    {cycle}-Cycle
+                                  </span>
+                                )
                               )}
                             </div>
                           </div>

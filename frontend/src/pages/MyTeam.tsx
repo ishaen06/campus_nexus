@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Sparkles, FolderGit, Lock } from 'lucide-react';
+import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle } from 'lucide-react';
+
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 
@@ -373,10 +374,7 @@ export default function MyTeam() {
               const team = groups[0];
               const isAdmin = team.created_by === currentUser?.id;
               const members = (team.members || []).filter((m: any) => !m.is_mentor);
-              const pCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'P').length;
-              const cCount = members.filter((m: any) => (m.cycle || '').toUpperCase() === 'C').length;
-              const isSizeValid = members.length >= 3 && members.length <= 5;
-              const isBalanceValid = members.length === 3 || (pCount >= 2 && cCount >= 2);
+
 
               return (
                 <div className="grid gap-6 md:grid-cols-3">
@@ -401,28 +399,43 @@ export default function MyTeam() {
                           {/* Members Rule Status Indicator */}
                           <div 
                             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold border backdrop-blur-sm cursor-help ${
-                              isSizeValid 
+                              members.length >= 4 && members.length <= 5
                                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
                                 : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
                             }`}
-                            title={`Members count: 3 to 5 required (Currently has ${members.length})`}
+                            title={`Members count: 4 to 5 required (Currently has ${members.length})`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isSizeValid ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${members.length >= 4 && members.length <= 5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                             <span>{members.length}/5 Members</span>
                           </div>
 
-                          {/* Cycle Balance Status Indicator */}
-                          {!isBalanceValid && (
-                            <div 
-                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold border backdrop-blur-sm cursor-help bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-                              title={`Cycle Balance: Min 2 P-Cycle & 2 C-Cycle required (Found ${pCount} P, ${cCount} C)`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                              <span>Cycle Balance</span>
-                            </div>
-                          )}
+                          {/* Team Criteria Met / Incomplete Status Indicator */}
+                          <div 
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold border backdrop-blur-sm cursor-help ${
+                              team.criteria_met
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+                            }`}
+                            title={team.criteria_met ? "Team criteria fulfilled! Ready for mentor submission." : (team.validation_error || "Team criteria incomplete")}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${team.criteria_met ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            <span>{team.criteria_met ? '✓ Criteria Met' : '⚠️ Criteria Incomplete'}</span>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Criteria Incomplete Warning Banner */}
+                      {!team.criteria_met && team.validation_error && (
+                        <div className="mb-5 p-3.5 rounded-xl border bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40 text-left">
+                          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+                            <AlertTriangle size={14} /> Team Criteria Notice
+                          </div>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line font-medium leading-relaxed">
+                            {team.validation_error}
+                          </p>
+                        </div>
+                      )}
+
 
                       {/* Project Topic Details */}
                       <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/60 rounded-xl p-5 mb-6 text-left">
@@ -565,23 +578,40 @@ export default function MyTeam() {
                                 <div className="flex flex-col">
                                   <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{member.full_name}</span>
                                   <div className="flex items-center gap-2 mt-1">
-                                    {member.branch && (
+                                    {(member.branch_code || member.branch) && (
                                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                        {member.branch.toUpperCase()}
+                                        {(member.branch_code || member.branch).toUpperCase()}
                                       </span>
                                     )}
-                                    {member.branch && member.cycle && (
-                                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                                    )}
-                                    {member.cycle && (
-                                      <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
-                                        member.cycle.toUpperCase() === 'P' 
-                                          ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300' 
-                                          : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300'
-                                      }`}>
-                                        {member.cycle.toUpperCase()}-Cycle
-                                      </span>
-                                    )}
+                                    {(() => {
+                                      const yr = member.joining_year ? getYearOfStudy(Number(member.joining_year)) : 2;
+                                      if (yr >= 2) {
+                                        const cl = getClusterForBranch(member.branch_code || member.branch || '');
+                                        return cl ? (
+                                          <>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40">
+                                              {cl} Cluster
+                                            </span>
+                                          </>
+                                        ) : null;
+                                      }
+                                      if (member.cycle) {
+                                        return (
+                                          <>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                                            <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                                              member.cycle.toUpperCase() === 'P' 
+                                                ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300' 
+                                                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300'
+                                            }`}>
+                                              {member.cycle.toUpperCase()}-Cycle
+                                            </span>
+                                          </>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </div>
                                 </div>
                               </div>

@@ -5,6 +5,8 @@ import { X, Check, RefreshCw, Users } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getYearOfStudy, getClusterForBranch } from './MyTeam';
+
 
 interface UserProfile {
   id: number;
@@ -426,17 +428,47 @@ export default function Discovery() {
                                 </div>
                               </div>
 
-                              {/* Cycle Balance Indicator */}
-                              <div className="bg-slate-50/60 dark:bg-slate-950/45 rounded-xl p-3.5 border border-slate-100 dark:border-white/5 space-y-1.5 mb-5">
-                                <div className="flex justify-between text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                  <span>Physics (P-Cycle):</span>
-                                  <span className="font-black text-slate-800 dark:text-slate-200">{pCount}</span>
-                                </div>
-                                <div className="flex justify-between text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                  <span>Chemistry (C-Cycle):</span>
-                                  <span className="font-black text-slate-800 dark:text-slate-200">{cCount}</span>
-                                </div>
-                              </div>
+                              {/* Team Composition Indicator (Year 2: Cluster & Branches, Year 1: Cycle Balance) */}
+                              {(() => {
+                                const yr = members[0]?.joining_year ? getYearOfStudy(Number(members[0].joining_year)) : 2;
+                                if (yr >= 2) {
+                                  const branchCounts: Record<string, number> = {};
+                                  members.forEach((m: any) => {
+                                    const b = (m.branch_code || m.branch || 'CS').toUpperCase();
+                                    branchCounts[b] = (branchCounts[b] || 0) + 1;
+                                  });
+                                  const clusters = [...new Set(Object.keys(branchCounts).map(b => getClusterForBranch(b)).filter(Boolean))];
+                                  const clusterLabel = clusters.length === 1 ? `${clusters[0]} Cluster` : clusters.length > 1 ? 'Mixed Clusters' : 'Cluster';
+                                  const branchesSummary = Object.entries(branchCounts).map(([b, cnt]) => `${cnt} ${b}`).join(' + ');
+
+                                  return (
+                                    <div className="bg-slate-50/60 dark:bg-slate-950/45 rounded-xl p-3.5 border border-slate-100 dark:border-white/5 space-y-1.5 mb-5 text-left">
+                                      <div className="flex justify-between text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                        <span>Cluster:</span>
+                                        <span className="font-black text-indigo-600 dark:text-indigo-400">{clusterLabel}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                        <span>Branches:</span>
+                                        <span className="font-black text-slate-800 dark:text-slate-200">{branchesSummary || 'None'}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div className="bg-slate-50/60 dark:bg-slate-950/45 rounded-xl p-3.5 border border-slate-100 dark:border-white/5 space-y-1.5 mb-5 text-left">
+                                    <div className="flex justify-between text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                      <span>Physics (P-Cycle):</span>
+                                      <span className="font-black text-slate-800 dark:text-slate-200">{pCount}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                      <span>Chemistry (C-Cycle):</span>
+                                      <span className="font-black text-slate-800 dark:text-slate-200">{cCount}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
                             </div>
 
                             {/* Join Team / Chat with Admin Button */}
