@@ -8,6 +8,8 @@ import Logo from './Logo';
 import Avatar from './Avatar';
 import RatingModal from './RatingModal';
 import { motion } from 'framer-motion';
+import { getStudentSemester } from '../utils/academic';
+
 
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -176,19 +178,9 @@ export default function Layout() {
   const getStudentSub = (user: any) => {
     if (!user) return '';
     if (!user.branch) return 'Student';
-    const semMap: Record<number, string> = {
-      1: '1st Sem',
-      2: '2nd Sem',
-      3: '3rd Sem',
-      4: '4th Sem',
-      5: '5th Sem',
-      6: '6th Sem',
-      7: '7th Sem',
-      8: '8th Sem'
-    };
-    const sem = semMap[user.year_of_study || 1] || `${user.year_of_study || 1}th Sem`;
-    return `${user.branch} ${sem}`;
+    return `${user.branch} • ${getStudentSemester(user)}`;
   };
+
 
   useEffect(() => {
     const checkUnread = async () => {

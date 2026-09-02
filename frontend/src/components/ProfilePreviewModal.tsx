@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail } from 'lucide-react';
 import Avatar from './Avatar';
+import { getStudentSemester, getStudentYearDisplay } from '../utils/academic';
 
 interface ProfilePreviewModalProps {
   isOpen: boolean;
@@ -26,53 +27,13 @@ interface ProfilePreviewModalProps {
   } | null;
 }
 
-function getStudentYearOfStudy(user: any): number {
-  if (user.year_of_study && user.year_of_study >= 1 && user.year_of_study <= 4) {
-    return user.year_of_study;
-  }
-  const checkStr = `${user.email || ''} ${user.usn || ''}`;
-  if (checkStr.includes('25') || Number(user.joining_year || user.joiningYear) === 2025) {
-    return 2;
-  }
-  if (checkStr.includes('26') || Number(user.joining_year || user.joiningYear) === 2026) {
-    return 1;
-  }
-  if (checkStr.includes('24') || Number(user.joining_year || user.joiningYear) === 2024) {
-    return 3;
-  }
-  if (checkStr.includes('23') || Number(user.joining_year || user.joiningYear) === 2023) {
-    return 4;
-  }
-  if (user.joining_year || user.joiningYear) {
-    const now = new Date();
-    let yearsElapsed = now.getFullYear() - Number(user.joining_year || user.joiningYear);
-    if (now.getMonth() + 1 < 8) yearsElapsed -= 1;
-    return Math.max(1, Math.min(4, yearsElapsed + 1));
-  }
-  return 2;
-}
-
-function formatYear(year: number): string {
-  switch (year) {
-    case 1:
-      return '1st Year';
-    case 2:
-      return '2nd Year';
-    case 3:
-      return '3rd Year';
-    case 4:
-      return '4th Year';
-    default:
-      return `${year}th Year`;
-  }
-}
-
 export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewModalProps) {
   if (!user) return null;
 
   const branchDisplay = (user.branch_code || user.branch || 'N/A').toUpperCase();
-  const yearNumber = getStudentYearOfStudy(user);
-  const yearDisplay = formatYear(yearNumber);
+  const yearDisplay = getStudentYearDisplay(user);
+  const semDisplay = getStudentSemester(user);
+
 
   return (
     <AnimatePresence>
@@ -132,8 +93,9 @@ export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePr
                       </span>
                       <span className="text-slate-400 font-bold">•</span>
                       <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-black text-xs uppercase tracking-wider">
-                        {yearDisplay}
+                        {yearDisplay} • {semDisplay}
                       </span>
+
                       {user.usn && (
                         <>
                           <span className="text-slate-400 font-bold">•</span>

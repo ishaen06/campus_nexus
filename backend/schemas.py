@@ -11,7 +11,9 @@ class UserResponse(BaseModel):
     full_name: str
     branch: Optional[str] = None
     year_of_study: Optional[int] = None
+    semester: Optional[int] = None
     bio: Optional[str] = None
+
     interests: Optional[List[str]] = None
     goals: Optional[List[str]] = None
     profile_photo: Optional[str] = None

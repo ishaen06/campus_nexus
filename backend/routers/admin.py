@@ -1043,9 +1043,20 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
             name = s.get("full_name") or "N/A"
             branch = s.get("branch") or "N/A"
             section = s.get("section") or "N/A"
-            year = s.get("year_of_study") or "N/A"
+            s_email = (s.get("email") or "").lower()
+            if "25" in s_email or s.get("joining_year") == 2025:
+                semester = "3rd Sem"
+            elif "26" in s_email or s.get("joining_year") == 2026:
+                semester = "1st Sem"
+            elif "24" in s_email or s.get("joining_year") == 2024:
+                semester = "5th Sem"
+            elif "23" in s_email or s.get("joining_year") == 2023:
+                semester = "7th Sem"
+            else:
+                semester = "3rd Sem" if s.get("year_of_study") == 2 else "1st Sem"
             
             group_id = "N/A"
+
             group_name = "N/A"
             mentor_name = "N/A"
             group_doc = None
@@ -1086,8 +1097,9 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
                 "Student Name": name,
                 "Branch": branch,
                 "Sec": section,
-                "Semester": year,
+                "Semester": semester,
                 "Team Name": group_name,
+
                 "Mentor": mentor_name,
                 "P1 Marks": p1_marks,
                 "P1 Observations": p1_obs[:30] + "..." if len(p1_obs) > 30 else p1_obs,

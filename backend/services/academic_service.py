@@ -167,7 +167,34 @@ def calculate_academic_year(joining_year: int, session_start_month: int = 8, ema
     year_of_study = years_passed + 1
     return max(1, min(4, year_of_study))
 
+def calculate_academic_semester(joining_year: int, session_start_month: int = 8, email: str = "", year_of_study: int = None) -> int:
+    """
+    Dynamically calculates Current Academic Semester (1 to 8).
+    Rule: all emails with 25 (or joining_year == 2025) are 3rd sem students.
+    """
+    clean_email = (email or "").lower()
+    if "25" in clean_email or joining_year == 2025:
+        return 3
+    if "26" in clean_email or joining_year == 2026:
+        return 1
+    if "24" in clean_email or joining_year == 2024:
+        return 5
+    if "23" in clean_email or joining_year == 2023:
+        return 7
+        
+    if year_of_study == 2:
+        return 3
+    elif year_of_study == 1:
+        return 1
+    elif year_of_study == 3:
+        return 5
+    elif year_of_study == 4:
+        return 7
+        
+    return 3
+
 def get_subject_cycle(branch_code: str, db) -> str:
+
     """
     Fetches the live Admin-configured Subject Cycle ('C' or 'P') for a branch code.
     """
@@ -218,8 +245,10 @@ def enrich_user_academic_profile(user_dict: dict, db) -> dict:
         settings = get_academic_settings(db)
         session_start_month = settings.get("session_start_month", 8)
         
-        # Calculate dynamic year of study
+        # Calculate dynamic year of study & semester
         res["year_of_study"] = calculate_academic_year(joining_year, session_start_month, email=user_email)
+        res["semester"] = calculate_academic_semester(joining_year, session_start_month, email=user_email, year_of_study=res.get("year_of_study"))
+
 
         
         # Resolve live Subject Cycle
