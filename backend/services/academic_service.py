@@ -3,44 +3,41 @@ from datetime import datetime
 from fastapi import HTTPException, status
 
 DEFAULT_BRANCH_NAMES = {
-    "CS": "Computer Science Engineering",
+    "CS": "Computer Science and Engineering",
+    "CI": "Artificial Intelligence and Machine Learning",
+    "CD": "Computer Science (Data Science)",
+    "CY": "Computer Science and Engineering (Cyber Security)",
     "EC": "Electronics and Communication Engineering",
-    "ECE": "Electronics and Communication Engineering",
     "EE": "Electrical and Electronics Engineering",
-    "EEE": "Electrical and Electronics Engineering",
+    "ET": "Electronics and Telecommunication Engineering",
+    "AS": "Aerospace Engineering",
+    "IM": "Industrial Engineering and Management",
     "ME": "Mechanical Engineering",
     "CV": "Civil Engineering",
-    "CH": "Chemical Engineering",
     "BT": "Biotechnology",
-    "AI": "Artificial Intelligence & Machine Learning",
-    "AIML": "Artificial Intelligence & Machine Learning",
-    "CY": "Cyber Security",
-    "DS": "Data Science",
-    "ETE": "Electronics & Telecommunication Engineering",
-    "IEM": "Industrial Engineering & Management",
-    "AS": "Aerospace Engineering",
-    "ASE": "Aerospace Engineering"
+    "CH": "Chemical Engineering",
 }
 
 DEFAULT_CYCLE_MAPPINGS = {
+    # C-Cycle (CS cluster)
     "CS": "C",
-    "AI": "C",
-    "AIML": "C",
+    "CI": "C",
+    "CD": "C",
     "CY": "C",
-    "DS": "C",
+    # P-Cycle (EC cluster)
     "EC": "P",
-    "ECE": "P",
     "EE": "P",
-    "EEE": "P",
-    "ME": "P",
-    "CV": "P",
-    "CH": "P",
-    "BT": "P",
-    "ETE": "P",
-    "IEM": "P",
+    "ET": "P",
+    # P-Cycle (ME cluster)
     "AS": "P",
-    "ASE": "P"
+    "IM": "P",
+    "ME": "P",
+    # P-Cycle (CV cluster)
+    "CV": "P",
+    "BT": "P",
+    "CH": "P",
 }
+
 
 ALLOWED_GMAIL_ACCOUNTS = {
     "ishaen06@gmail.com",

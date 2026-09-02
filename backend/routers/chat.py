@@ -236,13 +236,90 @@ VALID_TEAM_COMBINATIONS: dict[str, list[dict]] = {
     ],
 }
 
+# ─── Branch code full names (used in emails & error messages) ──────────────
+BRANCH_FULL_NAMES = {
+    "CS": "Computer Science and Engineering",
+    "CI": "Artificial Intelligence and Machine Learning",
+    "CD": "Computer Science (Data Science)",
+    "CY": "Computer Science and Engineering (Cyber Security)",
+    "EC": "Electronics and Communication Engineering",
+    "EE": "Electrical and Electronics Engineering",
+    "ET": "Electronics and Telecommunication Engineering",
+    "AS": "Aerospace Engineering",
+    "IM": "Industrial Engineering and Management",
+    "ME": "Mechanical Engineering",
+    "CV": "Civil Engineering",
+    "BT": "Biotechnology",
+    "CH": "Chemical Engineering",
+}
+
+# P/C cycle mapping for 1st year branch codes
+BRANCH_CYCLE_MAP_1ST_YEAR = {
+    "CS": "C", "CI": "C", "CD": "C", "CY": "C",   # CS cluster → C-Cycle
+    "EC": "P", "EE": "P", "ET": "P",               # EC cluster → P-Cycle
+    "AS": "P", "IM": "P", "ME": "P",               # ME cluster → P-Cycle
+    "CV": "P", "BT": "P", "CH": "P",               # CV cluster → P-Cycle
+}
+
+_SESSION_START_MONTH = 8  # August
+
+def _get_year_of_study(joining_year: int) -> int:
+    from datetime import datetime
+    now = datetime.now()
+    years_passed = now.year - joining_year
+    if now.month < _SESSION_START_MONTH:
+        years_passed -= 1
+    return max(1, min(4, years_passed + 1))
+
 def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     student_users = [u for u in member_users if not u.get("is_mentor")]
     size = len(student_users)
     if size < 3 or size > 5:
         return False, f"Team must contain 3 to 5 members (currently has {size})"
 
-    # Build branch-code count map from team members
+    # ── Determine academic year for each member ────────────────────────────
+    study_years = set()
+    for u in student_users:
+        joining_year = u.get("joining_year")
+        if not joining_year:
+            return False, f"Member '{u.get('full_name')}' has no joining year set."
+        study_years.add(_get_year_of_study(int(joining_year)))
+
+    if len(study_years) > 1:
+        return False, (
+            "Team members are from different academic years. "
+            "All members must be in the same year of study."
+        )
+
+    year = next(iter(study_years))
+
+    # ── 1st Year: P/C Cycle balance ────────────────────────────────────────
+    if year == 1:
+        p_count, c_count = 0, 0
+        for u in student_users:
+            code = (u.get("branch_code") or "").strip().upper()
+            cycle = BRANCH_CYCLE_MAP_1ST_YEAR.get(code)
+            if not cycle:
+                return False, f"Member '{u.get('full_name')}' has an unrecognized branch code '{code}'."
+            if cycle == "P":
+                p_count += 1
+            else:
+                c_count += 1
+
+        if size == 4 and (p_count != 2 or c_count != 2):
+            return False, (
+                f"Cycle balance criteria failed: A team of 4 must have exactly "
+                f"2 P-Cycle and 2 C-Cycle members (Found {p_count} P-Cycle, {c_count} C-Cycle)."
+            )
+        if size == 5 and not ((p_count == 3 and c_count == 2) or (p_count == 2 and c_count == 3)):
+            return False, (
+                f"Cycle balance criteria failed: A team of 5 must have either "
+                f"(3 P-Cycle + 2 C-Cycle) or (2 P-Cycle + 3 C-Cycle) members "
+                f"(Found {p_count} P-Cycle, {c_count} C-Cycle)."
+            )
+        return True, ""
+
+    # ── 2nd Year (and above): Cluster-based branch combination ────────────
     branch_counts: dict[str, int] = {}
     for u in student_users:
         code = (u.get("branch_code") or "").strip().upper()
@@ -250,7 +327,6 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
             return False, f"Member '{u.get('full_name')}' has no branch code set."
         branch_counts[code] = branch_counts.get(code, 0) + 1
 
-    # Determine cluster (all members must belong to the same cluster)
     clusters_in_team = {BRANCH_CLUSTERS.get(code) for code in branch_counts}
     clusters_in_team.discard(None)
 
@@ -266,12 +342,8 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     cluster = next(iter(clusters_in_team))
     valid_combos = VALID_TEAM_COMBINATIONS.get(cluster, [])
 
-    if branch_counts == {} or not any(branch_counts == combo for combo in valid_combos):
-        # Build human-readable description of valid combos for this cluster
-        combo_strs = []
-        for combo in valid_combos:
-            parts = " + ".join(f"{cnt} {br}" for br, cnt in combo.items())
-            combo_strs.append(parts)
+    if not any(branch_counts == combo for combo in valid_combos):
+        combo_strs = [" + ".join(f"{cnt} {br}" for br, cnt in combo.items()) for combo in valid_combos]
         combos_display = "\n  • " + "\n  • ".join(combo_strs)
         return False, (
             f"Invalid branch combination for the {cluster} cluster. "
@@ -1021,7 +1093,11 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
     from utils import send_email
     subject = f"Mentor Approval Request for Team: {group['name']}"
     
-    members_list_str = "\n".join([f"- {m.get('full_name')} ({m.get('email')}, USN: {m.get('usn') or 'N/A'}, Branch: {m.get('branch_code') or 'N/A'})" for m in members])
+    members_list_str = "\n".join([
+        f"- {m.get('full_name')} ({m.get('email')}, USN: {m.get('usn') or 'N/A'}, "
+        f"Branch: {m.get('branch_code') or 'N/A'} – {BRANCH_FULL_NAMES.get((m.get('branch_code') or '').upper(), 'Unknown Branch')})"
+        for m in members
+    ])
 
     
     host = os.getenv("API_HOST", "http://localhost:8000")
