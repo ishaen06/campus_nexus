@@ -27,9 +27,14 @@ import {
   UserCheck,
   UserX,
   AlertTriangle,
-  Award
+  Award,
+  Star,
+  Download,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
 
 interface Report {
   id: number;
@@ -153,8 +158,9 @@ interface TeamData {
 }
 
 interface AdminDashboardProps {
-  tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports' | 'academic';
+  tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports' | 'academic' | 'ratings';
 }
+
 
 export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const navigate = useNavigate();
@@ -235,6 +241,23 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [previewFormat, setPreviewFormat] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<{ title: string; columns: string[]; preview: any[]; total_rows: number } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Ratings tab states
+  const [ratingsData, setRatingsData] = useState<{
+    total: number;
+    average_score: number;
+    breakdown: Record<number, number>;
+    category_counts: Record<string, number>;
+    tag_counts: Record<string, number>;
+    ratings: any[];
+  } | null>(null);
+  const [ratingsLoading, setRatingsLoading] = useState(false);
+  const [ratingsError, setRatingsError] = useState<string | null>(null);
+  const [ratingSearchQuery, setRatingSearchQuery] = useState('');
+  const [selectedStarFilter, setSelectedStarFilter] = useState<number | 'all'>('all');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'all' | 'student' | 'mentor'>('all');
+  const [onlyWithFeedback, setOnlyWithFeedback] = useState(false);
+
 
   const fetchReports = async () => {
     try {
@@ -459,6 +482,64 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       }
     }
   }, [activeTab, window.location.search]);
+
+  const fetchRatings = async () => {
+    setRatingsLoading(true);
+    setRatingsError(null);
+    try {
+      const res = await api.get('/ratings/admin/all');
+      setRatingsData(res.data);
+    } catch (err: any) {
+      console.error('Failed to fetch ratings', err);
+      setRatingsError(err.response?.data?.detail || 'Failed to load ratings');
+    } finally {
+      setRatingsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'ratings') {
+      fetchRatings();
+    }
+  }, [activeTab]);
+
+  const handleDeleteRating = async (userId: number, userName: string) => {
+    if (!confirm(`Are you sure you want to delete the rating from "${userName}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/ratings/admin/${userId}`);
+      fetchRatings();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to delete rating');
+    }
+  };
+
+  const handleExportRatingsCSV = () => {
+    if (!ratingsData || !ratingsData.ratings || ratingsData.ratings.length === 0) {
+      alert('No ratings available to export.');
+      return;
+    }
+    const headers = ['User Name', 'Email', 'USN / Dept', 'Role', 'Rating (Score)', 'Tags', 'Feedback / Review', 'Submitted At'];
+    const rows = ratingsData.ratings.map(r => [
+      `"${(r.user_name || '').replace(/"/g, '""')}"`,
+      `"${(r.user_email || '').replace(/"/g, '""')}"`,
+      `"${(r.usn || r.department || '').replace(/"/g, '""')}"`,
+      `"${r.is_mentor ? 'Mentor' : 'Student'}"`,
+      r.score,
+      `"${(r.tags || []).join(', ')}"`,
+      `"${(r.feedback || '').replace(/"/g, '""')}"`,
+      `"${r.updated_at || r.created_at || ''}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `campus_nexus_ratings_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   // Fallback directory populator in case /admin/users fails (e.g. during backend deployment rollout)
   useEffect(() => {
@@ -737,6 +818,24 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     (m.department || "").toLowerCase().includes(mentorQuery.toLowerCase())
   );
 
+  const filteredRatings = (ratingsData?.ratings || []).filter(r => {
+    if (selectedStarFilter !== 'all' && r.score !== selectedStarFilter) return false;
+    if (selectedCategoryFilter === 'student' && r.is_mentor) return false;
+    if (selectedCategoryFilter === 'mentor' && !r.is_mentor) return false;
+    if (onlyWithFeedback && !(r.feedback && r.feedback.trim())) return false;
+    if (ratingSearchQuery.trim()) {
+      const q = ratingSearchQuery.toLowerCase().trim();
+      const matchName = (r.user_name || '').toLowerCase().includes(q);
+      const matchEmail = (r.user_email || '').toLowerCase().includes(q);
+      const matchFeedback = (r.feedback || '').toLowerCase().includes(q);
+      const matchTags = (r.tags || []).some((t: string) => t.toLowerCase().includes(q));
+      const matchUSN = (r.usn || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail && !matchFeedback && !matchTags && !matchUSN) return false;
+    }
+    return true;
+  });
+
+
   return (
     <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-10 px-4 md:px-8 space-y-8">
       {/* Header section with context-aware Title, Subtitle */}
@@ -751,6 +850,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {activeTab === 'mentors' && "Mentor Workloads"}
               {activeTab === 'teams' && "Teams & Project Roster"}
               {activeTab === 'academic' && "Academic Settings & Subject Cycle Configuration"}
+              {activeTab === 'ratings' && "App Ratings & User Reviews"}
             </h1>
             <p className="text-slate-500 text-sm font-semibold mt-1">
               {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
@@ -759,7 +859,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
               {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
               {activeTab === 'academic' && "Centralized academic profile generation, branch mappings, subject cycle allocation, and academic session settings."}
+              {activeTab === 'ratings' && "Monitor real-time student and faculty satisfaction scores, feedback, and platform suggestions."}
             </p>
+
           </div>
         </div>
       )}
@@ -2490,7 +2592,414 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               )}
             </AnimatePresence>
           </motion.div>
+        ) : activeTab === 'ratings' ? (
+          <motion.div 
+            key="ratings"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {ratingsError && (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold flex items-center justify-between">
+                <span>{ratingsError}</span>
+                <button
+                  onClick={fetchRatings}
+                  className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Top KPI Metrics */}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {/* Card 1: Average Score */}
+              <div className="glass-panel p-5 sm:p-6 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Overall Satisfaction</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
+                        {ratingsData?.average_score?.toFixed(1) || '5.0'}
+                      </span>
+                      <span className="text-xs font-bold text-slate-400">/ 5.0</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-500 rounded-2xl border border-amber-200/50 dark:border-amber-800/30">
+                    <Star size={20} className="fill-amber-400 text-amber-400" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-1.5 text-amber-400">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      size={16}
+                      className={s <= Math.round(ratingsData?.average_score || 5) ? "fill-amber-400 text-amber-400" : "text-slate-200 dark:text-slate-700"}
+                    />
+                  ))}
+                  <span className="ml-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    Based on {ratingsData?.total || 0} reviews
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 2: Total Ratings */}
+              <div className="glass-panel p-5 sm:p-6 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Total Submissions</span>
+                    <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
+                      {ratingsData?.total || 0}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/30">
+                    <Users size={20} />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
+                    {ratingsData?.category_counts?.student || 0} Students
+                  </span>
+                  <span>•</span>
+                  <span className="px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 font-bold">
+                    {ratingsData?.category_counts?.mentor || 0} Mentors
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 3: 5-Star Satisfaction % */}
+              <div className="glass-panel p-5 sm:p-6 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">5-Star Ratio</span>
+                    <span className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400">
+                      {ratingsData?.total ? Math.round(((ratingsData?.breakdown?.[5] || 0) / ratingsData.total) * 100) : 100}%
+                    </span>
+                  </div>
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-200/50 dark:border-emerald-800/30">
+                    <Sparkles size={20} />
+                  </div>
+                </div>
+                <div className="mt-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{ratingsData?.breakdown?.[5] || 0}</span> ratings gave a full 5/5 score
+                </div>
+              </div>
+
+              {/* Card 4: Written Comments */}
+              <div className="glass-panel p-5 sm:p-6 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Written Feedback</span>
+                    <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
+                      {(ratingsData?.ratings || []).filter(r => r.feedback && r.feedback.trim()).length}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-200/50 dark:border-blue-800/30">
+                    <MessageSquare size={20} />
+                  </div>
+                </div>
+                <div className="mt-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  Detailed comments & recommendations submitted
+                </div>
+              </div>
+            </div>
+
+            {/* Star Distribution & Feature Highlights Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Star Rating Breakdown Bar Chart */}
+              <div className="glass-panel p-6 border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <Star size={16} className="text-amber-400 fill-amber-400" />
+                    Star Rating Distribution
+                  </h3>
+                  <span className="text-xs font-semibold text-slate-400">{ratingsData?.total || 0} Total Reviews</span>
+                </div>
+                
+                <div className="space-y-3 pt-1">
+                  {[5, 4, 3, 2, 1].map((starVal) => {
+                    const count = ratingsData?.breakdown?.[starVal] || 0;
+                    const total = ratingsData?.total || 1;
+                    const pct = Math.round((count / total) * 100);
+                    return (
+                      <div key={starVal} className="flex items-center gap-3 text-xs">
+                        <button
+                          onClick={() => setSelectedStarFilter(selectedStarFilter === starVal ? 'all' : starVal)}
+                          className={`w-16 flex items-center gap-1 font-bold text-left cursor-pointer hover:underline ${
+                            selectedStarFilter === starVal ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          <span>{starVal}</span>
+                          <Star size={12} className="fill-amber-400 text-amber-400" />
+                          <span className="text-[10px] text-slate-400 font-normal">Stars</span>
+                        </button>
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              starVal >= 4 ? 'bg-amber-400' : starVal === 3 ? 'bg-blue-400' : 'bg-rose-400'
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="w-20 text-right">
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200">{count}</span>
+                          <span className="text-[10px] text-slate-400 ml-1 font-medium">({pct}%)</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Most Appreciated Feature Tags */}
+              <div className="glass-panel p-6 border border-slate-200 dark:border-slate-800 space-y-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                      <Sparkles size={16} className="text-indigo-500" />
+                      Appreciated Aspects & Tags
+                    </h3>
+                    <span className="text-xs font-semibold text-slate-400">User Highlighted</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 pt-4">
+                    {ratingsData?.tag_counts && Object.keys(ratingsData.tag_counts).length > 0 ? (
+                      Object.entries(ratingsData.tag_counts)
+                        .sort(([, a], [, b]) => (b as number) - (a as number))
+                        .map(([tag, count]) => (
+                          <div
+                            key={tag}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold"
+                          >
+                            <span>{tag}</span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-indigo-200/60 dark:bg-indigo-800/60 text-[10px] font-black">
+                              {count as number}
+                            </span>
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-xs text-slate-400 italic py-6">No feature tags highlighted yet.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-500 font-medium">
+                  💡 Tip: Click any star rating above to filter specific user reviews.
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Action Toolbar */}
+            <div className="glass-panel p-4 sm:p-5 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+              {/* Search input */}
+              <div className="relative flex-1">
+                <Search size={15} className="absolute left-3.5 top-3.5 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search reviews by user name, email, USN, or keywords..."
+                  value={ratingSearchQuery}
+                  onChange={(e) => setRatingSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Star Filter */}
+                <select
+                  value={selectedStarFilter}
+                  onChange={(e) => setSelectedStarFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                >
+                  <option value="all">All Stars ({ratingsData?.total || 0})</option>
+                  <option value="5">5 Stars ({ratingsData?.breakdown?.[5] || 0})</option>
+                  <option value="4">4 Stars ({ratingsData?.breakdown?.[4] || 0})</option>
+                  <option value="3">3 Stars ({ratingsData?.breakdown?.[3] || 0})</option>
+                  <option value="2">2 Stars ({ratingsData?.breakdown?.[2] || 0})</option>
+                  <option value="1">1 Star ({ratingsData?.breakdown?.[1] || 0})</option>
+                </select>
+
+                {/* Role Filter */}
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value as any)}
+                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students ({ratingsData?.category_counts?.student || 0})</option>
+                  <option value="mentor">Mentors ({ratingsData?.category_counts?.mentor || 0})</option>
+                </select>
+
+                {/* Feedback only toggle */}
+                <button
+                  type="button"
+                  onClick={() => setOnlyWithFeedback(!onlyWithFeedback)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    onlyWithFeedback
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
+                  }`}
+                >
+                  <MessageSquare size={13} />
+                  <span>With Feedback Only</span>
+                </button>
+
+                {/* Refresh */}
+                <button
+                  onClick={fetchRatings}
+                  title="Refresh Ratings"
+                  className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 rounded-xl transition-colors cursor-pointer"
+                >
+                  <RefreshCw size={14} className={ratingsLoading ? "animate-spin" : ""} />
+                </button>
+
+                {/* Export CSV */}
+                <button
+                  onClick={handleExportRatingsCSV}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-emerald-600/20 cursor-pointer uppercase tracking-wider"
+                >
+                  <Download size={13} />
+                  <span>Export CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Ratings List / Feed */}
+            {ratingsLoading && !ratingsData ? (
+              <div className="py-20 text-center flex flex-col items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-3 border-indigo-500 border-t-transparent animate-spin mb-3" />
+                <span className="text-xs font-semibold text-slate-400">Loading user ratings...</span>
+              </div>
+            ) : filteredRatings.length === 0 ? (
+              <div className="glass-panel p-12 text-center space-y-3 border border-slate-200 dark:border-slate-800">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                  <Star size={24} />
+                </div>
+                <h4 className="text-base font-black text-slate-800 dark:text-slate-200">No Ratings Found</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  {ratingSearchQuery || selectedStarFilter !== 'all' || selectedCategoryFilter !== 'all' || onlyWithFeedback
+                    ? "No user ratings match your current filter criteria. Try resetting the filters."
+                    : "No ratings have been submitted yet. Ratings submitted by users will appear here."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center px-1 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  <span>Showing {filteredRatings.length} of {ratingsData?.total || 0} reviews</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredRatings.map((item: any, idx: number) => {
+                    const stars = item.score || 5;
+                    const dateStr = item.updated_at || item.created_at;
+                    const formattedDate = dateStr
+                      ? new Date(dateStr).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'Recently';
+
+                    return (
+                      <motion.div
+                        key={item.user_id || idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass-panel p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-4 hover:border-indigo-300 dark:hover:border-indigo-800/60 transition-all group"
+                      >
+                        {/* Top: User info & rating score */}
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
+                              {(item.user_name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">
+                                  {item.user_name}
+                                </h4>
+                                <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                  item.is_mentor 
+                                    ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40'
+                                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40'
+                                }`}>
+                                  {item.is_mentor ? 'Faculty Mentor' : `Student • ${item.branch || 'CS'}`}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                                {item.user_email} {item.usn ? `• USN: ${item.usn}` : item.department ? `• ${item.department}` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Delete action */}
+                          <button
+                            onClick={() => handleDeleteRating(item.user_id, item.user_name)}
+                            title="Delete this review"
+                            className="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0 opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+
+                        {/* Stars & Emotion */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                size={16}
+                                className={s <= stars ? "fill-amber-400 text-amber-400" : "text-slate-200 dark:text-slate-800"}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                            {stars}/5
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400 ml-1">
+                            {stars === 5 ? '• Amazing Experience' : stars === 4 ? '• Very Good' : stars === 3 ? '• Good' : stars === 2 ? '• Fair' : '• Needs Improvement'}
+                          </span>
+                        </div>
+
+                        {/* Feature Tags */}
+                        {item.tags && item.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {item.tags.map((t: string) => (
+                              <span
+                                key={t}
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60"
+                              >
+                                ✓ {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Written Feedback Quote */}
+                        {item.feedback && item.feedback.trim() && (
+                          <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border-l-3 border-indigo-500 text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                            "{item.feedback}"
+                          </div>
+                        )}
+
+                        {/* Footer info */}
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-[10px] font-medium text-slate-400">
+                          <span>{formattedDate}</span>
+                          <span className="capitalize">{item.category || 'General'} review</span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </motion.div>
         ) : (
+
           <motion.div 
             key="reports"
             initial={{ opacity: 0, y: 15 }}

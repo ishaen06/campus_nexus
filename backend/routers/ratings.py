@@ -99,3 +99,74 @@ def get_ratings_summary(
         "breakdown": breakdown,
         "recent_reviews": recent
     }
+
+def check_admin(user: dict):
+    is_admin = user.get("is_admin") or (user.get("email") or "").strip().lower() == "ishaen.vihaan@gmail.com"
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+@router.get("/admin/all")
+def get_all_ratings_for_admin(
+    current_user = Depends(get_current_user),
+    db = Depends(get_mongo_db)
+):
+    check_admin(current_user)
+    
+    all_ratings = list(db.app_ratings.find({}, {"_id": 0}).sort("updated_at", -1))
+    user_ids = [r["user_id"] for r in all_ratings if "user_id" in r]
+    users_map = {
+        u["id"]: u for u in db.users.find(
+            {"id": {"$in": user_ids}}, 
+            {"id": 1, "is_mentor": 1, "branch": 1, "branch_code": 1, "department": 1, "usn": 1}
+        )
+    }
+
+    enriched_ratings = []
+    tag_counts = {}
+    category_counts = {"student": 0, "mentor": 0, "general": 0}
+
+    for r in all_ratings:
+        u = users_map.get(r.get("user_id"), {})
+        r_copy = dict(r)
+        r_copy["is_mentor"] = u.get("is_mentor", False)
+        r_copy["branch"] = u.get("branch_code") or u.get("branch") or ""
+        r_copy["department"] = u.get("department", "")
+        r_copy["usn"] = u.get("usn", "")
+
+        cat = r.get("category") or ("mentor" if r_copy["is_mentor"] else "student")
+        r_copy["category"] = cat
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+
+        for t in r.get("tags", []):
+            tag_counts[t] = tag_counts.get(t, 0) + 1
+
+        enriched_ratings.append(r_copy)
+
+    total = len(all_ratings)
+    avg = round(sum(r.get("score", 5) for r in all_ratings) / total, 2) if total > 0 else 5.0
+    
+    breakdown = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    for r in all_ratings:
+        s = r.get("score")
+        if s in breakdown:
+            breakdown[s] += 1
+
+    return {
+        "total": total,
+        "average_score": avg,
+        "breakdown": breakdown,
+        "category_counts": category_counts,
+        "tag_counts": tag_counts,
+        "ratings": enriched_ratings
+    }
+
+@router.delete("/admin/{user_id}")
+def delete_rating_admin(
+    user_id: int,
+    current_user = Depends(get_current_user),
+    db = Depends(get_mongo_db)
+):
+    check_admin(current_user)
+    res = db.app_ratings.delete_one({"user_id": user_id})
+    return {"success": res.deleted_count > 0}
+

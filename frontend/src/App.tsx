@@ -54,7 +54,9 @@ function App() {
           <Route path="/admin/teams" element={<AdminDashboard tab="teams" />} />
           <Route path="/admin/academic" element={<AdminDashboard tab="academic" />} />
           <Route path="/admin/reports" element={<AdminDashboard tab="reports" />} />
+          <Route path="/admin/ratings" element={<AdminDashboard tab="ratings" />} />
           <Route path="/notifications" element={<Notifications />} />
+
           <Route path="/dashboard" element={<Navigate to="/discovery" replace />} />
         </Route>
         

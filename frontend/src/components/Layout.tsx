@@ -322,8 +322,10 @@ export default function Layout() {
         { name: 'Mentors', path: '/admin/mentors', icon: UserIcon } as any,
         { name: 'Teams', path: '/admin/teams', icon: Users } as any,
         { name: 'Report Center', path: '/admin/reports', icon: Download } as any,
+        { name: 'Ratings & Reviews', path: '/admin/ratings', icon: Star } as any,
         { name: 'Moderation Logs', path: '/admin/moderation', icon: AlertOctagon } as any
       );
+
     }
 
     if (profileItem) {
