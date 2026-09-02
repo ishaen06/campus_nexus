@@ -132,11 +132,27 @@ export default function Login() {
         credential: response.credential
       });
       localStorage.setItem('token', res.data.access_token);
-      sessionStorage.removeItem('rating_modal_dismissed_session');
       
       const meRes = await api.get('/users/me');
+      const u = meRes.data;
+
+      // Only clear session dismissal if user has NOT submitted a rating yet
+      const alreadyRated = 
+        localStorage.getItem('app_rating_submitted') === 'true' ||
+        (u?.id && localStorage.getItem(`app_rating_submitted_${u.id}`) === 'true') ||
+        (u?.email && localStorage.getItem(`app_rating_submitted_${u.email}`) === 'true') ||
+        Boolean(u?.has_rated);
+
+      if (alreadyRated) {
+        localStorage.setItem('app_rating_submitted', 'true');
+        if (u?.id) localStorage.setItem(`app_rating_submitted_${u.id}`, 'true');
+        if (u?.email) localStorage.setItem(`app_rating_submitted_${u.email}`, 'true');
+      } else {
+        sessionStorage.removeItem('rating_modal_dismissed_session');
+      }
 
       const isUserAdmin = meRes.data.is_admin || (meRes.data.email || '').toLowerCase().trim() === 'ishaen.vihaan@gmail.com';
+
       
       if (isUserAdmin) {
         localStorage.removeItem('adminLastVerified');

@@ -24,8 +24,10 @@ class UserResponse(BaseModel):
     department: Optional[str] = None
     post: Optional[str] = None
     is_online: bool = False
+    has_rated: Optional[bool] = False
     
     class Config:
+
         from_attributes = True
 
 class DiscoveryUserResponse(UserResponse):

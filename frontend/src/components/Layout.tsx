@@ -119,14 +119,42 @@ export default function Layout() {
         if (needsSetup && location.pathname !== '/profile-setup') {
           navigate('/profile-setup');
         } else {
-          // Check if rating modal should appear on opening the app or logging in
+          // Check if user has already submitted a rating (permanently stored)
+          const u = res.data;
+          const alreadyRatedLocal = 
+            localStorage.getItem('app_rating_submitted') === 'true' ||
+            (u?.id && localStorage.getItem(`app_rating_submitted_${u.id}`) === 'true') ||
+            (u?.email && localStorage.getItem(`app_rating_submitted_${u.email}`) === 'true') ||
+            Boolean(u?.has_rated);
+
           const dismissedSession = sessionStorage.getItem('rating_modal_dismissed_session');
-          if (!dismissedSession) {
-            setTimeout(() => {
-              setShowRatingModal(true);
-            }, 1200);
+
+          if (!alreadyRatedLocal && !dismissedSession) {
+            // Confirm with backend before prompting
+            api.get('/ratings/me')
+              .then(ratingRes => {
+                if (ratingRes.data?.has_rated) {
+                  // Remember permanently and do NOT prompt
+                  localStorage.setItem('app_rating_submitted', 'true');
+                  if (u?.id) localStorage.setItem(`app_rating_submitted_${u.id}`, 'true');
+                  if (u?.email) localStorage.setItem(`app_rating_submitted_${u.email}`, 'true');
+                } else {
+                  setTimeout(() => {
+                    setShowRatingModal(true);
+                  }, 1500);
+                }
+              })
+              .catch(() => {
+                // If backend check fails or is pending deploy, only prompt if not locally rated
+                if (localStorage.getItem('app_rating_submitted') !== 'true' && !sessionStorage.getItem('rating_modal_dismissed_session')) {
+                  setTimeout(() => {
+                    setShowRatingModal(true);
+                  }, 1500);
+                }
+              });
           }
         }
+
       })
       .catch(() => {
         navigate('/login');

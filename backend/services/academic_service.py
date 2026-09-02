@@ -229,4 +229,19 @@ def enrich_user_academic_profile(user_dict: dict, db) -> dict:
         if branch_code:
             res["branch"] = get_branch_full_name(branch_code, db)
             
+    # Check if user has already submitted an app rating
+    try:
+        user_id = res.get("id")
+        user_email = (res.get("email") or "").strip().lower()
+        has_rated = db.app_ratings.find_one({
+            "$or": [
+                {"user_id": user_id},
+                {"user_email": user_email}
+            ]
+        }) is not None
+        res["has_rated"] = has_rated
+    except Exception:
+        res["has_rated"] = False
+
     return res
+
