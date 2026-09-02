@@ -5,13 +5,14 @@ import { X, Check, RefreshCw, Users } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getYearOfStudy, getClusterForBranch } from './MyTeam';
+import { getYearOfStudy, getClusterForBranch, BRANCH_CLUSTER_MAP } from './MyTeam';
 
 
 interface UserProfile {
   id: number;
   full_name: string;
   branch: string;
+  branch_code?: string;
   year_of_study: number;
   bio: string;
   interests: string[];
@@ -22,6 +23,8 @@ interface UserProfile {
   department?: string;
   post?: string;
   cycle?: string;
+  joining_year?: number;
+  usn?: string;
 }
 
 interface GroupItem {
@@ -44,33 +47,53 @@ interface GroupItem {
   cycle?: string;
 }
 
-const BRANCH_OPTIONS = [
-  { value: 'ASE', code: 'AS', label: 'Aerospace Eng (AS)' },
-  { value: 'AI_ML', code: 'AI & ML', label: 'Artificial Intelligence (AI & ML)' },
-  { value: 'BT', code: 'BT', label: 'Biotechnology (BT)' },
-  { value: 'CH', code: 'CH', label: 'Chemical Eng (CH)' },
-  { value: 'CV', code: 'CV', label: 'Civil Eng (CV)' },
-  { value: 'CSE', code: 'CSE', label: 'Computer Science (CSE)' },
-  { value: 'CSE_CY', code: 'CSE-CY', label: 'Cyber Security (CSE-CY)' },
-  { value: 'CSE_DS', code: 'CSE-DS', label: 'Data Science (CSE-DS)' },
-  { value: 'EEE', code: 'EEE', label: 'Electrical & Electronics (EEE)' },
-  { value: 'ECE', code: 'ECE', label: 'Electronics & Comm (ECE)' },
-  { value: 'ETE', code: 'ETE', label: 'Electronics & Telecom (ETE)' },
-  { value: 'IEM', code: 'IEM', label: 'Industrial Eng & Mgmt (IEM)' },
-  { value: 'ME', code: 'ME', label: 'Mechanical Eng (ME)' }
+const CLUSTERS = [
+  { id: 'CS', label: 'CS Cluster', fullName: 'Computer Science (CI, CD, CS, CY)' },
+  { id: 'EC', label: 'EC Cluster', fullName: 'Electronics (EC, EE, ET)' },
+  { id: 'ME', label: 'ME Cluster', fullName: 'Mechanical (AS, IM, ME)' },
+  { id: 'CV', label: 'CV Cluster', fullName: 'Civil & Bio (CV, BT, CH)' }
 ];
 
-const matchBranch = (userBranch: string | null | undefined, filterVal: string) => {
-  if (!userBranch || filterVal === 'all') return true;
-  const uBranch = userBranch.toUpperCase().trim();
-  const option = BRANCH_OPTIONS.find(o => o.value === filterVal);
-  if (!option) return uBranch === filterVal.toUpperCase().trim();
+const BRANCH_OPTIONS = [
+  { code: 'CS', label: 'Computer Science & Engineering (CS)', cluster: 'CS' },
+  { code: 'CI', label: 'Artificial Intelligence & Machine Learning (CI)', cluster: 'CS' },
+  { code: 'CD', label: 'Computer Science - Data Science (CD)', cluster: 'CS' },
+  { code: 'CY', label: 'Cyber Security (CY)', cluster: 'CS' },
+  { code: 'EC', label: 'Electronics & Communication (EC)', cluster: 'EC' },
+  { code: 'EE', label: 'Electrical & Electronics (EE)', cluster: 'EC' },
+  { code: 'ET', label: 'Electronics & Telecommunication (ET)', cluster: 'EC' },
+  { code: 'AS', label: 'Aerospace Engineering (AS)', cluster: 'ME' },
+  { code: 'IM', label: 'Industrial Engineering & Management (IM)', cluster: 'ME' },
+  { code: 'ME', label: 'Mechanical Engineering (ME)', cluster: 'ME' },
+  { code: 'CV', label: 'Civil Engineering (CV)', cluster: 'CV' },
+  { code: 'BT', label: 'Biotechnology (BT)', cluster: 'CV' },
+  { code: 'CH', label: 'Chemical Engineering (CH)', cluster: 'CV' }
+];
+
+const getUserBranchCode = (user: any): string => {
+  if (user?.branch_code) return user.branch_code.toUpperCase().trim();
+  const raw = (user?.branch || '').toUpperCase().trim();
+  if (BRANCH_CLUSTER_MAP[raw]) return raw;
   
-  return uBranch === option.value.toUpperCase() || 
-         uBranch === option.code.toUpperCase() ||
-         uBranch.includes(option.code.toUpperCase()) ||
-         uBranch.includes(option.value.toUpperCase());
+  const match = BRANCH_OPTIONS.find(b => 
+    b.code === raw || raw.startsWith(b.code) || raw.includes(`(${b.code})`) || b.label.toUpperCase().includes(raw)
+  );
+  if (match) return match.code;
+
+  if (user?.usn) {
+    const m = user.usn.match(/^1R[VZ]\d{2}([A-Z]{2,3})\d{3}$/i);
+    if (m && BRANCH_CLUSTER_MAP[m[1].toUpperCase()]) {
+      return m[1].toUpperCase();
+    }
+  }
+  return raw;
 };
+
+const getUserCluster = (user: any): string | null => {
+  const code = getUserBranchCode(user);
+  return getClusterForBranch(code) || BRANCH_CLUSTER_MAP[code] || null;
+};
+
 
 export default function Discovery() {
   const navigate = useNavigate();
@@ -89,13 +112,16 @@ export default function Discovery() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Filters state
+  const [clusterFilter, setClusterFilter] = useState<string>('all');
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
 
+  const isSecondYear = me?.joining_year 
+    ? getYearOfStudy(Number(me.joining_year)) >= 2 
+    : (me?.year_of_study ? Number(me.year_of_study) >= 2 : true);
+
   // Swipe counter — ensures recycled cards get fresh component instances with new keys
   const [swipeCounter, setSwipeCounter] = useState(0);
-
-  // Static branch options used instead of dynamic extraction
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -167,10 +193,12 @@ export default function Discovery() {
       const res = await api.post('/connections/admin-chat', { receiver_id: adminId });
       const connectionId = res.data.connection_id || res.data.id;
       
-      const myCycle = me?.cycle || 'P';
-      const cycleText = myCycle === 'P' ? 'Physics Cycle (P-Cycle)' : 'Chemistry Cycle (C-Cycle)';
-      
-      const introMessage = `Hi! I saw your team "${teamName}" in the Discover Teams feed and would love to join. My cycle is ${cycleText}.`;
+      const myBranch = getUserBranchCode(me);
+      const myCluster = getUserCluster(me);
+      const introMessage = isSecondYear
+        ? `Hi! I saw your team "${teamName}" in the Discover Teams feed and would love to join. My branch is ${myBranch} (${myCluster || ''} Cluster).`
+        : `Hi! I saw your team "${teamName}" in the Discover Teams feed and would love to join. My cycle is ${(me?.cycle || 'P') === 'P' ? 'Physics (P-Cycle)' : 'Chemistry (C-Cycle)'}.`;
+
       navigate(`/chat/${connectionId}`, { state: { prefilledMessage: introMessage } });
     } catch (err) {
       console.error("Failed to initiate chat with team admin", err);
@@ -186,15 +214,28 @@ export default function Discovery() {
 
   const filteredUsers = users.filter(user => {
     if ((user as any).is_admin || (user as any).role === 'admin' || user.bio?.includes('Platform Administrator')) return false;
-    if (cycleFilter !== 'all') {
-      const uCycle = (user.cycle || '').toUpperCase();
-      if (uCycle !== cycleFilter.toUpperCase()) return false;
+    
+    // Academic Year filter: Year 2 uses Cluster; Year 1 uses Cycle
+    if (isSecondYear) {
+      if (clusterFilter !== 'all') {
+        const uCluster = getUserCluster(user);
+        if (uCluster !== clusterFilter) return false;
+      }
+    } else {
+      if (cycleFilter !== 'all') {
+        const uCycle = (user.cycle || '').toUpperCase();
+        if (uCycle !== cycleFilter.toUpperCase()) return false;
+      }
     }
+
     if (branchFilter !== 'all') {
-      if (!matchBranch(user.branch, branchFilter)) return false;
+      const uBranch = getUserBranchCode(user);
+      if (uBranch !== branchFilter) return false;
     }
+
     return true;
   });
+
 
   return (
     <div className="relative flex flex-col items-center justify-start min-h-[calc(100vh-64px)] bg-transparent px-4 md:px-8 pt-8 pb-16 w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
@@ -232,19 +273,43 @@ export default function Discovery() {
 
         {/* Filter Bar */}
         <div className="flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-sm text-xs">
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
-            <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cycle:</label>
-            <select
-              value={cycleFilter}
-              onChange={(e) => setCycleFilter(e.target.value)}
-              className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0"
-            >
-              <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Cycles</option>
-              <option value="P" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Physics</option>
-              <option value="C" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Chemistry</option>
-            </select>
-          </div>
+          {/* Year 2: Cluster Filter | Year 1: Cycle Filter */}
+          {isSecondYear ? (
+            <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cluster:</label>
+              <select
+                value={clusterFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setClusterFilter(val);
+                  if (val !== 'all' && branchFilter !== 'all' && BRANCH_CLUSTER_MAP[branchFilter] !== val) {
+                    setBranchFilter('all');
+                  }
+                }}
+                className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0"
+              >
+                <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Clusters</option>
+                {CLUSTERS.map(c => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">{c.label}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cycle:</label>
+              <select
+                value={cycleFilter}
+                onChange={(e) => setCycleFilter(e.target.value)}
+                className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0"
+              >
+                <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Cycles</option>
+                <option value="P" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Physics</option>
+                <option value="C" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">Chemistry</option>
+              </select>
+            </div>
+          )}
 
+          {/* Branch Filter */}
           <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
             <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Branch:</label>
             <select
@@ -253,15 +318,16 @@ export default function Discovery() {
               className="bg-transparent text-[10px] font-bold text-slate-800 dark:text-slate-200 border-none outline-none cursor-pointer focus:outline-none focus:ring-0 p-0 max-w-[130px] truncate"
             >
               <option value="all" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">All Branches</option>
-              {BRANCH_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">{opt.label}</option>
+              {BRANCH_OPTIONS.filter(opt => isSecondYear && clusterFilter !== 'all' ? opt.cluster === clusterFilter : true).map(opt => (
+                <option key={opt.code} value={opt.code} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">{opt.code}</option>
               ))}
             </select>
           </div>
 
-          {(cycleFilter !== 'all' || branchFilter !== 'all') && (
+          {(clusterFilter !== 'all' || cycleFilter !== 'all' || branchFilter !== 'all') && (
             <button
               onClick={() => {
+                setClusterFilter('all');
                 setCycleFilter('all');
                 setBranchFilter('all');
               }}
@@ -295,7 +361,9 @@ export default function Discovery() {
                 className="glass-panel p-10 text-center w-full shadow-2xl flex flex-col items-center justify-center"
               >
                 <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No profiles found</h3>
-                <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">No profiles match your cycle or branch filters. Try clearing filters or checking back later.</p>
+                <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">
+                  No profiles match your {isSecondYear ? 'cluster' : 'cycle'} or branch filters. Try clearing filters or checking back later.
+                </p>
                 <button 
                   onClick={fetchUsers}
                   className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 rounded-full text-indigo-600 dark:text-indigo-400 font-semibold shadow-[0_4px_14px_0_rgba(99,102,241,0.15)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
@@ -338,20 +406,30 @@ export default function Discovery() {
               const visiblePublicTeams = publicTeams.filter(team => {
                 if (me && team.member_ids.includes(me.id)) return false;
                 
-                // Cycle filter
-                if (cycleFilter !== 'all') {
-                  const hasCycleMember = (team.members || []).some((m: any) => (m.cycle || '').toUpperCase() === cycleFilter.toUpperCase());
-                  if (!hasCycleMember) return false;
+                // Cluster filter for Year 2, Cycle filter for Year 1
+                if (isSecondYear) {
+                  if (clusterFilter !== 'all') {
+                    const members = (team.members || []).filter((m: any) => !m.is_mentor);
+                    const hasClusterMember = members.some((m: any) => getUserCluster(m) === clusterFilter);
+                    const directCluster = (team as any).cluster;
+                    if (!hasClusterMember && directCluster !== clusterFilter) return false;
+                  }
+                } else {
+                  if (cycleFilter !== 'all') {
+                    const hasCycleMember = (team.members || []).some((m: any) => (m.cycle || '').toUpperCase() === cycleFilter.toUpperCase());
+                    if (!hasCycleMember) return false;
+                  }
                 }
                 
                 // Branch filter
                 if (branchFilter !== 'all') {
-                  const hasBranchMember = (team.members || []).some((m: any) => matchBranch(m.branch, branchFilter));
+                  const hasBranchMember = (team.members || []).some((m: any) => getUserBranchCode(m) === branchFilter);
                   if (!hasBranchMember) return false;
                 }
                 
                 return true;
               });
+
 
               return (
                 <>

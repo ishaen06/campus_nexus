@@ -215,31 +215,36 @@ def get_discovery(
         "role": {"$nin": ["admin"]}
     }
     
-    # Apply smart cycle matchmaking filter if user is a team admin
-    active_teams = list(db.group_chats.find({"created_by": current_user["id"]}))
-    if active_teams:
-        for team in active_teams:
-            member_records = list(db.group_members.find({"group_id": team["id"]}))
-            member_ids = [m["user_id"] for m in member_records]
-            if member_ids:
-                member_users = list(db.users.find({"id": {"$in": member_ids}}))
-                p_count = 0
-                c_count = 0
-                for mu in member_users:
-                    if mu.get("is_mentor"):
-                        continue
-                    cycle = (mu.get("cycle") or "").strip().upper()
-                    if cycle == "P":
-                        p_count += 1
-                    elif cycle == "C":
-                        c_count += 1
-                
-                if p_count > c_count:
-                    query_filter["cycle"] = "C"
-                    break
-                elif c_count > p_count:
-                    query_filter["cycle"] = "P"
-                    break
+    # Apply smart cycle matchmaking filter only for 1st year student teams
+    from routers.chat import _extract_user_academic_info
+    _, _, cur_year_of_study = _extract_user_academic_info(current_user)
+    
+    if cur_year_of_study == 1:
+        active_teams = list(db.group_chats.find({"created_by": current_user["id"]}))
+        if active_teams:
+            for team in active_teams:
+                member_records = list(db.group_members.find({"group_id": team["id"]}))
+                member_ids = [m["user_id"] for m in member_records]
+                if member_ids:
+                    member_users = list(db.users.find({"id": {"$in": member_ids}}))
+                    p_count = 0
+                    c_count = 0
+                    for mu in member_users:
+                        if mu.get("is_mentor"):
+                            continue
+                        cycle = (mu.get("cycle") or "").strip().upper()
+                        if cycle == "P":
+                            p_count += 1
+                        elif cycle == "C":
+                            c_count += 1
+                    
+                    if p_count > c_count:
+                        query_filter["cycle"] = "C"
+                        break
+                    elif c_count > p_count:
+                        query_filter["cycle"] = "P"
+                        break
+
 
     if branch:
         query_filter["branch"] = branch
