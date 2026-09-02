@@ -233,10 +233,10 @@ export default function GroupChat() {
   // Determine team academic year from members
   const memberYears = studentsInTeam.map(uid => {
     const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
-    const jy = memberObj?.joining_year;
-    return jy ? getYearOfStudy(Number(jy)) : 2;
+    return getYearOfStudy(memberObj?.joining_year, memberObj?.email, memberObj?.usn);
   });
   const teamYear = memberYears[0] ?? 2;
+
 
   // 1st Year: Cycle counts
   const pCount = studentsInTeam.filter(uid => getCycleOfUser(uid) === 'P').length;

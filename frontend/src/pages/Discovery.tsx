@@ -116,9 +116,8 @@ export default function Discovery() {
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
 
-  const isSecondYear = me?.joining_year 
-    ? getYearOfStudy(Number(me.joining_year)) >= 2 
-    : (me?.year_of_study ? Number(me.year_of_study) >= 2 : true);
+  const isSecondYear = getYearOfStudy(me?.joining_year, me?.email, me?.usn) >= 2;
+
 
   // Swipe counter — ensures recycled cards get fresh component instances with new keys
   const [swipeCounter, setSwipeCounter] = useState(0);
@@ -508,8 +507,9 @@ export default function Discovery() {
 
                               {/* Team Composition Indicator (Year 2: Cluster & Branches, Year 1: Cycle Balance) */}
                               {(() => {
-                                const yr = members[0]?.joining_year ? getYearOfStudy(Number(members[0].joining_year)) : 2;
+                                const yr = getYearOfStudy(members[0]?.joining_year, members[0]?.email, members[0]?.usn);
                                 if (yr >= 2) {
+
                                   const branchCounts: Record<string, number> = {};
                                   members.forEach((m: any) => {
                                     const b = (m.branch_code || m.branch || 'CS').toUpperCase();

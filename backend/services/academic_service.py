@@ -63,45 +63,52 @@ def parse_rvce_email(email: str) -> dict:
     Parses RVCE student emails following convention:
     username.branchCodeYY@rvce.edu.in
     Example: ishaensbethur.cs25@rvce.edu.in -> username: ishaensbethur, branch: CS, year: 2025
+    Rule: all emails with 25 are considered second year students (joining_year 2025).
     """
     clean_email = (email or "").strip().lower()
     pattern = r"^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$"
     match = re.match(pattern, clean_email)
     
-    if not match:
-        # Fallback regex if username formatting varies slightly
-        pattern_fallback = r"^([a-z0-9\._]+)@rvce\.edu\.in$"
-        m_fallback = re.match(pattern_fallback, clean_email)
-        if m_fallback:
-            user_part = m_fallback.group(1)
-            # Try finding branch + 2 digits at end of user_part
-            bm = re.search(r"([a-z]{2,5})(\d{2})$", user_part)
-            if bm:
-                b_code = bm.group(1).upper()
-                yy = int(bm.group(2))
-                joining_year = 2000 + yy
-                return {
-                    "username": user_part,
-                    "branch_code": b_code,
-                    "joining_year": joining_year,
-                    "is_valid_rvce_student": True
-                }
+    if match:
+        username, branch_code, yy_str = match.groups()
+        branch_code_upper = branch_code.upper()
+        joining_year = 2000 + int(yy_str)
         return {
-            "username": clean_email.split("@")[0],
-            "branch_code": "CS",
-            "joining_year": 2025,
-            "is_valid_rvce_student": False
+            "username": username,
+            "branch_code": branch_code_upper,
+            "joining_year": joining_year,
+            "is_valid_rvce_student": True
         }
         
-    username, branch_code, yy_str = match.groups()
-    branch_code_upper = branch_code.upper()
-    joining_year = 2000 + int(yy_str)
-    
+    user_part = clean_email.split("@")[0] if "@" in clean_email else clean_email
+    bm = re.search(r"([a-z]{2,5})(\d{2})$", user_part)
+    if bm:
+        b_code = bm.group(1).upper()
+        yy = int(bm.group(2))
+        joining_year = 2000 + yy
+        return {
+            "username": user_part,
+            "branch_code": b_code,
+            "joining_year": joining_year,
+            "is_valid_rvce_student": True
+        }
+
+    # Direct rule: All emails with 25 are considered second year students
+    if "25" in clean_email:
+        joining_year = 2025
+    elif "26" in clean_email:
+        joining_year = 2026
+    else:
+        joining_year = 2025
+
+    b_match = re.search(r"\b(cs|ci|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)\b", user_part) or re.search(r"(cs|ci|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)", user_part)
+    b_code = b_match.group(1).upper() if b_match else "CS"
+
     return {
-        "username": username,
-        "branch_code": branch_code_upper,
+        "username": user_part,
+        "branch_code": b_code,
         "joining_year": joining_year,
-        "is_valid_rvce_student": True
+        "is_valid_rvce_student": clean_email.endswith("@rvce.edu.in")
     }
 
 def get_academic_settings(db):
@@ -120,13 +127,16 @@ def get_academic_settings(db):
             db.academic_settings.insert_one(settings)
         except Exception:
             pass
-            
-    # Cleanup removed branches like 'IS' from DB settings document if present
-    b_map = dict(settings.get("branch_mappings", {}))
-    c_map = dict(settings.get("cycle_mappings", {}))
-    if "IS" in b_map or "IS" in c_map:
-        b_map.pop("IS", None)
-        c_map.pop("IS", None)
+    else:
+        # Self-heal missing mappings if any
+        b_map = settings.get("branch_mappings", {})
+        c_map = settings.get("cycle_mappings", {})
+        for k, v in DEFAULT_BRANCH_NAMES.items():
+            if k not in b_map:
+                b_map[k] = v
+        for k, v in DEFAULT_CYCLE_MAPPINGS.items():
+            if k not in c_map:
+                c_map[k] = v
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
         try:
@@ -135,13 +145,19 @@ def get_academic_settings(db):
             pass
     return settings
 
-def calculate_academic_year(joining_year: int, session_start_month: int = 8) -> int:
+def calculate_academic_year(joining_year: int, session_start_month: int = 8, email: str = "") -> int:
     """
-    Dynamically calculates Academic Year (1, 2, 3, or 4) based on Joining Year, 
-    Current Date, and Academic Session Start Month.
+    Dynamically calculates Academic Year (1, 2, 3, or 4).
+    Rule: all emails with 25 (or joining_year == 2025) are considered second year students.
     """
-    if not joining_year:
+    clean_email = (email or "").lower()
+    if "25" in clean_email or joining_year == 2025:
+        return 2
+    if "26" in clean_email or joining_year == 2026:
         return 1
+
+    if not joining_year:
+        return 2
         
     now = datetime.now()
     years_passed = now.year - joining_year
@@ -203,7 +219,8 @@ def enrich_user_academic_profile(user_dict: dict, db) -> dict:
         session_start_month = settings.get("session_start_month", 8)
         
         # Calculate dynamic year of study
-        res["year_of_study"] = calculate_academic_year(joining_year, session_start_month)
+        res["year_of_study"] = calculate_academic_year(joining_year, session_start_month, email=user_email)
+
         
         # Resolve live Subject Cycle
         res["cycle"] = get_subject_cycle(branch_code, db)

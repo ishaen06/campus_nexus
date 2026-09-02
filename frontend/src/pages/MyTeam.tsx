@@ -137,12 +137,23 @@ export const BRANCH_CLUSTER_MAP: Record<string, string> = {
   CV: "CV", BT: "CV", CH: "CV",
 };
 
-export function getYearOfStudy(joiningYear: number): number {
+export function getYearOfStudy(joiningYear?: number | null, email?: string | null, usn?: string | null): number {
+  const checkStr = `${email || ''} ${usn || ''}`;
+  // All emails (or USNs) with 25 are considered second year students
+  if (checkStr.includes('25') || Number(joiningYear) === 2025) {
+    return 2;
+  }
+  if (checkStr.includes('26') || Number(joiningYear) === 2026) {
+    return 1;
+  }
+  if (!joiningYear) return 2;
+
   const now = new Date();
-  let yearsElapsed = now.getFullYear() - joiningYear;
+  let yearsElapsed = now.getFullYear() - Number(joiningYear);
   if (now.getMonth() + 1 < 8) yearsElapsed -= 1; // Before August = still prev academic year
   return Math.max(1, Math.min(4, yearsElapsed + 1));
 }
+
 
 export function getClusterForBranch(branchCode: string): string | null {
   return BRANCH_CLUSTER_MAP[(branchCode || '').toUpperCase()] ?? null;
@@ -226,9 +237,9 @@ export default function MyTeam() {
 
     // Determine year of study
     const years = studentMembers.map(m => {
-      const jy = m.joining_year || m.joiningYear;
-      return jy ? getYearOfStudy(Number(jy)) : null;
-    }).filter(y => y !== null) as number[];
+      return getYearOfStudy(m.joining_year || m.joiningYear, m.email, m.usn);
+    });
+
 
     const uniqueYears = [...new Set(years)];
 
@@ -584,7 +595,8 @@ export default function MyTeam() {
                                       </span>
                                     )}
                                     {(() => {
-                                      const yr = member.joining_year ? getYearOfStudy(Number(member.joining_year)) : 2;
+                                      const yr = getYearOfStudy(member.joining_year, member.email, member.usn);
+
                                       if (yr >= 2) {
                                         const cl = getClusterForBranch(member.branch_code || member.branch || '');
                                         return cl ? (
@@ -740,7 +752,7 @@ export default function MyTeam() {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                     Project Theme
-                    {currentUser && currentUser.joining_year && getYearOfStudy(Number(currentUser.joining_year)) >= 2 && (
+                    {currentUser && getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn) >= 2 && (
                       <span className="ml-2 text-indigo-500 normal-case font-semibold">
                         ({getClusterForBranch(currentUser.branch_code || '') || ''} Cluster themes)
                       </span>
@@ -757,14 +769,15 @@ export default function MyTeam() {
                   >
                     <option value="">-- Select a Theme --</option>
                     {(() => {
-                      if (currentUser && currentUser.joining_year) {
-                        const yr = getYearOfStudy(Number(currentUser.joining_year));
+                      if (currentUser) {
+                        const yr = getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn);
                         if (yr >= 2) {
                           const cluster = getClusterForBranch(currentUser.branch_code || '');
                           const themes = cluster ? CLUSTER_THEMES[cluster] : [];
                           return themes.map(t => <option key={t} value={t}>{t}</option>);
                         }
                       }
+
                       // 1st year: generic themes
                       return Object.keys(THEME_SUBTOPICS).map(t => <option key={t} value={t}>{t}</option>);
                     })()}

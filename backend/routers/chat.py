@@ -326,7 +326,9 @@ def _get_year_of_study(joining_year: int) -> int:
     return max(1, min(4, years_passed + 1))
 
 def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
-    """Returns (branch_code, joining_year, year_of_study)."""
+    """Returns (branch_code, joining_year, year_of_study).
+    Rule: all emails with 25 are considered second year students.
+    """
     import re
     from services.academic_service import parse_rvce_email
 
@@ -334,6 +336,12 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     usn = (u.get("usn") or "").strip().upper()
     branch_code = (u.get("branch_code") or "").strip().upper()
     joining_year = u.get("joining_year")
+
+    # Direct rule: Any email or USN with 25 is a 2nd year student (joining year 2025)
+    if "25" in email or "25" in usn:
+        joining_year = 2025
+    elif "26" in email or "26" in usn:
+        joining_year = 2026
 
     # 1. Direct short code in branch
     if not branch_code:
@@ -354,7 +362,7 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     # 3. If missing, try parsing valid RVCE email
     if (not branch_code or not joining_year) and email.endswith("@rvce.edu.in"):
         parsed = parse_rvce_email(email)
-        if parsed.get("is_valid_rvce_student"):
+        if parsed.get("is_valid_rvce_student") or "25" in email:
             if not branch_code:
                 branch_code = parsed.get("branch_code", "")
             if not joining_year:
@@ -366,8 +374,16 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     if not branch_code:
         branch_code = "CS"
 
-    year_of_study = _get_year_of_study(int(joining_year))
+    # All emails with 25 are considered 2nd year students
+    if "25" in email or "25" in usn or int(joining_year) == 2025:
+        year_of_study = 2
+    elif "26" in email or "26" in usn or int(joining_year) == 2026:
+        year_of_study = 1
+    else:
+        year_of_study = _get_year_of_study(int(joining_year))
+
     return branch_code, int(joining_year), year_of_study
+
 
 
 def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
@@ -1104,39 +1120,46 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
 
             
     if details.mentor_name is not None:
-        update_fields["mentor_name"] = details.mentor_name
-        if details.mentor_name != group.get("mentor_name"):
+        clean_m_name = details.mentor_name.strip()
+        update_fields["mentor_name"] = clean_m_name if clean_m_name else None
+        if clean_m_name != (group.get("mentor_name") or ""):
             primary_change = True
             
     if details.mentor_email is not None:
         email_lower = details.mentor_email.lower().strip()
-        if not email_lower.endswith("@gmail.com"):
-            raise HTTPException(status_code=400, detail="Mentor email must end with @gmail.com")
-        
-        # Verify mentor email exists in registered mentors
-        mentor_user = db.users.find_one({
-            "email": {"$regex": f"^{email_lower}$", "$options": "i"},
-            "is_mentor": True
-        })
-        if not mentor_user:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid mentor email '{email_lower}'. No registered mentor found with this email. Please select a valid mentor from the dropdown."
-            )
-        
-        # Only check the 25-team limit if assigning a NEW mentor
-        if group.get("mentor_email") != email_lower:
-            primary_change = True
-            active_count = db.group_chats.count_documents({
-                "mentor_email": email_lower,
-                "mentor_status": {"$in": ["PENDING", "APPROVED"]}
+        if email_lower:
+            if not email_lower.endswith("@gmail.com"):
+                raise HTTPException(status_code=400, detail="Mentor email must end with @gmail.com")
+            
+            # Verify mentor email exists in registered mentors
+            mentor_user = db.users.find_one({
+                "email": {"$regex": f"^{email_lower}$", "$options": "i"},
+                "is_mentor": True
             })
-            if active_count >= 25:
+            if not mentor_user:
                 raise HTTPException(
-                    status_code=400,
-                    detail="This mentor has already reached the maximum limit of 25 teams."
+                    status_code=400, 
+                    detail=f"Invalid mentor email '{email_lower}'. No registered mentor found with this email. Please select a valid mentor from the dropdown."
                 )
-        update_fields["mentor_email"] = email_lower
+            
+            # Only check the 25-team limit if assigning a NEW mentor
+            if group.get("mentor_email") != email_lower:
+                primary_change = True
+                active_count = db.group_chats.count_documents({
+                    "mentor_email": email_lower,
+                    "mentor_status": {"$in": ["PENDING", "APPROVED"]}
+                })
+                if active_count >= 25:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="This mentor has already reached the maximum limit of 25 teams."
+                    )
+            update_fields["mentor_email"] = email_lower
+        else:
+            update_fields["mentor_email"] = None
+            if group.get("mentor_email"):
+                primary_change = True
+
 
     if details.chief_mentor_name is not None:
         update_fields["chief_mentor_name"] = details.chief_mentor_name

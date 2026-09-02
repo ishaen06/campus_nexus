@@ -117,13 +117,24 @@ export default function ProjectDashboard() {
     setMentorValidationError(null);
 
     const cleanEmail = mentorEmailInput.trim().toLowerCase();
-    if (registeredMentors.length > 0) {
-      const found = registeredMentors.find(m => (m.email || '').toLowerCase() === cleanEmail);
-      if (!found) {
-        const err = `Invalid mentor email "${mentorEmailInput}". No registered mentor found with this email. Please search and select an available mentor from the dropdown list.`;
+    const cleanName = mentorNameInput.trim();
+
+    // If mentor email is provided, validate it
+    if (cleanEmail) {
+      if (!cleanEmail.endsWith('@gmail.com')) {
+        const err = 'Mentor email must end with @gmail.com';
         setMentorValidationError(err);
         alert(err);
         return;
+      }
+      if (registeredMentors.length > 0) {
+        const found = registeredMentors.find(m => (m.email || '').toLowerCase() === cleanEmail);
+        if (!found) {
+          const err = `Invalid mentor email "${mentorEmailInput}". No registered mentor found with this email. Please search and select an available mentor from the dropdown list.`;
+          setMentorValidationError(err);
+          alert(err);
+          return;
+        }
       }
     }
 
@@ -132,8 +143,8 @@ export default function ProjectDashboard() {
         project_topic: topicInput,
         project_sub_topic: subTopicInput,
         project_theme: projectThemeInput,
-        mentor_name: mentorNameInput,
-        mentor_email: mentorEmailInput
+        mentor_name: cleanName || null,
+        mentor_email: cleanEmail || null
       });
       const updatedGroups = [...groups];
       updatedGroups[0] = res.data;
@@ -150,6 +161,22 @@ export default function ProjectDashboard() {
     setMentorValidationError(null);
 
     const cleanEmail = mentorEmailInput.trim().toLowerCase();
+    const cleanName = mentorNameInput.trim();
+
+    if (!cleanName || !cleanEmail) {
+      const err = "Mentor Name and Mentor Email are required before requesting approval. Please select a mentor from the dropdown and save details first.";
+      setMentorValidationError(err);
+      alert(err);
+      return;
+    }
+
+    if (!cleanEmail.endsWith('@gmail.com')) {
+      const err = "Mentor email must end with @gmail.com";
+      setMentorValidationError(err);
+      alert(err);
+      return;
+    }
+
     if (registeredMentors.length > 0) {
       const found = registeredMentors.find(m => (m.email || '').toLowerCase() === cleanEmail);
       if (!found) {
@@ -171,6 +198,7 @@ export default function ProjectDashboard() {
       alert(detailMsg);
     }
   };
+
 
   const handleChatWithMentor = async (mentorEmail: string) => {
     try {
@@ -474,8 +502,8 @@ export default function ProjectDashboard() {
                             let clusterThemes: string[] | null = null;
                             let clusterLabel = '';
                             if (students.length > 0) {
-                              const jy = students[0]?.joining_year;
-                              if (jy && getYearOfStudy(Number(jy)) >= 2) {
+                              if (getYearOfStudy(students[0]?.joining_year, students[0]?.email, students[0]?.usn) >= 2) {
+
                                 const cluster = getClusterForBranch(students[0]?.branch_code || '');
                                 if (cluster) {
                                   clusterThemes = CLUSTER_THEMES[cluster] || null;
@@ -608,11 +636,13 @@ export default function ProjectDashboard() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mentor Name</label>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mentor Name</label>
+                            <span className="text-[9px] text-slate-400 font-normal lowercase">(optional until approval)</span>
+                          </div>
                           <input
                             type="text"
-                            required
-                            placeholder="Selected mentor name"
+                            placeholder="Selected mentor name (optional)"
                             disabled={team.mentor_status === 'APPROVED'}
                             className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75"
                             value={mentorNameInput}
@@ -624,13 +654,13 @@ export default function ProjectDashboard() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mentor Email</label>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mentor Email</label>
+                            <span className="text-[9px] text-slate-400 font-normal lowercase">(optional until approval)</span>
+                          </div>
                           <input
                             type="email"
-                            required
-                            placeholder="Selected mentor email"
-                            pattern=".*@gmail\.com$"
-                            title="Mentor email must end with @gmail.com"
+                            placeholder="Selected mentor email (optional)"
                             disabled={team.mentor_status === 'APPROVED'}
                             className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75"
                             value={mentorEmailInput}
@@ -640,6 +670,23 @@ export default function ProjectDashboard() {
                             }}
                           />
                         </div>
+
+                        {(mentorNameInput || mentorEmailInput) && team.mentor_status !== 'APPROVED' && (
+                          <div className="text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMentorNameInput('');
+                                setMentorEmailInput('');
+                                setMentorSearchQuery('');
+                                setMentorValidationError(null);
+                              }}
+                              className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                            >
+                              ✕ Clear Mentor Selection
+                            </button>
+                          </div>
+                        )}
 
                         {mentorValidationError && (
                           <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-start gap-2">
