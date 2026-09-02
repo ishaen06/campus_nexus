@@ -361,3 +361,10 @@ def get_registered_mentors(current_user = Depends(get_current_user), db = Depend
         })
     return results
 
+
+@router.get("/cluster-themes")
+def get_cluster_themes(current_user = Depends(get_current_user)):
+    """Returns the allowed project themes for each cluster (2nd year teams)."""
+    from routers.chat import CLUSTER_THEMES
+    return CLUSTER_THEMES
+

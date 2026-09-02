@@ -199,6 +199,60 @@ def get_messages(connection_id: int, current_user = Depends(get_current_user), d
     return messages
 
 
+
+# ─── 2nd Year: Cluster-wise Project Themes ─────────────────────────────────
+CLUSTER_THEMES: dict[str, list[str]] = {
+    "CS": [
+        "Artificial Intelligence",
+        "Internet of Things",
+        "AR, VR & MR",
+        "Quantum Security",
+        "Edge Computing",
+        "Ethical AI",
+        "Cloud Security",
+        "Programming Mechanics (Coding for App Development)",
+        "AI for Social Good",
+        "AI in Education",
+        "Data Science and Analytics",
+    ],
+    "EC": [
+        "Semiconductor Engineering",
+        "Cyber Physical Systems",
+        "Drone Technology",
+        "Biomedical Instrumentation",
+        "Bionics and Prosthetics",
+        "Renewable Energy Solutions",
+        "Embedded Systems and IoT",
+        "AI in Electronics",
+        "5G and Wireless Communications",
+        "Power Systems Engineering",
+        "Autonomous Vehicles",
+    ],
+    "ME": [
+        "Smart Manufacturing",
+        "Digital Metrology",
+        "Ergonomics in Automation",
+        "Advanced Materials",
+        "Energy Systems",
+        "Eco-friendly Materials and Waste Reduction Strategies",
+        "Mechatronics & Industrial Internet of Things",
+        "Thermodynamic Simulations",
+        "AI for Mechanical Systems",
+        "Electric Vehicle Technology",
+        "Supply Chain Management",
+    ],
+    "CV": [
+        "Environmental Engineering and Sustainability",
+        "Pollution Control, Waste Management and Bioremediation",
+        "Urban Planning and Development, including Digital Twins",
+        "Smart Materials and Structures",
+        "Innovative Solutions for Water and Wastewater Purification, Reuse and Recycling",
+        "Technologies to Mitigate Climate Change Impacts",
+        "Bioinformatics",
+        "Biomaterials and Computational Biology",
+    ],
+}
+
 # ─── Cluster definitions ───────────────────────────────────────────────────
 BRANCH_CLUSTERS = {
     "EC": "EC", "EE": "EC", "ET": "EC",
@@ -969,10 +1023,35 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
         if details.project_sub_topic != group.get("project_sub_topic"):
             primary_change = True
             
+            
     if details.project_theme is not None:
+        # For 2nd year teams: validate theme is from the allowed cluster themes list
+        member_records = list(db.group_members.find({"group_id": group_id}))
+        member_ids = [m["user_id"] for m in member_records]
+        members_raw = list(db.users.find({"id": {"$in": member_ids}})) if member_ids else []
+        students_raw = [m for m in members_raw if not m.get("is_mentor")]
+
+        if students_raw:
+            joining_years = [int(m["joining_year"]) for m in students_raw if m.get("joining_year")]
+            if joining_years:
+                year = _get_year_of_study(min(joining_years))
+                if year >= 2:
+                    branch_codes = [(m.get("branch_code") or "").strip().upper() for m in students_raw]
+                    clusters = {BRANCH_CLUSTERS.get(bc) for bc in branch_codes if bc}
+                    clusters.discard(None)
+                    if len(clusters) == 1:
+                        cluster = next(iter(clusters))
+                        allowed = CLUSTER_THEMES.get(cluster, [])
+                        if allowed and details.project_theme not in allowed:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Invalid theme for {cluster} cluster. Choose from: {', '.join(allowed)}"
+                            )
+
         update_fields["project_theme"] = details.project_theme
         if details.project_theme != group.get("project_theme"):
             primary_change = True
+
             
     if details.mentor_name is not None:
         update_fields["mentor_name"] = details.mentor_name

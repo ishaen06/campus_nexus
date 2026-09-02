@@ -1,0 +1,1461 @@
+import { useState, useEffect } from 'react';
+import { X, Printer, Save, FileText, CheckCircle2, User } from 'lucide-react';
+import api from '../api';
+
+interface EvaluationFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  team: any;
+  isMentor: boolean;
+  onSaveSuccess?: (updatedTeam: any) => void;
+  initialStudentId?: number | null;
+}
+
+export default function EvaluationFormModal({
+  isOpen,
+  onClose,
+  team,
+  isMentor,
+  onSaveSuccess,
+  initialStudentId
+}: EvaluationFormModalProps) {
+  const [activeTab, setActiveTab] = useState<'info' | 'phase1' | 'phase2' | 'phase3'>('info');
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+
+  // Form states (Team-wide)
+  const [chiefMentorName, setChiefMentorName] = useState('DR SUBRAMANYA KN');
+  const [chiefMentorDesignation, setChiefMentorDesignation] = useState('PRINCIPAL');
+  const [chiefMentorDepartment, setChiefMentorDepartment] = useState('');
+  const [evaluators, setEvaluators] = useState<string[]>(['', '', '', '']);
+
+  // Student list
+  const studentsList = (team?.members || []).filter((m: any) => !m.is_mentor);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+
+  // Dictionary of student evaluations: { [studentId]: { phase1_detail_marks, phase1_observations, ... } }
+  const [studentEvals, setStudentEvals] = useState<Record<number, any>>({});
+  const [loadingEvals, setLoadingEvals] = useState(false);
+
+  // Helper: build studentEvals map from a raw student_evaluations dict + members list
+  const buildEvalsMap = (members: any[], storedEvals: Record<string, any>) => {
+    const studs = members.filter((m: any) => !m.is_mentor);
+    const evalsMap: Record<number, any> = {};
+    studs.forEach((stud: any) => {
+      const key = stud.id.toString();
+      const studEval = storedEvals[key] || storedEvals[stud.id] || {};
+      const p1Detail = studEval.phase1_detail_marks || {};
+      const p2Detail = studEval.phase2_detail_marks || {};
+      const p3Detail = studEval.phase3_detail_marks || {};
+      evalsMap[stud.id] = {
+        phase1_detail_marks: {
+          problem_definition: p1Detail.problem_definition ?? 0,
+          objectives: p1Detail.objectives ?? 0,
+          methodology: p1Detail.methodology ?? 0
+        },
+        phase1_observations: studEval.phase1_observations || '',
+        phase2_detail_marks: {
+          project_execution: p2Detail.project_execution ?? 0,
+          tools_techniques: p2Detail.tools_techniques ?? 0,
+          partial_results: p2Detail.partial_results ?? 0
+        },
+        phase2_observations: studEval.phase2_observations || '',
+        phase3_detail_marks: {
+          prototype_demonstration: p3Detail.prototype_demonstration ?? 0,
+          results_discussions: p3Detail.results_discussions ?? 0,
+          report_poster_ppt: p3Detail.report_poster_ppt ?? 0,
+          outcome_work: p3Detail.outcome_work ?? 0
+        },
+        phase3_observations: studEval.phase3_observations || ''
+      };
+    });
+    return { evalsMap, studs };
+  };
+
+  // Fetch fresh evaluation data from the server every time the modal opens.
+  // This guarantees we always show persisted data regardless of prop staleness.
+  useEffect(() => {
+    if (!isOpen || !team) return;
+
+    const loadFreshData = async () => {
+      setLoadingEvals(true);
+      try {
+        const res = await api.get(`/chat/groups/${team.id}`);
+        const freshTeam = res.data;
+
+        setChiefMentorName(freshTeam.chief_mentor_name || 'DR SUBRAMANYA KN');
+        setChiefMentorDesignation(freshTeam.chief_mentor_designation || 'PRINCIPAL');
+        setChiefMentorDepartment(freshTeam.chief_mentor_department || '');
+        setEvaluators(freshTeam.evaluators && freshTeam.evaluators.length ? [...freshTeam.evaluators] : ['', '', '', '']);
+
+        const storedEvals = freshTeam.student_evaluations || {};
+        const membersSource = freshTeam.members && freshTeam.members.length > 0
+          ? freshTeam.members
+          : (team.members || []);
+        const { evalsMap, studs } = buildEvalsMap(membersSource, storedEvals);
+
+        setStudentEvals(evalsMap);
+
+        if (studs.length > 0) {
+          setSelectedStudentId(prevId => {
+            const targetId = initialStudentId || prevId;
+            const stillExists = studs.some((s: any) => s.id === targetId);
+            const finalId = (targetId && stillExists) ? targetId : studs[0].id;
+            return finalId;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch fresh evaluation data, falling back to prop data:', err);
+        // Fallback: use the team prop data if the API call fails
+        setChiefMentorName(team.chief_mentor_name || 'DR SUBRAMANYA KN');
+        setChiefMentorDesignation(team.chief_mentor_designation || 'PRINCIPAL');
+        setChiefMentorDepartment(team.chief_mentor_department || '');
+        setEvaluators(team.evaluators && team.evaluators.length ? [...team.evaluators] : ['', '', '', '']);
+        const storedEvals = team.student_evaluations || {};
+        const { evalsMap, studs } = buildEvalsMap(team.members || [], storedEvals);
+        setStudentEvals(evalsMap);
+        if (studs.length > 0) {
+          setSelectedStudentId(prevId => {
+            const targetId = initialStudentId || prevId;
+            const stillExists = studs.some((s: any) => s.id === targetId);
+            return (targetId && stillExists) ? targetId : studs[0].id;
+          });
+        }
+      } finally {
+        setLoadingEvals(false);
+      }
+    };
+
+    loadFreshData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, team?.id]);
+
+  if (!isOpen || !team) return null;
+
+  // 3. Synchronize input changes back to the studentEvals dictionary
+  const updateStudentEvalField = (phase: 'phase1' | 'phase2' | 'phase3', field: string, value: any) => {
+    if (!selectedStudentId) return;
+
+    setStudentEvals(prev => {
+      const current = prev[selectedStudentId] ? { ...prev[selectedStudentId] } : {
+        phase1_detail_marks: { problem_definition: 0, objectives: 0, methodology: 0 },
+        phase1_observations: '',
+        phase2_detail_marks: { project_execution: 0, tools_techniques: 0, partial_results: 0 },
+        phase2_observations: '',
+        phase3_detail_marks: { prototype_demonstration: 0, results_discussions: 0, report_poster_ppt: 0, outcome_work: 0 },
+        phase3_observations: ''
+      };
+
+      if (field.endsWith('observations')) {
+        current[field] = value;
+      } else {
+        const detailKey = `${phase}_detail_marks`;
+        current[detailKey] = {
+          ...current[detailKey],
+          [field]: Number(value)
+        };
+      }
+
+      const nextEvals = {
+        ...prev,
+        [selectedStudentId]: current
+      };
+      return nextEvals;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      let response;
+      if (isMentor) {
+        response = await api.put(`/chat/groups/${team.id}/marks`, {
+          chief_mentor_name: chiefMentorName,
+          chief_mentor_designation: chiefMentorDesignation,
+          chief_mentor_department: chiefMentorDepartment,
+          evaluators: evaluators,
+          student_evaluations: studentEvals
+        });
+      } else {
+        response = await api.put(`/chat/groups/${team.id}/project-details`, {
+          chief_mentor_name: chiefMentorName,
+          chief_mentor_designation: chiefMentorDesignation,
+          chief_mentor_department: chiefMentorDepartment,
+          evaluators: evaluators
+        });
+      }
+      setSaveStatus('success');
+      if (response.data?.student_evaluations && response.data?.members) {
+        const { evalsMap } = buildEvalsMap(response.data.members, response.data.student_evaluations);
+        setStudentEvals(evalsMap);
+      }
+      if (onSaveSuccess) onSaveSuccess(response.data);
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err: any) {
+      console.error('Save error:', err);
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || err.response?.data?.message || JSON.stringify(err.response?.data) || err.message || 'Network error';
+      alert(`Save failed (${status || 'no response'}): ${detail}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    // CSS Styling representing the exact printed report format
+    const styles = `
+      @media print {
+        @page {
+          size: A4;
+          margin: 12mm 12mm 12mm 12mm;
+        }
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+      body {
+        font-family: 'Times New Roman', Times, serif;
+        color: #000;
+        margin: 0;
+        padding: 0;
+        line-height: 1.4;
+        font-size: 13.5px;
+      }
+      .page {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 3px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+      .page + .page {
+        page-break-before: always;
+        break-before: page;
+      }
+      .header-logo-container {
+        display: flex;
+        align-items: center;
+        border-bottom: 2px solid #1f4e78;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        width: 100%;
+      }
+      .header-title-text {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 25px;
+        font-weight: bold;
+        color: #1f4e78;
+        line-height: 1.1;
+      }
+      .header-sub-text {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        font-weight: bold;
+        color: #595959;
+        margin-top: 3px;
+      }
+      .cover-title-box {
+        border: 2px solid #385723;
+        background-color: #e2f0d9 !important;
+        border-radius: 12px;
+        padding: 12px 20px;
+        text-align: center;
+        margin: 25px auto;
+        width: 92%;
+      }
+      .cover-title {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 21px;
+        font-weight: bold;
+        color: #1f4e78;
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+      .section-label {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 14.5px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 18px;
+        margin-bottom: 4px;
+      }
+      .section-val-red {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 18px;
+        font-weight: bold;
+        color: #c00000;
+        text-align: center;
+        margin-bottom: 15px;
+        line-height: 1.35;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .data-table th, .data-table td {
+        border: 1px solid #000;
+        padding: 4px 8px;
+        text-align: left;
+        vertical-align: middle;
+      }
+      .data-table th {
+        font-weight: bold;
+        background-color: #f2f2f2;
+      }
+      .col-label-red {
+        font-weight: bold;
+        width: 38%;
+        color: #c00000;
+      }
+      .col-label-blue {
+        font-weight: bold;
+        width: 32%;
+        color: #1f4e78;
+      }
+      .col-val-blue {
+        font-weight: bold;
+        color: #2f5597;
+      }
+      .signature-grid {
+        display: flex;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 40px;
+        padding-bottom: 10px;
+      }
+      .signature-col {
+        text-align: center;
+        width: 18%;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      .signature-line {
+        border-top: 1px dotted #000;
+        margin-top: 30px;
+        padding-top: 5px;
+      }
+      .evaluation-title {
+        text-align: center;
+        font-size: 17px;
+        font-weight: bold;
+        margin-bottom: 3px;
+        font-family: 'Times New Roman', Times, serif;
+        color: #1f4e78;
+      }
+      .evaluation-subtitle {
+        text-align: center;
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #c00000;
+      }
+      .observations-box {
+        border: 1px solid #000;
+        padding: 6px 8px;
+        min-height: 55px;
+        margin-top: 5px;
+        font-style: italic;
+        font-weight: bold;
+        color: #2f5597;
+      }
+    `;
+
+    const rvceLogoDataUrl = 'data:image/png;base64,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';
+    const logoHeader = `
+      <div class="header-logo-container" style="border-bottom: 2px solid #1f4e78; padding-bottom: 4px; margin-bottom: 8px;">
+        <img src="${rvceLogoDataUrl}" style="height: 62px; width: auto; display: block;" />
+      </div>
+    `;
+
+    let htmlContent = `
+      <html>
+        <head>
+          <title>Observation Record - ${team.name}</title>
+          <style>${styles}</style>
+        </head>
+        <body>
+    `;
+
+    // ----------------------------------------------------
+    // PAGE 1: COVER PAGE
+    // ----------------------------------------------------
+    htmlContent += `
+      <div class="page">
+        ${logoHeader}
+        
+        <div class="cover-title-box">
+          <h2 class="cover-title">EXPERIENTIAL LEARNING OBSERVATION RECORD</h2>
+        </div>
+        
+        <div style="text-align: center; font-weight: bold; font-size: 15px; margin-top: 15px; font-family: 'Times New Roman', Times, serif;">
+          For the II Semester B.E PROGRAMS, 2025 batch
+        </div>
+        
+        <div style="margin-top: 25px;">
+          <div class="section-label">Title of the project</div>
+          <div class="section-val-red">${(team.project_topic || "").toUpperCase()}</div>
+          
+          <div class="section-label">Theme</div>
+          <div class="section-val-red">${(team.project_theme || "Not Specified").toUpperCase()}</div>
+          
+          <div class="section-label">Team Name</div>
+          <div class="section-val-red">${team.name.toUpperCase()}</div>
+        </div>
+        
+        <table class="data-table" style="margin-top: auto; margin-bottom: 20px;">
+          <tr>
+            <td class="col-label-red">Name of the students<br/>(In Capitals) with USN</td>
+            <td>
+              ${studentsList.map((m: any) => `
+                <div style="display: flex; justify-content: space-between; font-weight: bold; color: #2f5597; font-size: 13.5px; margin-bottom: 5px;">
+                  <span>${m.full_name.toUpperCase()}</span>
+                  <span style="font-family: monospace; font-size: 13px;">${m.usn || "N/A"}</span>
+                </div>
+              `).join('')}
+            </td>
+          </tr>
+          <tr>
+            <td class="col-label-red">Name of the faculty Mentor with Designation and Department</td>
+            <td class="col-val-blue">
+              ${(team.mentor_name || '').toUpperCase()}<br/>
+              <span style="font-size: 11px; font-weight: bold; color: #555;">
+                ${studentsList[0]?.department ? `DEPARTMENT OF ${studentsList[0].department.toUpperCase()}` : 'FACULTY ADVISOR'}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-label-red">Name of the Chief Faculty Mentor with Designation and Department</td>
+            <td class="col-val-blue">
+              ${chiefMentorName.toUpperCase()}<br/>
+              <span style="font-size: 11px; font-weight: bold; color: #555;">
+                ${chiefMentorDesignation.toUpperCase()} ${chiefMentorDepartment ? `• DEPARTMENT OF ${chiefMentorDepartment.toUpperCase()}` : ''}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `;
+
+
+
+    // ----------------------------------------------------
+    // PAGE 3: TEAM INFO & SIGNATURES
+    // ----------------------------------------------------
+    htmlContent += `
+      <div class="page">
+        ${logoHeader}
+        
+        <div style="text-align: center; font-size: 26px; font-weight: bold; color: #c00000; font-family: 'Times New Roman', Times, serif; letter-spacing: 0.5px; margin-bottom: 5px;">
+          EXPERIENTIAL LEARNING
+        </div>
+        <div style="text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif;">
+          For the II Semester B.E PROGRAMS
+        </div>
+        
+        <table class="data-table" style="margin-top: 0; margin-bottom: 25px;">
+          <tr>
+            <td class="col-label-blue" style="width: 25%;">Team Name</td>
+            <td style="font-weight: bold; font-size: 14.5px; color: #2f5597;">${team.name.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td class="col-label-blue">Theme</td>
+            <td style="font-weight: bold;">${team.project_theme || "N/A"}</td>
+          </tr>
+          <tr>
+            <td class="col-label-blue">Team ID</td>
+            <td style="font-weight: bold; font-family: monospace;">EL-2026-TEAM-${team.id}</td>
+          </tr>
+          <tr>
+            <td class="col-label-blue">Topic</td>
+            <td style="font-weight: bold; color: #c00000;">${(team.project_topic || "N/A").toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td class="col-label-blue">Team Leader Name</td>
+            <td style="font-weight: bold; color: #2f5597;">${(studentsList[0]?.full_name || "N/A").toUpperCase()}</td>
+          </tr>
+        </table>
+        
+        <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #1f4e78; text-align: center; font-family: 'Times New Roman', Times, serif;">
+          Details of the Group Members
+        </div>
+        <table class="data-table" style="margin-top: 0;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th style="width: 7%; color: #1f4e78; font-weight: bold; text-align: center;">Sl. No.</th>
+              <th style="width: 15%; color: #1f4e78; font-weight: bold;">Program</th>
+              <th style="width: 12%; color: #1f4e78; font-weight: bold;">Cycle</th>
+              <th style="width: 28%; color: #1f4e78; font-weight: bold;">USN/Registration Number</th>
+              <th style="width: 23%; color: #1f4e78; font-weight: bold;">Name</th>
+              <th style="color: #1f4e78; font-weight: bold;">RVCE Email Id</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${studentsList.map((m: any, idx: number) => `
+              <tr>
+                <td style="text-align: center; font-weight: bold;">${idx + 1}.</td>
+                <td>B.E</td>
+                <td>${(m.cycle || "P").toUpperCase()}-Cycle</td>
+                <td style="font-family: monospace; font-size: 13px;">${m.usn || "N/A"}</td>
+                <td style="font-weight: bold; color: #2f5597;">${m.full_name.toUpperCase()}</td>
+                <td>${m.email}</td>
+              </tr>
+            `).join('')}
+            ${Array.from({ length: Math.max(0, 4 - studentsList.length) }).map((_, idx) => `
+              <tr>
+                <td style="text-align: center; font-weight: bold;">${studentsList.length + idx + 1}.</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="signature-grid" style="margin-top: auto; padding-top: 60px;">
+          ${studentsList.map((m: any, idx: number) => `
+            <div class="signature-col">
+              <div class="signature-line" style="border-top: 1px solid #000;">Student-${idx + 1} Signature</div>
+              <div style="font-size:9.5px; color:#555; margin-top:2px;">${m.full_name.toUpperCase()}</div>
+            </div>
+          `).join('')}
+          ${Array.from({ length: Math.max(0, 5 - studentsList.length) }).map((_, idx) => `
+            <div class="signature-col">
+              <div class="signature-line" style="border-top: 1px solid #000;">Student-${studentsList.length + idx + 1} Signature</div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="signature-grid" style="margin-top: 25px; padding-top: 30px;">
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Faculty Mentor</div>
+          </div>
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Chief Faculty Mentor</div>
+          </div>
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Dean Academics</div>
+          </div>
+          <div class="signature-col" style="color: #c00000;">
+            <div class="signature-line" style="border-top: 1px solid #000;">Vice Principal</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // ----------------------------------------------------
+    // INDIVIDUAL EVALUATION PAGES FOR EACH STUDENT
+    // ----------------------------------------------------
+    studentsList.forEach((stud: any) => {
+      const evalData = studentEvals[stud.id] || {};
+      
+      const p1Det = evalData.phase1_detail_marks || {};
+      const p1ProbVal = p1Det.problem_definition ?? 0;
+      const p1ObjVal = p1Det.objectives ?? 0;
+      const p1MethVal = p1Det.methodology ?? 0;
+      const p1ObsVal = evalData.phase1_observations || '';
+
+      const p2Det = evalData.phase2_detail_marks || {};
+      const p2ExecVal = p2Det.project_execution ?? 0;
+      const p2ToolsVal = p2Det.tools_techniques ?? 0;
+      const p2ResVal = p2Det.partial_results ?? 0;
+      const p2ObsVal = evalData.phase2_observations || '';
+
+      const p3Det = evalData.phase3_detail_marks || {};
+      const p3ProtoVal = p3Det.prototype_demonstration ?? 0;
+      const p3ResDiscVal = p3Det.results_discussions ?? 0;
+      const p3ReportVal = p3Det.report_poster_ppt ?? 0;
+      const p3OutVal = p3Det.outcome_work ?? 0;
+      const p3ObsVal = evalData.phase3_observations || '';
+
+
+      // 1. Phase I Evaluation Sheet
+      htmlContent += `
+        <div class="page">
+          ${logoHeader}
+          
+          <div class="evaluation-title">PHASE -1 EVALUATION – 40 MARKS</div>
+          <div class="evaluation-subtitle">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
+          
+          <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Theme:</td>
+              <td colspan="3">${team.project_theme || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Team Name:</td>
+              <td style="font-weight: bold;">${team.name.toUpperCase()}</td>
+              <td style="width: 18%; font-weight: bold; text-align: right; padding-right: 15px;">Team No:</td>
+              <td style="font-weight: bold;">EL-${team.id}</td>
+            </tr>
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Title:</td>
+              <td colspan="3" style="font-weight: bold;">${(team.project_topic || "N/A").toUpperCase()}</td>
+            </tr>
+          </table>
+          
+          <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
+            <tr>
+              <td style="width: 25%; font-weight: bold;">USN</td>
+              <td style="font-weight: bold; color: #2f5597; font-family: monospace; font-size: 13.5px;">${stud.usn || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">NAME (in Capitals)</td>
+              <td style="font-weight: bold; color: #2f5597;">${stud.full_name.toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Mobile No.</td>
+              <td>${stud.mobile_no || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Email Id</td>
+              <td>${stud.email}</td>
+            </tr>
+          </table>
+          
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #1f4e78; font-family: 'Times New Roman', Times, serif; text-align: center;">
+            PHASE -1 EVALUATION – 40 MARKS
+          </div>
+          <table class="data-table" style="margin-top: 0;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="color: #1f4e78; font-weight: bold;">Parameter</th>
+                <th style="text-align: center; width: 22%; color: #1f4e78; font-weight: bold;">Maximum</th>
+                <th style="text-align: center; width: 25%; color: #1f4e78; font-weight: bold;">Obtained</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Problem Definition</td>
+                <td style="text-align: center; font-weight: bold;">10</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p1ProbVal}</td>
+              </tr>
+              <tr>
+                <td>Objectives</td>
+                <td style="text-align: center; font-weight: bold;">10</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p1ObjVal}</td>
+              </tr>
+              <tr>
+                <td>Methodology</td>
+                <td style="text-align: center; font-weight: bold;">20</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p1MethVal}</td>
+              </tr>
+              <tr style="background-color: #f9fafb; font-weight: bold;">
+                <td style="font-weight: bold;">Total</td>
+                <td style="text-align: center; font-weight: bold;">40</td>
+                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #c00000;">${Number(p1ProbVal) + Number(p1ObjVal) + Number(p1MethVal)}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div style="margin-top: 20px;">
+            <div style="font-weight: bold; font-size: 13.5px; color: #c00000; font-family: 'Times New Roman', Times, serif;">
+              Observations by the Faculty Mentors / Evaluators:<br/>
+              (Suggestions and Guidelines to be included)
+            </div>
+            <div class="observations-box">${p1ObsVal || ""}</div>
+          </div>
+          
+          <div style="font-weight: bold; font-size: 13px; margin-top: auto; margin-bottom: 5px; color: #1f4e78;">
+            Mentors / Evaluators Name and Signature
+          </div>
+          <table class="data-table" style="margin-top: 0; margin-bottom: 10px;">
+            <tbody>
+              <tr>
+                <td style="width: 8%; text-align: center; font-weight: bold;">1.</td>
+                <td style="font-weight: bold; color: #2f5597;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
+                <td style="width: 35%; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+              </tr>
+              ${evaluators.filter(Boolean).map((ev, i) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${i + 2}.</td>
+                  <td style="font-weight: bold; color: #2f5597;">${ev.toUpperCase()}</td>
+                  <td style="text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                </tr>
+              `).join('')}
+              ${Array.from({ length: Math.max(0, 3 - evaluators.filter(Boolean).length) }).map((_, idx) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${evaluators.filter(Boolean).length + idx + 2}.</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      // 2. Phase II Evaluation Sheet
+      htmlContent += `
+        <div class="page">
+          ${logoHeader}
+          
+          <div class="evaluation-title">PHASE -II EVALUATION – 50 MARKS</div>
+          <div class="evaluation-subtitle">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
+          
+          <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Theme:</td>
+              <td colspan="3">${team.project_theme || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Team Name:</td>
+              <td style="font-weight: bold;">${team.name.toUpperCase()}</td>
+              <td style="width: 18%; font-weight: bold; text-align: right; padding-right: 15px;">Team No:</td>
+              <td style="font-weight: bold;">EL-${team.id}</td>
+            </tr>
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Title:</td>
+              <td colspan="3" style="font-weight: bold;">${(team.project_topic || "N/A").toUpperCase()}</td>
+            </tr>
+          </table>
+          
+          <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
+            <tr>
+              <td style="width: 25%; font-weight: bold;">USN</td>
+              <td style="font-weight: bold; color: #2f5597; font-family: monospace; font-size: 13.5px;">${stud.usn || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">NAME (in Capitals)</td>
+              <td style="font-weight: bold; color: #2f5597;">${stud.full_name.toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Mobile No.</td>
+              <td>${stud.mobile_no || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Email Id</td>
+              <td>${stud.email}</td>
+            </tr>
+          </table>
+          
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #1f4e78; font-family: 'Times New Roman', Times, serif; text-align: center;">
+            PHASE -II EVALUATION – 50 MARKS
+          </div>
+          <table class="data-table" style="margin-top: 0;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="color: #1f4e78; font-weight: bold;">Parameter</th>
+                <th style="text-align: center; width: 22%; color: #1f4e78; font-weight: bold;">Maximum</th>
+                <th style="text-align: center; width: 25%; color: #1f4e78; font-weight: bold;">Obtained</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Project Execution</td>
+                <td style="text-align: center; font-weight: bold;">20</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p2ExecVal}</td>
+              </tr>
+              <tr>
+                <td>Tools and Techniques Used</td>
+                <td style="text-align: center; font-weight: bold;">15</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p2ToolsVal}</td>
+              </tr>
+              <tr>
+                <td>Partial Results (mentors can Gauge the status)</td>
+                <td style="text-align: center; font-weight: bold;">15</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p2ResVal}</td>
+              </tr>
+              <tr style="background-color: #f9fafb; font-weight: bold;">
+                <td style="font-weight: bold;">Total</td>
+                <td style="text-align: center; font-weight: bold;">50</td>
+                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #c00000;">${Number(p2ExecVal) + Number(p2ToolsVal) + Number(p2ResVal)}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div style="margin-top: 6px;">
+            <div style="font-weight: bold; font-size: 13.5px; color: #c00000; font-family: 'Times New Roman', Times, serif;">
+              Observations by the Faculty Mentors / Evaluators:<br/>
+              (Suggestions and Guidelines to be included)
+            </div>
+            <div class="observations-box">${p2ObsVal || ""}</div>
+          </div>
+          
+          <div style="font-weight: bold; font-size: 13px; margin-top: auto; margin-bottom: 5px; color: #1f4e78;">
+            Mentors / Evaluators Name and Signature
+          </div>
+          <table class="data-table" style="margin-top: 0; margin-bottom: 10px;">
+            <tbody>
+              <tr>
+                <td style="width: 8%; text-align: center; font-weight: bold;">1.</td>
+                <td style="font-weight: bold; color: #2f5597;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
+                <td style="width: 35%; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+              </tr>
+              ${evaluators.filter(Boolean).map((ev, i) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${i + 2}.</td>
+                  <td style="font-weight: bold; color: #2f5597;">${ev.toUpperCase()}</td>
+                  <td style="text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                </tr>
+              `).join('')}
+              ${Array.from({ length: Math.max(0, 3 - evaluators.filter(Boolean).length) }).map((_, idx) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${evaluators.filter(Boolean).length + idx + 2}.</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      // 3. Phase III Evaluation Sheet
+      htmlContent += `
+        <div class="page">
+          ${logoHeader}
+          
+          <div class="evaluation-title">PHASE -III EVALUATION – 50 MARKS</div>
+          <div class="evaluation-subtitle">EXPERIENTIAL LEARNING EVALUATION SHEET</div>
+          
+          <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Theme:</td>
+              <td colspan="3">${team.project_theme || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Team Name:</td>
+              <td style="font-weight: bold;">${team.name.toUpperCase()}</td>
+              <td style="width: 18%; font-weight: bold; text-align: right; padding-right: 15px;">Team No:</td>
+              <td style="font-weight: bold;">EL-${team.id}</td>
+            </tr>
+            <tr>
+              <td style="width: 18%; font-weight: bold;">Title:</td>
+              <td colspan="3" style="font-weight: bold;">${(team.project_topic || "N/A").toUpperCase()}</td>
+            </tr>
+          </table>
+          
+          <table class="data-table" style="margin-top: 0; margin-bottom: 6px;">
+            <tr>
+              <td style="width: 25%; font-weight: bold;">USN</td>
+              <td style="font-weight: bold; color: #2f5597; font-family: monospace; font-size: 13.5px;">${stud.usn || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">NAME (in Capitals)</td>
+              <td style="font-weight: bold; color: #2f5597;">${stud.full_name.toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Mobile No.</td>
+              <td>${stud.mobile_no || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Email Id</td>
+              <td>${stud.email}</td>
+            </tr>
+          </table>
+          
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #1f4e78; font-family: 'Times New Roman', Times, serif; text-align: center;">
+            PHASE -III EVALUATION – 50 MARKS
+          </div>
+          <table class="data-table" style="margin-top: 0;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="color: #1f4e78; font-weight: bold;">Parameter</th>
+                <th style="text-align: center; width: 22%; color: #1f4e78; font-weight: bold;">Maximum</th>
+                <th style="text-align: center; width: 25%; color: #1f4e78; font-weight: bold;">Obtained</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Complete prototype demonstration</td>
+                <td style="text-align: center; font-weight: bold;">5</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3ProtoVal}</td>
+              </tr>
+              <tr>
+                <td>Results & Discussions</td>
+                <td style="text-align: center; font-weight: bold;">5</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3ResDiscVal}</td>
+              </tr>
+              <tr>
+                <td>Report, Poster and PPT demonstration</td>
+                <td style="text-align: center; font-weight: bold;">10</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3ReportVal}</td>
+              </tr>
+              <tr>
+                <td>Outcome of the work (Publication/Product Development/Patenting)</td>
+                <td style="text-align: center; font-weight: bold;">30</td>
+                <td style="text-align: center; font-weight: bold; font-size: 15px; color: #c00000;">${p3OutVal}</td>
+              </tr>
+              <tr style="background-color: #f9fafb; font-weight: bold;">
+                <td style="font-weight: bold;">Total</td>
+                <td style="text-align: center; font-weight: bold;">50</td>
+                <td style="text-align: center; font-weight: bold; font-size: 16px; color: #c00000;">${Number(p3ProtoVal) + Number(p3ResDiscVal) + Number(p3ReportVal) + Number(p3OutVal)}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div style="margin-top: 20px;">
+            <div style="font-weight: bold; font-size: 13.5px; color: #c00000; font-family: 'Times New Roman', Times, serif;">
+              Observations by the Faculty Mentors / Evaluators:<br/>
+              (Suggestions and Guidelines to be included)
+            </div>
+            <div class="observations-box">${p3ObsVal || ""}</div>
+          </div>
+          
+          <div style="font-weight: bold; font-size: 13px; margin-top: auto; margin-bottom: 5px; color: #1f4e78;">
+            Mentors / Evaluators Name and Signature
+          </div>
+          <table class="data-table" style="margin-top: 0; margin-bottom: 10px;">
+            <tbody>
+              <tr>
+                <td style="width: 8%; text-align: center; font-weight: bold;">1.</td>
+                <td style="font-weight: bold; color: #2f5597;">${(team.mentor_name || "").toUpperCase()} &nbsp; (Faculty Mentor)</td>
+                <td style="width: 35%; text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+              </tr>
+              ${evaluators.filter(Boolean).map((ev, i) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${i + 2}.</td>
+                  <td style="font-weight: bold; color: #2f5597;">${ev.toUpperCase()}</td>
+                  <td style="text-align: right; font-style: italic; color:#777; font-size: 11px;">Digitally Signed</td>
+                </tr>
+              `).join('')}
+              ${Array.from({ length: Math.max(0, 3 - evaluators.filter(Boolean).length) }).map((_, idx) => `
+                <tr>
+                  <td style="text-align: center; font-weight: bold;">${evaluators.filter(Boolean).length + idx + 2}.</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+
+
+
+    htmlContent += `
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    // Trigger printing with fallback for modern browsers
+    const runPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    };
+
+    if (printWindow.document.readyState === 'complete') {
+      runPrint();
+    } else {
+      printWindow.onload = runPrint;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Background Overlay */}
+      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Main Modal Panel */}
+      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3 text-left">
+            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+              <FileText size={22} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Experiential Learning Record & Evaluation Sheets</h3>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase mt-0.5 tracking-wider">
+                Fillable Academic Sheets &middot; Team: {team.name}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer uppercase tracking-wider"
+              title="Print / Save to PDF"
+            >
+              <Printer size={14} />
+              Print / Save PDF
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white shadow-sm transition-all cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Headers */}
+        <div className="flex bg-slate-50/50 dark:bg-slate-950/25 border-b border-slate-100 dark:border-slate-800 shrink-0 px-6 py-2 overflow-x-auto no-scrollbar gap-2">
+          {[
+            { id: 'info', label: '1. Cover & Team Info' },
+            { id: 'phase1', label: '2. Phase I (40 Marks)' },
+            { id: 'phase2', label: '3. Phase II (50 Marks)' },
+            { id: 'phase3', label: '4. Phase III (50 Marks)' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Form Body - Scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6 text-left">
+
+          {/* Loading overlay while fetching evaluations from server */}
+          {loadingEvals && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Loading saved evaluations…</p>
+            </div>
+          )}
+
+          {/* Cover & General Metadata */}
+          {!loadingEvals && activeTab === 'info' && (
+            <div className="space-y-5">
+              <div className="bg-indigo-50/30 dark:bg-indigo-950/10 border border-indigo-100/40 dark:border-indigo-900/30 rounded-2xl p-5 space-y-3">
+                <h4 className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Auto-Filled Project Info</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Project Title</span>
+                    <span className="font-bold text-slate-900 dark:text-white capitalize">{team.project_topic || 'No topic entered yet'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Theme</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{team.project_theme || 'No theme selected'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Faculty Mentor</span>
+                    <span className="font-bold text-slate-900 dark:text-white capitalize">{team.mentor_name || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider mb-0.5">Team ID</span>
+                    <span className="font-mono text-slate-900 dark:text-white">EL-2026-TEAM-{team.id}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chief Mentor Details */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Chief Faculty Mentor</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Chief Mentor Name</label>
+                    <input
+                      type="text"
+                      value={chiefMentorName}
+                      onChange={e => setChiefMentorName(e.target.value)}
+                      placeholder="e.g. Dr. Subramanya KN"
+                      className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Designation</label>
+                    <input
+                      type="text"
+                      value={chiefMentorDesignation}
+                      onChange={e => setChiefMentorDesignation(e.target.value)}
+                      placeholder="e.g. Principal"
+                      className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Department</label>
+                    <input
+                      type="text"
+                      value={chiefMentorDepartment}
+                      onChange={e => setChiefMentorDepartment(e.target.value)}
+                      placeholder="e.g. Institutional Head"
+                      className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Evaluators */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Evaluators Name / Co-Advisors</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {evaluators.map((val, idx) => (
+                    <div key={idx}>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Evaluator {idx + 1}</label>
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={e => {
+                          const updated = [...evaluators];
+                          updated[idx] = e.target.value;
+                          setEvaluators(updated);
+                        }}
+                        placeholder={`Evaluator ${idx + 1} Name`}
+                        className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Student Selector for Grades (Tabs Phase 1, Phase 2, Phase 3) */}
+          {!loadingEvals && activeTab !== 'info' && studentsList.length > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-950/20 p-4 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-3 mb-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">{isMentor ? 'Select Student to Grade' : 'Select Student'}</span>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {studentsList.map((stud: any) => (
+                  <button
+                    key={stud.id}
+                    onClick={() => setSelectedStudentId(stud.id)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
+                      selectedStudentId === stud.id
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <User size={13} />
+                    <span>{stud.full_name}</span>
+                    <span className="opacity-75 font-mono text-[9px]">({stud.usn || 'N/A'})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Phase 1 */}
+          {!loadingEvals && activeTab === 'phase1' && selectedStudentId && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 1 Score Breakdown</h4>
+                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/45 rounded-full border border-indigo-100 dark:border-indigo-900/35">
+                  Total Phase 1: {
+                    Number(studentEvals[selectedStudentId]?.phase1_detail_marks?.problem_definition ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase1_detail_marks?.objectives ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase1_detail_marks?.methodology ?? 0)
+                  } / 40
+                </div>
+              </div>
+
+              {isMentor ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Problem Definition (Max 10)</label>
+                    <input type="number" min="0" max="10"
+                      value={studentEvals[selectedStudentId]?.phase1_detail_marks?.problem_definition ?? 0}
+                      onChange={e => updateStudentEvalField('phase1', 'problem_definition', Math.min(10, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Objectives (Max 10)</label>
+                    <input type="number" min="0" max="10"
+                      value={studentEvals[selectedStudentId]?.phase1_detail_marks?.objectives ?? 0}
+                      onChange={e => updateStudentEvalField('phase1', 'objectives', Math.min(10, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Methodology (Max 20)</label>
+                    <input type="number" min="0" max="20"
+                      value={studentEvals[selectedStudentId]?.phase1_detail_marks?.methodology ?? 0}
+                      onChange={e => updateStudentEvalField('phase1', 'methodology', Math.min(20, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[{label:'Problem Definition',key:'problem_definition',max:10},{label:'Objectives',key:'objectives',max:10},{label:'Methodology',key:'methodology',max:20}].map(c => {
+                    const score = Number(studentEvals[selectedStudentId]?.phase1_detail_marks?.[c.key] ?? 0);
+                    const pct = Math.round((score / c.max) * 100);
+                    return (
+                      <div key={c.key} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</span>
+                        <div className="flex items-end gap-1">
+                          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">{score}</span>
+                          <span className="text-xs text-slate-400 mb-0.5">/ {c.max}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 1 Observations / Feedback</label>
+                {isMentor ? (
+                  <textarea
+                    value={studentEvals[selectedStudentId]?.phase1_observations || ''}
+                    onChange={e => updateStudentEvalField('phase1', 'phase1_observations', e.target.value)}
+                    placeholder="Suggestions, guidelines, or criticisms..."
+                    rows={4}
+                    className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
+                  />
+                ) : (
+                  <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 font-medium text-xs text-slate-700 dark:text-slate-300 min-h-[80px] whitespace-pre-wrap">
+                    {studentEvals[selectedStudentId]?.phase1_observations || <span className="text-slate-400 italic">No feedback provided yet.</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Phase 2 */}
+          {!loadingEvals && activeTab === 'phase2' && selectedStudentId && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 2 Score Breakdown</h4>
+                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/45 rounded-full border border-indigo-100 dark:border-indigo-900/35">
+                  Total Phase 2: {
+                    Number(studentEvals[selectedStudentId]?.phase2_detail_marks?.project_execution ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase2_detail_marks?.tools_techniques ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase2_detail_marks?.partial_results ?? 0)
+                  } / 50
+                </div>
+              </div>
+
+              {isMentor ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Project Execution (Max 20)</label>
+                    <input type="number" min="0" max="20"
+                      value={studentEvals[selectedStudentId]?.phase2_detail_marks?.project_execution ?? 0}
+                      onChange={e => updateStudentEvalField('phase2', 'project_execution', Math.min(20, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tools &amp; Techniques Used (Max 15)</label>
+                    <input type="number" min="0" max="15"
+                      value={studentEvals[selectedStudentId]?.phase2_detail_marks?.tools_techniques ?? 0}
+                      onChange={e => updateStudentEvalField('phase2', 'tools_techniques', Math.min(15, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Partial Results (Max 15)</label>
+                    <input type="number" min="0" max="15"
+                      value={studentEvals[selectedStudentId]?.phase2_detail_marks?.partial_results ?? 0}
+                      onChange={e => updateStudentEvalField('phase2', 'partial_results', Math.min(15, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[{label:'Project Execution',key:'project_execution',max:20},{label:'Tools & Techniques',key:'tools_techniques',max:15},{label:'Partial Results',key:'partial_results',max:15}].map(c => {
+                    const score = Number(studentEvals[selectedStudentId]?.phase2_detail_marks?.[c.key] ?? 0);
+                    const pct = Math.round((score / c.max) * 100);
+                    return (
+                      <div key={c.key} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</span>
+                        <div className="flex items-end gap-1">
+                          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">{score}</span>
+                          <span className="text-xs text-slate-400 mb-0.5">/ {c.max}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 2 Observations / Feedback</label>
+                {isMentor ? (
+                  <textarea
+                    value={studentEvals[selectedStudentId]?.phase2_observations || ''}
+                    onChange={e => updateStudentEvalField('phase2', 'phase2_observations', e.target.value)}
+                    placeholder="Suggestions, guidelines, or criticisms..."
+                    rows={4}
+                    className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
+                  />
+                ) : (
+                  <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 font-medium text-xs text-slate-700 dark:text-slate-300 min-h-[80px] whitespace-pre-wrap">
+                    {studentEvals[selectedStudentId]?.phase2_observations || <span className="text-slate-400 italic">No feedback provided yet.</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Phase 3 */}
+          {!loadingEvals && activeTab === 'phase3' && selectedStudentId && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase 3 Score Breakdown</h4>
+                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/45 rounded-full border border-indigo-100 dark:border-indigo-900/35">
+                  Total Phase 3: {
+                    Number(studentEvals[selectedStudentId]?.phase3_detail_marks?.prototype_demonstration ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase3_detail_marks?.results_discussions ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase3_detail_marks?.report_poster_ppt ?? 0) +
+                    Number(studentEvals[selectedStudentId]?.phase3_detail_marks?.outcome_work ?? 0)
+                  } / 50
+                </div>
+              </div>
+
+              {isMentor ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Prototype Demo (Max 5)</label>
+                    <input type="number" min="0" max="5"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.prototype_demonstration ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'prototype_demonstration', Math.min(5, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Results &amp; Disc. (Max 5)</label>
+                    <input type="number" min="0" max="5"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.results_discussions ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'results_discussions', Math.min(5, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Report / PPT (Max 10)</label>
+                    <input type="number" min="0" max="10"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.report_poster_ppt ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'report_poster_ppt', Math.min(10, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Outcome (Max 30)</label>
+                    <input type="number" min="0" max="30"
+                      value={studentEvals[selectedStudentId]?.phase3_detail_marks?.outcome_work ?? 0}
+                      onChange={e => updateStudentEvalField('phase3', 'outcome_work', Math.min(30, Math.max(0, Number(e.target.value))))}
+                      className="w-full px-4 py-3 glass-input rounded-xl outline-none font-extrabold text-sm text-slate-900 dark:text-white text-center"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[{label:'Prototype Demo',key:'prototype_demonstration',max:5},{label:'Results & Disc.',key:'results_discussions',max:5},{label:'Report / PPT',key:'report_poster_ppt',max:10},{label:'Outcome',key:'outcome_work',max:30}].map(c => {
+                    const score = Number(studentEvals[selectedStudentId]?.phase3_detail_marks?.[c.key] ?? 0);
+                    const pct = Math.round((score / c.max) * 100);
+                    return (
+                      <div key={c.key} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</span>
+                        <div className="flex items-end gap-1">
+                          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">{score}</span>
+                          <span className="text-xs text-slate-400 mb-0.5">/ {c.max}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Phase 3 Observations / Feedback</label>
+                {isMentor ? (
+                  <textarea
+                    value={studentEvals[selectedStudentId]?.phase3_observations || ''}
+                    onChange={e => updateStudentEvalField('phase3', 'phase3_observations', e.target.value)}
+                    placeholder="Suggestions, guidelines, or criticisms..."
+                    rows={4}
+                    className="w-full p-4 glass-input rounded-2xl outline-none font-medium text-xs text-slate-900 dark:text-white resize-none"
+                  />
+                ) : (
+                  <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 font-medium text-xs text-slate-700 dark:text-slate-300 min-h-[80px] whitespace-pre-wrap">
+                    {studentEvals[selectedStudentId]?.phase3_observations || <span className="text-slate-400 italic">No feedback provided yet.</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 shrink-0 flex items-center justify-between">
+          <div className="text-xs text-slate-400 dark:text-slate-500 font-semibold italic">
+            {!isMentor && (activeTab === 'info' 
+              ? "* Note: You can edit the Chief Mentor and Evaluators fields."
+              : "* Note: Only your assigned advisor can edit marks and observations.")
+            }
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-extrabold transition-all cursor-pointer uppercase tracking-wider"
+            >
+              Cancel
+            </button>
+            {isMentor && team?.mentor_status !== 'COMPLETED' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm("Are you sure you want to end evaluation for this project? This will mark the project as COMPLETED, finalize all grades, and move the team to the Evaluated Teams section.")) return;
+                  try {
+                    await api.post(`/chat/groups/${team.id}/mentor-action`, { action: 'COMPLETE' });
+                    alert('Evaluation completed successfully! This project has been marked as Completed and moved to Evaluated Teams.');
+                    if (onSaveSuccess) {
+                      onSaveSuccess({ ...team, mentor_status: 'COMPLETED' });
+                    }
+                    onClose();
+                  } catch (err: any) {
+                    alert(err.response?.data?.detail || 'Failed to complete evaluation');
+                  }
+                }}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-emerald-600/15 cursor-pointer uppercase tracking-wider"
+              >
+                <CheckCircle2 size={14} /> End Evaluation
+              </button>
+            )}
+            {(isMentor || activeTab === 'info') && (
+              <button
+                onClick={handleSave}
+                disabled={saving || loadingEvals}
+                className="flex items-center gap-1.5 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/15 cursor-pointer uppercase tracking-wider"
+              >
+                {saving ? (
+                  "Saving Details..."
+                ) : saveStatus === 'success' ? (
+                  <>
+                    <CheckCircle2 size={14} /> Saved Successfully
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} /> Save Details
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
