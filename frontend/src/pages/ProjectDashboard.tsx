@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare, Search, ChevronDown, AlertTriangle, UserCheck } from 'lucide-react';
+import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare, Search, ChevronDown, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EvaluationFormModal from '../components/EvaluationFormModal';
 import { THEME_SUBTOPICS, CLUSTER_THEMES, getYearOfStudy, getClusterForBranch } from './MyTeam';

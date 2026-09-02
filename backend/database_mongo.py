@@ -1,75 +1,59 @@
 import os
-from pymongo import MongoClient, ReturnDocument, TEXT, ASCENDING, DESCENDING
+from pymongo import MongoClient, ReturnDocument
 from utils import load_env
 
+# Load environment variables from .env
 load_env()
 
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-DB_NAME = os.getenv("MONGO_DB_NAME", "omnibug_db")
+DB_NAME = os.getenv("MONGO_DB_NAME", "el_platform")
 
-client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=8000)
+client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
 db = client[DB_NAME]
 
 def get_mongo_db():
     return db
 
 def init_db():
-    """Create indexes for high-speed queries, full-text search, and constraints."""
+    """Create required indexes. Called once at app startup."""
     try:
-        # Users indexes
-        db.users.create_index("email", unique=True)
-        db.users.create_index("username", unique=True)
-        
-        # Products & Components indexes
-        db.products.create_index("key_prefix", unique=True)
-        db.components.create_index([("product_id", ASCENDING), ("name", ASCENDING)], unique=True)
-        db.milestones.create_index([("product_id", ASCENDING), ("name", ASCENDING)])
-        
-        # Bugs / Defects indexes
-        db.bugs.create_index("key", unique=True)
-        db.bugs.create_index([("product_id", ASCENDING), ("status", ASCENDING)])
-        db.bugs.create_index([("assignee_id", ASCENDING), ("status", ASCENDING)])
-        db.bugs.create_index([("severity", ASCENDING), ("priority", ASCENDING)])
-        db.bugs.create_index([("milestone_id", ASCENDING)])
-        db.bugs.create_index([("created_at", DESCENDING)])
-        db.bugs.create_index([
-            ("title", TEXT),
-            ("description", TEXT),
-            ("stack_trace", TEXT),
-            ("tags", TEXT)
-        ], name="bug_fulltext_search")
-        
-        # Comments & Activities indexes
-        db.comments.create_index([("bug_id", ASCENDING), ("created_at", ASCENDING)])
-        db.activities.create_index([("bug_id", ASCENDING), ("timestamp", DESCENDING)])
-        db.activities.create_index([("timestamp", DESCENDING)])
-        
-        # Git commits indexes
-        db.commits.create_index([("bug_id", ASCENDING)])
-        db.commits.create_index([("commit_sha", ASCENDING)], unique=True)
-        
-        # Saved queries
-        db.saved_queries.create_index([("user_id", ASCENDING)])
-        
-        print("Database indexes initialized successfully.")
-    except Exception as e:
-        print(f"Warning during database index initialization: {e}")
+        db.users.create_index("usn", unique=True, sparse=True, partialFilterExpression={"usn": {"$type": "string"}})
+    except Exception:
+        pass
 
-def get_next_sequence_value(sequence_name: str, start_val: int = 100) -> int:
-    """Generates atomic auto-incrementing sequential integers for issue keys."""
+def get_next_sequence_value(sequence_name: str) -> int:
     counter = db.counters.find_one_and_update(
         {"_id": sequence_name},
         {"$inc": {"sequence_value": 1}},
         upsert=True,
         return_document=ReturnDocument.AFTER
     )
-    if counter["sequence_value"] == 1 and start_val > 1:
-        db.counters.update_one({"_id": sequence_name}, {"$set": {"sequence_value": start_val}})
-        return start_val
     return counter["sequence_value"]
 
-def get_next_bug_key(product_prefix: str) -> str:
-    """Generates key like GEC-101, NEX-102, PAY-103."""
-    prefix = (product_prefix or "BUG").upper().strip()
-    seq = get_next_sequence_value(f"bug_seq_{prefix}", start_val=101)
-    return f"{prefix}-{seq}"
+class MongoUser:
+    def __init__(self, data: dict):
+        self.id = data.get("id")
+        self.usn = data.get("usn")
+        self.email = data.get("email")
+        self.full_name = data.get("full_name")
+        self.branch = data.get("branch")
+        self.year_of_study = data.get("year_of_study")
+        self.hashed_password = data.get("hashed_password")
+        self.is_verified = data.get("is_verified", False)
+        self.is_admin = data.get("is_admin", False)
+        self.is_mentor = data.get("is_mentor", False)
+        self.is_banned = data.get("is_banned", False)
+        self.cycle = data.get("cycle")
+        self.department = data.get("department")
+        self.post = data.get("post")
+        self.bio = data.get("bio", "")
+        self.interests = data.get("interests", [])
+        self.goals = data.get("goals", [])
+        self.avatar_config = data.get("avatar_config")
+
+    @property
+    def is_online(self) -> bool:
+        from security import is_user_online
+        return is_user_online(self.id)
+
+
