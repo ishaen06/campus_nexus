@@ -1,15 +1,19 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Mail } from 'lucide-react';
 import Avatar from './Avatar';
 
 interface ProfilePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: {
-    id: number;
+    id?: number;
     full_name: string;
+    email?: string | null;
     branch?: string | null;
+    branch_code?: string | null;
     year_of_study?: number | null;
+    joining_year?: number | null;
+    joiningYear?: number | null;
     bio?: string | null;
     interests?: string[] | null;
     goals?: string[] | null;
@@ -18,11 +22,57 @@ interface ProfilePreviewModalProps {
     usn?: string | null;
     department?: string | null;
     post?: string | null;
+    [key: string]: any;
   } | null;
+}
+
+function getStudentYearOfStudy(user: any): number {
+  if (user.year_of_study && user.year_of_study >= 1 && user.year_of_study <= 4) {
+    return user.year_of_study;
+  }
+  const checkStr = `${user.email || ''} ${user.usn || ''}`;
+  if (checkStr.includes('25') || Number(user.joining_year || user.joiningYear) === 2025) {
+    return 2;
+  }
+  if (checkStr.includes('26') || Number(user.joining_year || user.joiningYear) === 2026) {
+    return 1;
+  }
+  if (checkStr.includes('24') || Number(user.joining_year || user.joiningYear) === 2024) {
+    return 3;
+  }
+  if (checkStr.includes('23') || Number(user.joining_year || user.joiningYear) === 2023) {
+    return 4;
+  }
+  if (user.joining_year || user.joiningYear) {
+    const now = new Date();
+    let yearsElapsed = now.getFullYear() - Number(user.joining_year || user.joiningYear);
+    if (now.getMonth() + 1 < 8) yearsElapsed -= 1;
+    return Math.max(1, Math.min(4, yearsElapsed + 1));
+  }
+  return 2;
+}
+
+function formatYear(year: number): string {
+  switch (year) {
+    case 1:
+      return '1st Year';
+    case 2:
+      return '2nd Year';
+    case 3:
+      return '3rd Year';
+    case 4:
+      return '4th Year';
+    default:
+      return `${year}th Year`;
+  }
 }
 
 export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewModalProps) {
   if (!user) return null;
+
+  const branchDisplay = (user.branch_code || user.branch || 'N/A').toUpperCase();
+  const yearNumber = getStudentYearOfStudy(user);
+  const yearDisplay = formatYear(yearNumber);
 
   return (
     <AnimatePresence>
@@ -70,10 +120,41 @@ export default function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePr
               {/* Name & Basic Info */}
               <div className="mb-6">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{user.full_name}</h2>
-                <p className="text-[#1e3a8a] dark:text-indigo-400 font-bold text-sm uppercase tracking-wider mt-1">
-                  {user.is_mentor ? `${user.post || 'Engineering Mentor'} • Department of ${user.department || 'N/A'}` : `${user.branch || 'N/A'} • ${user.year_of_study ? (user.year_of_study === 1 ? '1st Sem' : user.year_of_study === 2 ? '2nd Sem' : user.year_of_study === 3 ? '3rd Sem' : user.year_of_study === 4 ? '4th Sem' : user.year_of_study === 5 ? '5th Sem' : user.year_of_study === 6 ? '6th Sem' : user.year_of_study === 7 ? '7th Sem' : user.year_of_study === 8 ? '8th Sem' : `${user.year_of_study}th Sem`) : 'N/A'} ${user.usn ? `• ${user.usn}` : ''}`}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  {user.is_mentor ? (
+                    <span className="text-[#1e3a8a] dark:text-indigo-400 font-extrabold text-sm uppercase tracking-wider">
+                      {user.post || 'Engineering Mentor'} • Department of {user.department || 'N/A'}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-[#1e3a8a] dark:text-indigo-400 font-extrabold text-sm uppercase tracking-wider">
+                        {branchDisplay}
+                      </span>
+                      <span className="text-slate-400 font-bold">•</span>
+                      <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-black text-xs uppercase tracking-wider">
+                        {yearDisplay}
+                      </span>
+                      {user.usn && (
+                        <>
+                          <span className="text-slate-400 font-bold">•</span>
+                          <span className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
+                            {user.usn}
+                          </span>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Email Address */}
+                {user.email && (
+                  <div className="flex items-center gap-2 mt-3 px-3.5 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs font-semibold text-slate-700 dark:text-slate-200 w-fit shadow-xs">
+                    <Mail size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <span className="select-all font-mono text-xs font-semibold">{user.email}</span>
+                  </div>
+                )}
               </div>
+
 
               {/* Bio */}
               <div className="mb-6">

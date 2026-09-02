@@ -13,8 +13,10 @@ class RatingSubmission(BaseModel):
     tags: Optional[List[str]] = Field(default_factory=list)
     category: Optional[str] = "general"
 
+@router.post("")
 @router.post("/")
 def submit_rating(
+
     data: RatingSubmission,
     current_user = Depends(get_current_user),
     db = Depends(get_mongo_db)
