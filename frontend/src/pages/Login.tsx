@@ -132,8 +132,10 @@ export default function Login() {
         credential: response.credential
       });
       localStorage.setItem('token', res.data.access_token);
+      sessionStorage.removeItem('rating_modal_dismissed_session');
       
       const meRes = await api.get('/users/me');
+
       const isUserAdmin = meRes.data.is_admin || (meRes.data.email || '').toLowerCase().trim() === 'ishaen.vihaan@gmail.com';
       
       if (isUserAdmin) {

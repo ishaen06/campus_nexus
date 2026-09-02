@@ -1,12 +1,14 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap, Star } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
 import api from '../api';
 import Logo from './Logo';
 import Avatar from './Avatar';
+import RatingModal from './RatingModal';
 import { motion } from 'framer-motion';
+
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -20,8 +22,10 @@ export default function Layout() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [dropdownTimeout, setDropdownTimeout] = useState<any>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   
   // Admin lock states
+
   const [isLocked, setIsLocked] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [lockError, setLockError] = useState('');
@@ -114,6 +118,14 @@ export default function Layout() {
           
         if (needsSetup && location.pathname !== '/profile-setup') {
           navigate('/profile-setup');
+        } else {
+          // Check if rating modal should appear on opening the app or logging in
+          const dismissedSession = sessionStorage.getItem('rating_modal_dismissed_session');
+          if (!dismissedSession) {
+            setTimeout(() => {
+              setShowRatingModal(true);
+            }, 1200);
+          }
         }
       })
       .catch(() => {
@@ -124,6 +136,13 @@ export default function Layout() {
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount only — prevents glitch/flicker on every navigation
+
+  useEffect(() => {
+    const handleOpenRating = () => setShowRatingModal(true);
+    window.addEventListener('open-rating-modal', handleOpenRating);
+    return () => window.removeEventListener('open-rating-modal', handleOpenRating);
+  }, []);
+
 
 
   const getStudentSub = (user: any) => {
@@ -456,6 +475,16 @@ export default function Layout() {
                   <button
                     onClick={() => {
                       setShowProfileDropdown(false);
+                      setShowRatingModal(true);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Star size={14} className="fill-amber-400 text-amber-400" />
+                    Rate Experience
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
                       handleLogout();
                     }}
                     className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
@@ -463,6 +492,7 @@ export default function Layout() {
                     <LogOut size={14} />
                     Log out
                   </button>
+
                 </div>
               )}
 
@@ -787,6 +817,15 @@ export default function Layout() {
           </motion.div>
         </div>
       )}
+
+      {/* Global Rating Box on App Open / Login */}
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }
+
+
