@@ -198,31 +198,89 @@ def get_messages(connection_id: int, current_user = Depends(get_current_user), d
         m.pop("_id", None)
     return messages
 
+
+# ─── Cluster definitions ───────────────────────────────────────────────────
+BRANCH_CLUSTERS = {
+    "EC": "EC", "EE": "EC", "ET": "EC",
+    "CS": "CS", "CI": "CS", "CD": "CS", "CY": "CS",
+    "ME": "ME", "AS": "ME", "IM": "ME",
+    "CV": "CV", "CH": "CV", "BT": "CV",
+}
+
+# Each entry is a dict of {branch_code: required_count}
+VALID_TEAM_COMBINATIONS: dict[str, list[dict]] = {
+    "EC": [
+        {"EC": 3, "EE": 1, "ET": 1},  # 5-member
+        {"EC": 3, "EE": 2},            # 5-member
+        {"EC": 3, "ET": 2},            # 5-member
+        {"EC": 4, "EE": 1},            # 5-member
+        {"EC": 4, "ET": 1},            # 5-member
+        {"EC": 3, "EE": 1},            # 4-member
+        {"EC": 3, "ET": 1},            # 4-member
+    ],
+    "CS": [
+        {"CS": 3, "CI": 2},            # 5-member
+        {"CS": 2, "CD": 1, "CY": 1},   # 4-member
+        {"CD": 2, "CS": 1, "CY": 2},   # 5-member
+        {"CD": 1, "CY": 1, "CI": 2},   # 4-member
+    ],
+    "ME": [
+        {"AS": 1, "IM": 1, "ME": 3},   # 5-member
+        {"AS": 2, "IM": 1, "ME": 2},   # 5-member
+        {"AS": 1, "IM": 2, "ME": 2},   # 5-member
+    ],
+    "CV": [
+        {"CV": 1, "CH": 2, "BT": 2},   # 5-member
+        {"CV": 2, "CH": 1, "BT": 2},   # 5-member
+        {"CV": 1, "CH": 1, "BT": 2},   # 4-member
+    ],
+}
+
 def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     student_users = [u for u in member_users if not u.get("is_mentor")]
     size = len(student_users)
     if size < 3 or size > 5:
         return False, f"Team must contain 3 to 5 members (currently has {size})"
-    
-    p_count = 0
-    c_count = 0
+
+    # Build branch-code count map from team members
+    branch_counts: dict[str, int] = {}
     for u in student_users:
-        cycle = (u.get("cycle") or "").strip().upper()
-        if cycle == "P":
-            p_count += 1
-        elif cycle == "C":
-            c_count += 1
-        else:
-            return False, f"Member '{u.get('full_name')}' has not selected a P/C cycle"
-            
-    if size == 4:
-        if p_count != 2 or c_count != 2:
-            return False, f"Cycle balance criteria failed: A team of 4 must have exactly 2 P-Cycle and 2 C-Cycle members (Found {p_count} P-Cycle, {c_count} C-Cycle)"
-    elif size == 5:
-        if not ((p_count == 3 and c_count == 2) or (p_count == 2 and c_count == 3)):
-            return False, f"Cycle balance criteria failed: A team of 5 must have either (3 P-Cycle + 2 C-Cycle) or (2 P-Cycle + 3 C-Cycle) members (Found {p_count} P-Cycle, {c_count} C-Cycle)"
-        
+        code = (u.get("branch_code") or "").strip().upper()
+        if not code:
+            return False, f"Member '{u.get('full_name')}' has no branch code set."
+        branch_counts[code] = branch_counts.get(code, 0) + 1
+
+    # Determine cluster (all members must belong to the same cluster)
+    clusters_in_team = {BRANCH_CLUSTERS.get(code) for code in branch_counts}
+    clusters_in_team.discard(None)
+
+    if len(clusters_in_team) == 0:
+        return False, "Unable to determine cluster — ensure all members have valid branch codes."
+    if len(clusters_in_team) > 1:
+        cluster_labels = " / ".join(sorted(clusters_in_team))
+        return False, (
+            f"Team members belong to multiple clusters ({cluster_labels}). "
+            "All members must be from the same cluster (EC / CS / ME / CV)."
+        )
+
+    cluster = next(iter(clusters_in_team))
+    valid_combos = VALID_TEAM_COMBINATIONS.get(cluster, [])
+
+    if branch_counts == {} or not any(branch_counts == combo for combo in valid_combos):
+        # Build human-readable description of valid combos for this cluster
+        combo_strs = []
+        for combo in valid_combos:
+            parts = " + ".join(f"{cnt} {br}" for br, cnt in combo.items())
+            combo_strs.append(parts)
+        combos_display = "\n  • " + "\n  • ".join(combo_strs)
+        return False, (
+            f"Invalid branch combination for the {cluster} cluster. "
+            f"Current team: {', '.join(f'{cnt} {br}' for br, cnt in branch_counts.items())}. "
+            f"Valid combinations:{combos_display}"
+        )
+
     return True, ""
+
 
 def build_group_response(group: dict, db, current_user = None) -> dict:
     member_records = list(db.group_members.find({"group_id": group["id"]}))
@@ -670,11 +728,11 @@ def regenerate_approved_teams_csv(db):
     
     headers = [
         "Team ID", "Team Name", "Project Topic", "Mentor Name", "Mentor Email", "Approved At",
-        "Member 1 Name", "Member 1 Email", "Member 1 USN", "Member 1 Cycle",
-        "Member 2 Name", "Member 2 Email", "Member 2 USN", "Member 2 Cycle",
-        "Member 3 Name", "Member 3 Email", "Member 3 USN", "Member 3 Cycle",
-        "Member 4 Name", "Member 4 Email", "Member 4 USN", "Member 4 Cycle",
-        "Member 5 Name", "Member 5 Email", "Member 5 USN", "Member 5 Cycle"
+        "Member 1 Name", "Member 1 Email", "Member 1 USN", "Member 1 Branch",
+        "Member 2 Name", "Member 2 Email", "Member 2 USN", "Member 2 Branch",
+        "Member 3 Name", "Member 3 Email", "Member 3 USN", "Member 3 Branch",
+        "Member 4 Name", "Member 4 Email", "Member 4 USN", "Member 4 Branch",
+        "Member 5 Name", "Member 5 Email", "Member 5 USN", "Member 5 Branch"
     ]
     
     approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
@@ -705,10 +763,11 @@ def regenerate_approved_teams_csv(db):
                     m.get("full_name") or "",
                     m.get("email") or "",
                     m.get("usn") or "N/A",
-                    m.get("cycle") or "N/A"
+                    m.get("branch_code") or "N/A"
                 ])
             else:
                 member_cols.extend(["", "", "", ""])
+
                 
         approved_at_str = group.get("approved_at") or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -948,18 +1007,11 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
     member_ids = [m["user_id"] for m in member_records]
     members = list(db.users.find({"id": {"$in": member_ids}})) if member_ids else []
     
-    # Validate criteria before submitting (filter out mentors)
+    # Validate criteria before submitting
     students = [m for m in members if not m.get("is_mentor")]
-    p_count = len([m for m in students if (m.get("cycle") or '').upper() == 'P'])
-    c_count = len([m for m in students if (m.get("cycle") or '').upper() == 'C'])
-    size = len(students)
-    
-    if size < 3 or size > 5:
-        raise HTTPException(status_code=400, detail=f"Cannot submit. Team must contain 3 to 5 members (currently has {size})")
-    elif size == 4 and (p_count != 2 or c_count != 2):
-        raise HTTPException(status_code=400, detail=f"Cannot submit. Cycle balance failed (Found {p_count} P, {c_count} C)")
-    elif size == 5 and not ((p_count == 3 and c_count == 2) or (p_count == 2 and c_count == 3)):
-        raise HTTPException(status_code=400, detail=f"Cannot submit. Cycle balance failed (Found {p_count} P, {c_count} C)")
+    ok, err = validate_team_criteria(students)
+    if not ok:
+        raise HTTPException(status_code=400, detail=f"Cannot submit. {err}")
         
     # Generate token
     token = str(uuid.uuid4())
@@ -969,7 +1021,8 @@ def submit_mentor_approval(group_id: int, background_tasks: BackgroundTasks, cur
     from utils import send_email
     subject = f"Mentor Approval Request for Team: {group['name']}"
     
-    members_list_str = "\n".join([f"- {m.get('full_name')} ({m.get('email')}, USN: {m.get('usn') or 'N/A'}, Cycle: {m.get('cycle') or 'N/A'})" for m in members])
+    members_list_str = "\n".join([f"- {m.get('full_name')} ({m.get('email')}, USN: {m.get('usn') or 'N/A'}, Branch: {m.get('branch_code') or 'N/A'})" for m in members])
+
     
     host = os.getenv("API_HOST", "http://localhost:8000")
     approve_url = f"{host}/api/chat/groups/{group_id}/mentor-approve?token={token}"

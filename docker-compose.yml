@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: omnibug_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: omnibug_db
+    volumes:
+      - mongo_data:/data/db
+
+  # 2. FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: omnibug_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/omnibug_db
+      - SECRET_KEY=omnibug_production_secret_jwt_key_2026_change_me
+      - FRONTEND_URL=http://localhost:5173
+    depends_on:
+      - mongodb
+
+  # 3. React Vite + Nginx Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: omnibug_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
