@@ -458,13 +458,15 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     fetchMentorsData(yr);
     fetchAllUsers(yr);
     fetchReports(yr);
+    fetchAcademicSettings(yr);
   };
 
-
-  const fetchAcademicSettings = async () => {
+  const fetchAcademicSettings = async (yearOverride?: number | null) => {
     setAcademicLoading(true);
     try {
-      const res = await api.get('/admin/academic-settings');
+      const yearToFetch = yearOverride !== undefined ? yearOverride : globalYear;
+      const url = yearToFetch !== null ? `/admin/academic-settings?year=${yearToFetch}` : '/admin/academic-settings';
+      const res = await api.get(url);
       setAcademicSettings(res.data);
     } catch (err) {
       console.error("Failed to fetch academic settings", err);
@@ -472,6 +474,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       setAcademicLoading(false);
     }
   };
+
 
   const handleUpdateCycle = async (code: string, newCycle: 'C' | 'P') => {
     if (!academicSettings) return;
@@ -600,8 +603,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     fetchAnalytics(globalYear);
     fetchMentorsData(globalYear);
     fetchTeamsData(globalYear);
-    fetchAcademicSettings();
+    fetchAcademicSettings(globalYear);
     fetchAllUsers(globalYear);
+
 
     // Auto-refresh analytics every 30 seconds
     const interval = setInterval(() => {
@@ -857,7 +861,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   // Report Center trigger download
   const handleDownloadReport = async (dataset: string, format: string) => {
     try {
-      const response = await api.get(`/admin/reports/download?dataset=${dataset}&format=${format}`, {
+      const yearParam = globalYear !== null ? `&year=${globalYear}` : '';
+      const response = await api.get(`/admin/reports/download?dataset=${dataset}&format=${format}${yearParam}`, {
         responseType: 'blob'
       });
       
@@ -879,7 +884,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       link.href = url;
       
       const dateStr = new Date().toISOString().split('T')[0];
-      link.setAttribute('download', `${dataset}_report_${dateStr}.${extensionMap[format]}`);
+      const yearTag = globalYear !== null ? `_year${globalYear}` : '';
+      link.setAttribute('download', `${dataset}_report${yearTag}_${dateStr}.${extensionMap[format]}`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -894,7 +900,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     setPreviewFormat(format);
     setPreviewLoading(true);
     try {
-      const res = await api.get(`/admin/reports/preview?dataset=${dataset}`);
+      const yearParam = globalYear !== null ? `&year=${globalYear}` : '';
+      const res = await api.get(`/admin/reports/preview?dataset=${dataset}${yearParam}`);
       setPreviewData(res.data);
     } catch (err) {
       console.error("Failed to load report preview", err);
@@ -906,6 +913,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       setPreviewLoading(false);
     }
   };
+
 
   if (error) {
     return (
@@ -3024,6 +3032,25 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-8 text-left"
           >
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Academic Settings Cohort Scope: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong> active.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+
             {/* Header Control Panel */}
             <div className="glass-panel p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -3061,9 +3088,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     Active Departments ({Object.keys(academicSettings?.branch_mappings || {}).length})
                   </h3>
                   <span className="text-xs font-bold text-slate-400">
-                    Total Enrolled Students: {academicSettings?.total_students || 0}
+                    Total Enrolled Students{globalYear !== null ? ` (${globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'})` : ''}: {academicSettings?.total_students || 0}
                   </span>
                 </div>
+
 
                 {academicLoading ? (
                   <div className="py-12 text-center text-slate-400 animate-pulse font-medium">
@@ -3076,9 +3104,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         <tr className="border-b border-slate-200/50 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400 tracking-wider">
                           <th className="pb-3">Code</th>
                           <th className="pb-3">Department Name</th>
-                          <th className="pb-3 text-center">Students</th>
+                          <th className="pb-3 text-center">{globalYear !== null ? `Students (Yr ${globalYear})` : 'Students'}</th>
                           <th className="pb-3 text-center">Subject Cycle</th>
                           <th className="pb-3 text-right">Action</th>
+
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-850 font-semibold text-slate-700 dark:text-slate-300">
@@ -4158,6 +4187,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   }`}>
                     {previewFormat}
                   </span>
+                  {globalYear !== null && (
+                    <span className="px-2 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
+                      {globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
@@ -4185,10 +4219,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
                     }`}
                   >
-                    Confirm & Download
+                    Confirm & Download {globalYear !== null ? `(${globalYear === 1 ? '1st Yr' : globalYear === 2 ? '2nd Yr' : '3rd Yr'})` : ''}
                   </button>
                 </div>
               </div>
+
             </motion.div>
           </div>
         )}

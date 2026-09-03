@@ -1356,7 +1356,7 @@ def regenerate_approved_teams_csv(db):
         writer.writerow(headers)
         writer.writerows(rows)
 
-def regenerate_mentor_marks_csv(db):
+def regenerate_mentor_marks_csv(db, year=None):
     import csv
     import os
     
@@ -1378,8 +1378,11 @@ def regenerate_mentor_marks_csv(db):
         "is_admin": {"$ne": True},
         "email": {"$ne": "ishaen.vihaan@gmail.com"}
     }))
+    if year is not None:
+        students = [s for s in students if _extract_user_academic_info(s)[2] == year]
     
     rows = []
+
     for s in students:
         student_id = s.get("id")
         usn = s.get("usn") or "N/A"
