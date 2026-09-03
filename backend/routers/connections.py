@@ -162,7 +162,20 @@ def accept_connection(conn_id: int, current_user = Depends(get_current_user), db
     updated_conn.pop("_id", None)
     return updated_conn
 
+@router.put("/{conn_id}/reject")
+def reject_connection(conn_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    conn = db.connections.find_one({"id": conn_id})
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+        
+    if conn["receiver_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to decline this request")
+        
+    db.connections.delete_one({"id": conn_id})
+    return {"message": "Request declined"}
+
 @router.get("/")
+
 def list_connections(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     # Return both pending requests received and accepted matches
     connections = list(db.connections.find({
