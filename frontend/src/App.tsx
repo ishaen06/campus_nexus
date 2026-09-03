@@ -14,7 +14,9 @@ import Chat from './pages/Chat';
 import GroupChat from './pages/GroupChat';
 import AdminDashboard from './pages/AdminDashboard';
 import Notifications from './pages/Notifications';
+import JoinTeam from './pages/JoinTeam';
 import Layout from './components/Layout';
+
 
 function App() {
   useEffect(() => {
@@ -39,7 +41,9 @@ function App() {
           <Route path="/discovery" element={<Discovery />} />
           <Route path="/connections" element={<Connections />} />
           <Route path="/my-team" element={<MyTeam />} />
+          <Route path="/join-team/:inviteCode" element={<JoinTeam />} />
           <Route path="/project-dashboard" element={<ProjectDashboard />} />
+
           <Route path="/mentor-dashboard" element={<MentorDashboard />} />
           <Route path="/my-teams" element={<MyTeams />} />
           <Route path="/my-teams/:teamId" element={<TeamDetails />} />

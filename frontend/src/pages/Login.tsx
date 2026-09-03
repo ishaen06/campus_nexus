@@ -169,8 +169,15 @@ export default function Login() {
         if (!meRes.data.usn) {
           navigate('/profile-setup');
         } else {
-          navigate('/discovery');
+          const redirectUrl = sessionStorage.getItem('post_login_redirect');
+          if (redirectUrl) {
+            sessionStorage.removeItem('post_login_redirect');
+            navigate(redirectUrl);
+          } else {
+            navigate('/discovery');
+          }
         }
+
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Google Authentication failed');

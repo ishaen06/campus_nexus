@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle } from 'lucide-react';
+import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle, Link2, Copy, Check, RefreshCw, MessageCircle } from 'lucide-react';
+
 
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
@@ -197,7 +198,62 @@ export default function MyTeam() {
   const [previewUser, setPreviewUser] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  // Team invite modal states
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState<{ invite_code: string; invite_enabled: boolean; group_id: number; team_name: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+
   const navigate = useNavigate();
+
+  const handleOpenInviteModal = async (team: any) => {
+    try {
+      const res = await api.get(`/chat/groups/${team.id}/invite`);
+      setInviteData({
+        invite_code: res.data.invite_code,
+        invite_enabled: res.data.invite_enabled,
+        group_id: team.id,
+        team_name: team.name
+      });
+      setShowInviteModal(true);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to load team invite link.");
+    }
+  };
+
+  const handleCopyInviteLink = () => {
+    if (!inviteData?.invite_code) return;
+    const url = `${window.location.origin}/join-team/${inviteData.invite_code}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRegenerateInvite = async () => {
+    if (!inviteData?.group_id) return;
+    if (!confirm("Are you sure you want to regenerate the invite link? Any previously shared links will stop working immediately.")) return;
+    setRegenerating(true);
+    try {
+      const res = await api.post(`/chat/groups/${inviteData.group_id}/invite/regenerate`);
+      setInviteData(prev => prev ? { ...prev, invite_code: res.data.invite_code, invite_enabled: res.data.invite_enabled } : null);
+      alert("New invite link generated! Old links have been revoked.");
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to regenerate invite link.");
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const handleToggleInvite = async (enabled: boolean) => {
+    if (!inviteData?.group_id) return;
+    try {
+      await api.post(`/chat/groups/${inviteData.group_id}/invite/toggle?enabled=${enabled}`);
+      setInviteData(prev => prev ? { ...prev, invite_enabled: enabled } : null);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to update invite setting.");
+    }
+  };
+
 
   const fetchData = async () => {
     try {
@@ -526,6 +582,16 @@ export default function MyTeam() {
                           <Users size={15} />
                           Open Team Chat
                         </button>
+
+                        <button
+                          onClick={() => handleOpenInviteModal(team)}
+                          className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold py-3 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider border border-slate-200 dark:border-slate-700/60 shrink-0"
+                          title="Share invite link to join this team"
+                        >
+                          <Link2 size={15} className="text-indigo-600 dark:text-indigo-400" />
+                          Invite via Link
+                        </button>
+
 
                         {isAdmin ? (
                           <button
@@ -873,12 +939,113 @@ export default function MyTeam() {
         )}
       </AnimatePresence>
 
+      {/* Team Invite Modal */}
+      <AnimatePresence>
+        {showInviteModal && inviteData && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowInviteModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-md glass-panel p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl relative z-10 bg-white dark:bg-slate-900"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Team Invitation</span>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white capitalize">{inviteData.team_name}</h3>
+                </div>
+                <button 
+                  onClick={() => setShowInviteModal(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 font-medium leading-relaxed">
+                Share this link with your classmates. Anyone with an RVCE login who matches the academic criteria can join directly.
+              </p>
+
+              {/* Link Display & Copy Box */}
+              <div className="space-y-2 mb-5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Invite Link</label>
+                <div className="flex items-center gap-2 p-2 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-750">
+                  <span className="text-xs font-mono text-slate-600 dark:text-slate-300 truncate flex-1 pl-2 select-all">
+                    {`${window.location.origin}/join-team/${inviteData.invite_code}`}
+                  </span>
+                  <button
+                    onClick={handleCopyInviteLink}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                      copied 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    }`}
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* WhatsApp Share Button */}
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Join our team "${inviteData.team_name}" on Campus Nexus! Click this link to preview and join: ${window.location.origin}/join-team/${inviteData.invite_code}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 mb-4 cursor-pointer shadow-sm"
+              >
+                <MessageCircle size={16} />
+                Share on WhatsApp
+              </a>
+
+              {/* Leader Controls */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Allow joins via link</p>
+                    <p className="text-[10px] text-slate-400">Disable to temporarily pause link joins</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={inviteData.invite_enabled}
+                      onChange={e => handleToggleInvite(e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2.5px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {groups[0]?.created_by === currentUser?.id && (
+                  <button
+                    onClick={handleRegenerateInvite}
+                    disabled={regenerating}
+                    className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw size={13} className={regenerating ? "animate-spin" : ""} />
+                    <span>Revoke & Regenerate New Link</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Profile Detail Preview Modal */}
       <ProfilePreviewModal 
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         user={previewUser}
       />
+
     </div>
   );
 }

@@ -3,11 +3,13 @@ from typing import List, Dict
 from datetime import datetime
 
 from database_mongo import get_mongo_db, get_next_sequence_value, MongoUser
-from schemas import MessageResponse, GroupChatCreate, GroupChatResponse, GroupMessageResponse, GroupChatUpdate, GroupLeaveRequest, GroupMarksUpdate, MentorActionRequest
+from schemas import MessageResponse, GroupChatCreate, GroupChatResponse, GroupMessageResponse, GroupChatUpdate, GroupLeaveRequest, GroupMarksUpdate, MentorActionRequest, TeamInviteInfoResponse, JoinTeamResponse
 from jose import JWTError, jwt
 from security import SECRET_KEY, ALGORITHM
 from ai_service import analyze_message_content
 import json
+import uuid
+
 
 router = APIRouter()
 
@@ -502,6 +504,11 @@ def build_group_response(group: dict, db, current_user = None) -> dict:
         
     print(f"[Backend build_group_response] student_evaluations_dict: {student_evaluations_dict}")
 
+    invite_code = group.get("invite_code")
+    if not invite_code:
+        invite_code = uuid.uuid4().hex[:10]
+        db.group_chats.update_one({"id": group["id"]}, {"$set": {"invite_code": invite_code, "invite_enabled": True}})
+
     return {
         "id": group["id"],
         "name": group["name"],
@@ -534,7 +541,9 @@ def build_group_response(group: dict, db, current_user = None) -> dict:
         "phase1_observations": group.get("phase1_observations") or "",
         "phase2_observations": group.get("phase2_observations") or "",
         "phase3_observations": group.get("phase3_observations") or "",
-        "student_evaluations": student_evaluations_dict
+        "student_evaluations": student_evaluations_dict,
+        "invite_code": invite_code,
+        "invite_enabled": bool(group.get("invite_enabled", True))
     }
 
 def populate_group_response(group: dict, db, current_user = None) -> dict:
@@ -582,8 +591,11 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
         "phase2_marks": 0,
         "phase3_marks": 0,
         "project_files": [],
-        "allow_member_leave": False
+        "allow_member_leave": False,
+        "invite_code": uuid.uuid4().hex[:10],
+        "invite_enabled": True
     }
+
     db.group_chats.insert_one(new_group)
     
     # 2. Add members
@@ -774,7 +786,241 @@ def get_group_messages(group_id: int, current_user = Depends(get_current_user), 
         })
     return results
 
+@router.get("/groups/{group_id}/invite")
+def get_group_invite(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    membership = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
+    if not membership and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only team members can view the invite link.")
+        
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Team not found.")
+        
+    code = group.get("invite_code")
+    if not code:
+        code = uuid.uuid4().hex[:10]
+        db.group_chats.update_one({"id": group_id}, {"$set": {"invite_code": code, "invite_enabled": True}})
+        
+    return {
+        "group_id": group_id,
+        "invite_code": code,
+        "invite_enabled": bool(group.get("invite_enabled", True))
+    }
+
+@router.post("/groups/{group_id}/invite/regenerate")
+def regenerate_group_invite(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Team not found.")
+        
+    if group["created_by"] != current_user["id"] and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only the team leader or an admin can regenerate the invite code.")
+        
+    new_code = uuid.uuid4().hex[:10]
+    db.group_chats.update_one({"id": group_id}, {"$set": {"invite_code": new_code, "invite_enabled": True}})
+    return {
+        "group_id": group_id,
+        "invite_code": new_code,
+        "invite_enabled": True,
+        "message": "Invite link regenerated successfully. Previous links have been revoked."
+    }
+
+@router.post("/groups/{group_id}/invite/toggle")
+def toggle_group_invite(group_id: int, enabled: bool = Query(...), current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Team not found.")
+        
+    if group["created_by"] != current_user["id"] and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only the team leader or an admin can toggle invite link settings.")
+        
+    db.group_chats.update_one({"id": group_id}, {"$set": {"invite_enabled": enabled}})
+    return {
+        "group_id": group_id,
+        "invite_enabled": enabled,
+        "message": f"Invite link {'enabled' if enabled else 'disabled'} successfully."
+    }
+
+@router.get("/groups/invite/{invite_code}", response_model=TeamInviteInfoResponse)
+def get_invite_preview(invite_code: str, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    clean_code = invite_code.strip()
+    group = db.group_chats.find_one({"invite_code": clean_code})
+    if not group:
+        raise HTTPException(status_code=404, detail="Invalid or expired invite link.")
+        
+    if not group.get("invite_enabled", True):
+        raise HTTPException(status_code=400, detail="Invites via link are currently disabled by the team leader.")
+
+    # Get members
+    member_records = list(db.group_members.find({"group_id": group["id"]}))
+    member_ids = [m["user_id"] for m in member_records]
+    member_users = list(db.users.find({"id": {"$in": member_ids}}))
+    for u in member_users:
+        u.pop("_id", None)
+        b_code, j_yr, y_study = _extract_user_academic_info(u)
+        u["branch_code"] = b_code
+        u["joining_year"] = j_yr
+        u["year_of_study"] = y_study
+        u["cluster"] = BRANCH_CLUSTERS.get(b_code)
+
+    member_count = len([m for m in member_users if not m.get("is_mentor")])
+    is_full = member_count >= 5
+    is_locked = (group.get("mentor_status") or "").upper() == "APPROVED"
+
+    creator = db.users.find_one({"id": group["created_by"]})
+    created_by_name = creator.get("full_name") if creator else "Team Leader"
+
+    already_member = current_user["id"] in member_ids
+    in_other_team = False
+    other_team_name = None
+
+    can_join = True
+    reason = None
+
+    if already_member:
+        can_join = False
+        reason = "You are already a member of this team."
+    else:
+        existing_membership = db.group_members.find_one({"user_id": current_user["id"]})
+        if existing_membership and existing_membership["group_id"] != group["id"]:
+            in_other_team = True
+            other_group = db.group_chats.find_one({"id": existing_membership["group_id"]})
+            other_team_name = other_group.get("name") if other_group else "Another Team"
+            can_join = False
+            reason = f"You are already in team '{other_team_name}'. You must leave that team first before joining another."
+        elif is_full:
+            can_join = False
+            reason = "This team has already reached its maximum capacity of 5 members."
+        elif is_locked:
+            can_join = False
+            reason = "This team has already been approved by a mentor and its roster is finalized."
+        else:
+            u_b_code, u_j_yr, u_y_study = _extract_user_academic_info(current_user)
+            student_members = [m for m in member_users if not m.get("is_mentor")]
+            if student_members:
+                team_years = {m.get("year_of_study") for m in student_members if m.get("year_of_study")}
+                if team_years and u_y_study not in team_years:
+                    team_year_val = next(iter(team_years))
+                    can_join = False
+                    reason = f"Academic Year Mismatch: Team members are in Year {team_year_val}, while your profile is Year {u_y_study}."
+
+    return {
+        "group_id": group["id"],
+        "name": group["name"],
+        "created_by": group["created_by"],
+        "created_by_name": created_by_name,
+        "project_topic": group.get("project_topic"),
+        "project_sub_topic": group.get("project_sub_topic"),
+        "project_theme": group.get("project_theme"),
+        "members": member_users,
+        "member_count": member_count,
+        "max_members": 5,
+        "is_full": is_full,
+        "is_locked": is_locked,
+        "can_join": can_join,
+        "reason": reason,
+        "already_member": already_member,
+        "in_other_team": in_other_team,
+        "other_team_name": other_team_name
+    }
+
+@router.post("/groups/invite/{invite_code}/join", response_model=JoinTeamResponse)
+def join_group_via_invite(invite_code: str, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    clean_code = invite_code.strip()
+    group = db.group_chats.find_one({"invite_code": clean_code})
+    if not group:
+        raise HTTPException(status_code=404, detail="Invalid or expired invite link.")
+        
+    if not group.get("invite_enabled", True):
+        raise HTTPException(status_code=400, detail="Invites via link are currently disabled by the team leader.")
+
+    # Check mentor approved
+    if (group.get("mentor_status") or "").upper() == "APPROVED":
+        raise HTTPException(status_code=400, detail="This team is already approved by a mentor and its roster is finalized.")
+
+    # Check already member
+    existing = db.group_members.find_one({"group_id": group["id"], "user_id": current_user["id"]})
+    if existing:
+        return {
+            "success": True,
+            "group_id": group["id"],
+            "message": "You are already a member of this team."
+        }
+
+    # Check already in another team
+    in_another = db.group_members.find_one({"user_id": current_user["id"]})
+    if in_another:
+        other_g = db.group_chats.find_one({"id": in_another["group_id"]})
+        other_name = other_g.get("name") if other_g else "Another Team"
+        raise HTTPException(
+            status_code=400,
+            detail=f"You are already in team '{other_name}'. Each student can join only 1 team at a time."
+        )
+
+    # Check capacity
+    current_members = list(db.group_members.find({"group_id": group["id"]}))
+    if len(current_members) >= 5:
+        raise HTTPException(status_code=400, detail="This team has already reached its maximum capacity of 5 members.")
+
+    # Check academic year compatibility
+    member_ids = [m["user_id"] for m in current_members]
+    member_users = list(db.users.find({"id": {"$in": member_ids}}))
+    u_b_code, u_j_yr, u_y_study = _extract_user_academic_info(current_user)
+    student_members = [m for m in member_users if not m.get("is_mentor")]
+    if student_members:
+        team_years = {m.get("year_of_study") for m in student_members if m.get("year_of_study")}
+        if team_years and u_y_study not in team_years:
+            team_year_val = next(iter(team_years))
+            raise HTTPException(
+                status_code=400,
+                detail=f"Academic year mismatch: Team members are in Year {team_year_val}, while you are in Year {u_y_study}."
+            )
+
+    # Add user to group_members
+    new_member_id = get_next_sequence_value("group_members")
+    db.group_members.insert_one({
+        "id": new_member_id,
+        "group_id": group["id"],
+        "user_id": current_user["id"]
+    })
+
+    # Recalculate team criteria status
+    all_member_ids = member_ids + [current_user["id"]]
+    all_member_users = list(db.users.find({"id": {"$in": all_member_ids}}))
+    for mu in all_member_users:
+        mu_b, mu_j, mu_y = _extract_user_academic_info(mu)
+        mu["branch_code"] = mu_b
+        mu["joining_year"] = mu_j
+        mu["year_of_study"] = mu_y
+        mu["cluster"] = BRANCH_CLUSTERS.get(mu_b)
+
+    crit_met, val_err = validate_team_criteria(all_member_users)
+    db.group_chats.update_one({"id": group["id"]}, {
+        "$set": {
+            "criteria_met": crit_met,
+            "validation_error": val_err if not crit_met else None
+        }
+    })
+
+    # Add system notification message to group chat
+    user_name = current_user.get("full_name") or "A student"
+    new_msg_id = get_next_sequence_value("group_messages")
+    db.group_messages.insert_one({
+        "id": new_msg_id,
+        "group_id": group["id"],
+        "sender_id": current_user["id"],
+        "content": f"🎉 {user_name} joined the team via invite link.",
+        "created_at": datetime.utcnow()
+    })
+
+    return {
+        "success": True,
+        "group_id": group["id"],
+        "message": f"Successfully joined {group['name']}!"
+    }
+
 @router.post("/groups/{group_id}/leave")
+
 async def leave_group_chat(group_id: int, leave_data: GroupLeaveRequest, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     group = db.group_chats.find_one({"id": group_id})
     if not group:

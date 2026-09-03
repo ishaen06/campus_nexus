@@ -185,9 +185,36 @@ class GroupChatResponse(BaseModel):
     phase2_observations: Optional[str] = None
     phase3_observations: Optional[str] = None
     student_evaluations: Optional[dict] = None
+    invite_code: Optional[str] = None
+    invite_enabled: Optional[bool] = True
     
     class Config:
         from_attributes = True
+
+class TeamInviteInfoResponse(BaseModel):
+    group_id: int
+    name: str
+    created_by: int
+    created_by_name: Optional[str] = None
+    project_topic: Optional[str] = None
+    project_sub_topic: Optional[str] = None
+    project_theme: Optional[str] = None
+    members: List[UserResponse] = []
+    member_count: int = 0
+    max_members: int = 5
+    is_full: bool = False
+    is_locked: bool = False
+    can_join: bool = True
+    reason: Optional[str] = None
+    already_member: bool = False
+    in_other_team: bool = False
+    other_team_name: Optional[str] = None
+
+class JoinTeamResponse(BaseModel):
+    success: bool
+    group_id: int
+    message: str
+
 
 class GroupMessageResponse(BaseModel):
     id: int
