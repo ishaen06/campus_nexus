@@ -115,108 +115,155 @@ def download_student_marks(admin = Depends(get_admin_user), db = Depends(get_mon
     return FileResponse(path=file_path, filename="student_phase_marks.csv", media_type="text/csv")
 
 @router.get("/analytics")
-def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
-    # 1. Basic Counts
-    total_students = db.users.count_documents({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}})
+def get_admin_analytics(
+    year: Optional[int] = Query(None, description="Year of study: 1, 2, 3 or None for all"),
+    admin = Depends(get_admin_user),
+    db = Depends(get_mongo_db)
+):
+    # 1. Fetch all student accounts and calculate academic info
+    all_students = list(db.users.find({
+        "is_mentor": {"$ne": True},
+        "is_admin": {"$ne": True},
+        "email": {"$ne": "ishaen.vihaan@gmail.com"}
+    }))
+    
+    student_map = {}
+    year_student_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+    for s in all_students:
+        s.pop("_id", None)
+        _, _, y_study = _extract_user_academic_info(s)
+        s["year_of_study"] = y_study
+        student_map[s["id"]] = s
+        if y_study in year_student_counts:
+            year_student_counts[y_study] += 1
+
+    # Filter students by year if requested
+    if year is not None and year in [1, 2, 3, 4]:
+        filtered_students = [s for s in all_students if s.get("year_of_study") == year]
+    else:
+        filtered_students = all_students
+    filtered_student_ids = set(s["id"] for s in filtered_students)
+
+    # 2. Fetch all groups and members to resolve team year
+    all_groups = list(db.group_chats.find())
+    all_members = list(db.group_members.find())
+
+    group_members_map = {}
+    for m in all_members:
+        gid = m.get("group_id")
+        uid = m.get("user_id")
+        if gid not in group_members_map:
+            group_members_map[gid] = []
+        group_members_map[gid].append(uid)
+
+    group_year_map = {}
+    year_team_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+    for g in all_groups:
+        gid = g["id"]
+        m_uids = group_members_map.get(gid, [])
+        years = []
+        for uid in m_uids:
+            if uid in student_map:
+                years.append(student_map[uid]["year_of_study"])
+        if not years and g.get("created_by") in student_map:
+            years.append(student_map[g["created_by"]]["year_of_study"])
+
+        # Default to 2 if unknown
+        team_year = years[0] if years else 2
+        group_year_map[gid] = team_year
+        if team_year in year_team_counts:
+            year_team_counts[team_year] += 1
+
+    # Filter groups by year if requested
+    if year is not None and year in [1, 2, 3, 4]:
+        filtered_groups = [g for g in all_groups if group_year_map.get(g["id"]) == year]
+    else:
+        filtered_groups = all_groups
+    filtered_group_ids = set(g["id"] for g in filtered_groups)
+
+    # 3. Calculate metrics for the selected year scope
+    total_students = len(filtered_students)
     total_mentors = db.users.count_documents({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}})
-    total_teams = db.group_chats.count_documents({})
-    approved_teams = db.group_chats.count_documents({"mentor_status": "APPROVED"})
-    pending_teams = db.group_chats.count_documents({"mentor_status": "PENDING"})
+    total_teams = len(filtered_groups)
+    approved_teams = len([g for g in filtered_groups if g.get("mentor_status") == "APPROVED"])
+    pending_teams = len([g for g in filtered_groups if g.get("mentor_status") == "PENDING"])
     total_events = db.events.count_documents({})
     total_notifications = db.notifications.count_documents({})
 
-    # Calculated New Counts
-    total_projects = db.group_chats.count_documents({"project_topic": {"$ne": None, "$regex": "\\S"}})
-    active_projects = db.group_chats.count_documents({"mentor_status": "APPROVED", "project_topic": {"$ne": None, "$regex": "\\S"}})
+    total_projects = len([g for g in filtered_groups if g.get("project_topic") and str(g.get("project_topic")).strip()])
+    active_projects = len([g for g in filtered_groups if g.get("mentor_status") == "APPROVED" and g.get("project_topic") and str(g.get("project_topic")).strip()])
     pending_approvals = pending_teams
-    
-    # Students without teams
-    in_team_ids = db.group_members.distinct("user_id")
-    students_without_teams = db.users.count_documents({
-        "is_mentor": {"$ne": True},
-        "is_admin": {"$ne": True},
-        "email": {"$ne": "ishaen.vihaan@gmail.com"},
-        "id": {"$nin": in_team_ids}
-    })
-    
-    # Teams without mentors
-    teams_without_mentors = db.group_chats.count_documents({"mentor_email": {"$in": [None, ""]}})
-    
-    # 2. Students by Branch (normalized)
+
+    # Students with / without teams in this scope
+    students_in_teams_ids = set()
+    for gid in filtered_group_ids:
+        for uid in group_members_map.get(gid, []):
+            if uid in filtered_student_ids:
+                students_in_teams_ids.add(uid)
+    students_in_teams = len(students_in_teams_ids)
+    students_without_teams = max(0, total_students - students_in_teams)
+
+    teams_without_mentors = len([g for g in filtered_groups if not g.get("mentor_email")])
+    evaluations_completed = len([g for g in filtered_groups if g.get("mentor_status") == "COMPLETED"])
+
+    # Branch distribution for this scope
     branch_counts = {}
-    for s in db.users.find({"is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}):
-        branch = (s.get("branch") or "N/A").strip().upper()
+    for s in filtered_students:
+        branch = (s.get("branch") or s.get("branch_code") or "N/A").strip().upper()
         branch_counts[branch] = branch_counts.get(branch, 0) + 1
-        
-    # 3. Teams by Department (normalized)
+
+    # Team department distribution
     dept_counts = {}
-    for group in db.group_chats.find():
+    for group in filtered_groups:
         dept = "N/A"
         mentor_email = group.get("mentor_email")
         if mentor_email:
             mentor = db.users.find_one({"email": {"$regex": f"^{mentor_email}$", "$options": "i"}})
             if mentor and mentor.get("department"):
                 dept = mentor.get("department").strip().upper()
-                
         if dept == "N/A":
-            member_rec = db.group_members.find_one({"group_id": group["id"]})
-            if member_rec:
-                member = db.users.find_one({"id": member_rec["user_id"]})
-                if member and member.get("branch"):
-                    dept = member.get("branch").strip().upper()
-                    
+            m_uids = group_members_map.get(group["id"], [])
+            if m_uids and m_uids[0] in student_map:
+                dept = (student_map[m_uids[0]].get("branch") or student_map[m_uids[0]].get("branch_code") or "N/A").strip().upper()
         dept_counts[dept] = dept_counts.get(dept, 0) + 1
-        
-    # 4. Mentor Workload
+
+    # Mentor workload for this scope
     mentor_workload = {}
     for mentor in db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}):
         email = mentor.get("email")
         name = mentor.get("full_name") or email
-        count = db.group_chats.count_documents({"mentor_email": email, "mentor_status": "APPROVED"})
+        count = len([g for g in filtered_groups if (g.get("mentor_email") or "").lower() == (email or "").lower() and g.get("mentor_status") == "APPROVED"])
         if count > 0:
             mentor_workload[name] = count
-            
-    # 5. Project Approval Status
+
+    # Approval status
     approval_status = {
         "APPROVED": approved_teams,
         "PENDING": pending_teams,
-        "REJECTED": db.group_chats.count_documents({"mentor_status": "REJECTED"}),
-        "NOT SUBMITTED": db.group_chats.count_documents({"mentor_status": {"$in": ["NOT_SUBMITTED", None]}})
+        "REJECTED": len([g for g in filtered_groups if g.get("mentor_status") == "REJECTED"]),
+        "NOT SUBMITTED": len([g for g in filtered_groups if g.get("mentor_status") in ["NOT_SUBMITTED", None]])
     }
-    
-    # 6. Event Registration Count
+
+    # Event registration count
     event_registrations = {}
     for e in db.events.find():
         title = e.get("title") or "Unnamed Event"
         event_registrations[title] = len(e.get("rsvps") or [])
 
-    # --- New Chart Datasets ---
-    # A. Team Formation Progress
-    students_in_teams = db.users.count_documents({
-        "is_mentor": {"$ne": True},
-        "is_admin": {"$ne": True},
-        "email": {"$ne": "ishaen.vihaan@gmail.com"},
-        "id": {"$in": in_team_ids}
-    })
     team_formation_progress = {
         "in_teams": students_in_teams,
         "without_teams": students_without_teams
     }
 
-    # B. Project Status Distribution
-    completed_projects = db.group_chats.count_documents({"mentor_status": "APPROVED", "phase3_marks": {"$gt": 0}})
-    ongoing_projects = db.group_chats.count_documents({"mentor_status": "APPROVED", "phase3_marks": {"$in": [0, None]}})
-    pending_projects = db.group_chats.count_documents({"mentor_status": {"$ne": "APPROVED"}})
+    completed_projects = len([g for g in filtered_groups if g.get("mentor_status") == "APPROVED" and (g.get("phase3_marks") or 0) > 0])
+    ongoing_projects = len([g for g in filtered_groups if g.get("mentor_status") == "APPROVED" and not (g.get("phase3_marks") or 0) > 0])
+    pending_projects = len([g for g in filtered_groups if g.get("mentor_status") != "APPROVED"])
     project_status_distribution = {
         "Completed": completed_projects,
         "Ongoing": ongoing_projects,
         "Pending": pending_projects
     }
 
-    # C. Monthly Project Creation Trend
-    monthly_trend = {}
-    groups_list = list(db.group_chats.find())
-    
     def get_group_date(g):
         c_at = g.get("created_at")
         if c_at:
@@ -235,14 +282,14 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
                         pass
             elif hasattr(c_at, "strftime"):
                 dt = c_at
-            
             if dt and hasattr(dt, "tzinfo") and dt.tzinfo is not None:
                 dt = dt.replace(tzinfo=None)
             return dt
         return None
 
+    monthly_trend = {}
     valid_groups = []
-    for g in groups_list:
+    for g in filtered_groups:
         dt = get_group_date(g)
         if dt:
             valid_groups.append((dt, g))
@@ -252,10 +299,15 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
         if hasattr(dt, "strftime"):
             month_str = dt.strftime("%b %Y")
             monthly_trend[month_str] = monthly_trend.get(month_str, 0) + 1
-        
-    evaluations_completed = db.group_chats.count_documents({"mentor_status": "COMPLETED"})
 
     return {
+        "selected_year": year,
+        "year_breakdown": {
+            "all": {"students": len(all_students), "teams": len(all_groups)},
+            "1": {"students": year_student_counts[1], "teams": year_team_counts[1]},
+            "2": {"students": year_student_counts[2], "teams": year_team_counts[2]},
+            "3": {"students": year_student_counts[3], "teams": year_team_counts[3]}
+        },
         "counts": {
             "total_students": total_students,
             "total_mentors": total_mentors,
@@ -280,6 +332,7 @@ def get_admin_analytics(admin = Depends(get_admin_user), db = Depends(get_mongo_
         "project_status_distribution": project_status_distribution,
         "monthly_project_creation_trend": monthly_trend
     }
+
 
 @router.get("/users")
 def get_all_users(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):

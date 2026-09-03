@@ -80,7 +80,13 @@ interface AnalyticsData {
     Pending: number;
   };
   monthly_project_creation_trend?: Record<string, number>;
+  selected_year?: number | null;
+  year_breakdown?: {
+    all?: { students: number; teams: number };
+    [key: string]: { students: number; teams: number } | undefined;
+  };
 }
+
 
 interface MatchedUser {
   id: number;
@@ -172,8 +178,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [selectedAnalyticsYear, setSelectedAnalyticsYear] = useState<number | null>(null);
 
   // Search states
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ users: MatchedUser[]; teams: MatchedTeam[] }>({ users: [], teams: [] });
@@ -270,11 +278,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (yearOverride?: number | null) => {
     setAnalyticsLoading(true);
     setAnalyticsError(null);
     try {
-      const res = await api.get('/admin/analytics');
+      const yearToFetch = yearOverride !== undefined ? yearOverride : selectedAnalyticsYear;
+      const url = yearToFetch ? `/admin/analytics?year=${yearToFetch}` : '/admin/analytics';
+      const res = await api.get(url);
       setAnalytics(res.data || null);
     } catch (err: any) {
       console.error("Failed to load analytics data", err);
@@ -283,6 +293,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       setAnalyticsLoading(false);
     }
   };
+
 
   const fetchMentorsData = async () => {
     try {
@@ -979,9 +990,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Metrics Load Failed</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">{analyticsError}</p>
                 <button
-                  onClick={fetchAnalytics}
+                  onClick={() => fetchAnalytics()}
                   className="bg-[#1e3a8a] hover:bg-[#152a63] text-white font-bold py-2.5 px-5 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer"
                 >
+
                   Retry Connection
                 </button>
               </div>
@@ -991,7 +1003,100 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </div>
             ) : (
               <>
+                {/* Year-Wise Dashboard Selector */}
+                <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shadow-sm">
+                      <GraduationCap size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                          Year-Wise Analytics Dashboard
+                        </h2>
+                        {selectedAnalyticsYear !== null && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                            {selectedAnalyticsYear === 1 ? '1st Year' : selectedAnalyticsYear === 2 ? '2nd Year' : '3rd Year'} Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                        {selectedAnalyticsYear === null
+                          ? "Showing overall metrics across all undergraduate years (1st, 2nd, and 3rd year)"
+                          : selectedAnalyticsYear === 1
+                          ? "Showing 1st Year cohort metrics (foundation cycle, student onboarding, initial teams)"
+                          : selectedAnalyticsYear === 2
+                          ? "Showing 2nd Year cohort metrics (experiential learning, approved projects, mentor status)"
+                          : "Showing 3rd Year cohort metrics (advanced domain projects & milestone evaluations)"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Year Tabs */}
+                  <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1.5 self-start md:self-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAnalyticsYear(null);
+                        fetchAnalytics(null);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                        selectedAnalyticsYear === null
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                      }`}
+                    >
+                      <span>All Years</span>
+                      {analytics?.year_breakdown?.all && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          selectedAnalyticsYear === null 
+                            ? "bg-white/20 text-white" 
+                            : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                        }`}>
+                          {analytics.year_breakdown.all.students}
+                        </span>
+                      )}
+                    </button>
+
+                    {[
+                      { yr: 1, label: "1st Year", countKey: "1" },
+                      { yr: 2, label: "2nd Year", countKey: "2" },
+                      { yr: 3, label: "3rd Year", countKey: "3" }
+                    ].map(({ yr, label, countKey }) => {
+                      const count = analytics?.year_breakdown?.[countKey]?.students;
+                      const isSelected = selectedAnalyticsYear === yr;
+                      return (
+                        <button
+                          key={yr}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAnalyticsYear(yr);
+                            fetchAnalytics(yr);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                            isSelected
+                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                          }`}
+                        >
+                          <span>{label}</span>
+                          {count !== undefined && (
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                              isSelected 
+                                ? "bg-white/20 text-white" 
+                                : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                            }`}>
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 1. 8 Redesigned Statistics Cards */}
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {/* Card 1: Total Students */}
                   <motion.div
