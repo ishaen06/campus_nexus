@@ -194,12 +194,15 @@ def list_connections(current_user = Depends(get_current_user), db = Depends(get_
             
         other_user_obj = MongoUser(other_user)
         
-        # Count unread messages sent by the other user in this connection
-        unread_count = db.messages.count_documents({
-            "connection_id": c["id"],
-            "sender_id": other_user_id,
-            "is_read": False
-        })
+        # Count unread messages only for ACCEPTED connections
+        unread_count = 0
+        if c.get("status") == "ACCEPTED":
+            unread_count = db.messages.count_documents({
+                "connection_id": c["id"],
+                "sender_id": other_user_id,
+                "is_read": False
+            })
+
         
         results.append({
             "connection_id": c["id"],

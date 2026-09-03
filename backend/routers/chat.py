@@ -184,6 +184,9 @@ def get_messages(connection_id: int, current_user = Depends(get_current_user), d
     conn = db.connections.find_one({"id": connection_id})
     if not conn or (conn["sender_id"] != current_user["id"] and conn["receiver_id"] != current_user["id"]):
         raise HTTPException(status_code=403, detail="Not authorized")
+    if conn.get("status") != "ACCEPTED":
+        raise HTTPException(status_code=403, detail="Connection has not been accepted yet.")
+
         
     messages = list(db.messages.find({"connection_id": connection_id}).sort("created_at", 1))
     

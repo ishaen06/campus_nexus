@@ -18,8 +18,10 @@ def init_db():
     """Create required indexes. Called once at app startup."""
     try:
         db.users.create_index("usn", unique=True, sparse=True, partialFilterExpression={"usn": {"$type": "string"}})
+        db.connections.create_index("id", unique=True)
     except Exception:
         pass
+
 
 def get_next_sequence_value(sequence_name: str) -> int:
     counter = db.counters.find_one_and_update(

@@ -38,9 +38,14 @@ export default function Chat() {
     api.get('/connections/').then(res => {
       const matchingConn = res.data.find((c: any) => c.connection_id === parseInt(connectionId || ''));
       if (matchingConn) {
+        if (matchingConn.status !== 'ACCEPTED') {
+          navigate('/connections?tab=requests');
+          return;
+        }
         setChatPartner(matchingConn.other_user);
       }
     }).catch(console.error);
+
     
     api.get(`/chat/${connectionId}/messages`).then(res => {
       const formatted = res.data.map((m: any) => ({ ...m, type: 'message' }));
