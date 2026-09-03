@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { Users, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, ShieldAlert } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, ShieldAlert, RefreshCw } from 'lucide-react';
+
 import Avatar from '../components/Avatar';
 import { getStudentSemester } from '../utils/academic';
 
@@ -64,20 +65,24 @@ export default function JoinTeam() {
     fetchInviteDetails();
   }, [inviteCode]);
 
-  const fetchInviteDetails = async () => {
-    setLoading(true);
+  const [retrying, setRetrying] = useState(false);
+
+  const fetchInviteDetails = async (isRetry = false) => {
+    if (isRetry) setRetrying(true);
+    else setLoading(true);
     setError(null);
     try {
       const res = await api.get(`/chat/groups/invite/${inviteCode}`);
       setTeamData(res.data);
     } catch (err: any) {
       if (err.response?.status === 404 && err.response?.data?.detail === "Not Found") {
-        setError('Backend server deployment is pending. Please trigger "Manual Deploy" -> "Deploy latest commit" on your Render dashboard, or retry in a few moments.');
+        setError('Backend server deployment is pending. If you just pushed code, please click "Manual Deploy" -> "Deploy latest commit" on your Render dashboard, or retry in a few moments.');
       } else {
         setError(err.response?.data?.detail || 'This invite link is invalid, expired, or disabled.');
       }
     } finally {
       setLoading(false);
+      setRetrying(false);
     }
   };
 
@@ -92,7 +97,7 @@ export default function JoinTeam() {
       }, 1800);
     } catch (err: any) {
       if (err.response?.status === 404 && err.response?.data?.detail === "Not Found") {
-        alert('The backend server update is still deploying on Render. Please deploy the latest commit on Render dashboard and try again.');
+        alert('The backend server update is still deploying on Render. Please deploy the latest commit on your Render dashboard and try again.');
       } else {
         alert(err.response?.data?.detail || 'Failed to join the team. Please try again.');
       }
@@ -100,7 +105,6 @@ export default function JoinTeam() {
       fetchInviteDetails();
     }
   };
-
 
   if (loading) {
     return (
@@ -128,10 +132,12 @@ export default function JoinTeam() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => navigate('/discovery')}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition cursor-pointer"
+              onClick={() => fetchInviteDetails(true)}
+              disabled={retrying}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Browse Discovery
+              <RefreshCw size={14} className={retrying ? "animate-spin" : ""} />
+              <span>{retrying ? "Checking..." : "Retry Now"}</span>
             </button>
             <button
               onClick={() => navigate('/my-team')}
@@ -144,6 +150,7 @@ export default function JoinTeam() {
       </div>
     );
   }
+
 
   if (joinSuccess) {
     return (

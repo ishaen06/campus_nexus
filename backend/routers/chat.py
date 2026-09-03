@@ -794,15 +794,50 @@ def get_group_messages(group_id: int, current_user = Depends(get_current_user), 
 # routes below, otherwise FastAPI will match /groups/invite/... as group_id="invite"
 # and never reach these endpoints.
 
+def _resolve_group_by_invite_code(code: str, db):
+    """
+    Resolves a group chat by invite code, supporting:
+    1. Exact invite_code match (e.g. '7f486e9c3c')
+    2. Fallback prefix 'nexus-{group_id}' or 'nexus-{group_id}-{rand}'
+    3. Direct integer group ID (e.g. '2')
+    """
+    clean = (code or "").strip()
+    if not clean:
+        return None
+    # 1. Exact invite_code match
+    group = db.group_chats.find_one({"invite_code": clean})
+    if group:
+        return group
+    # 2. Match nexus-<id> or nexus-<id>-<rand>
+    if clean.startswith("nexus-"):
+        parts = clean.split("-")
+        if len(parts) >= 2 and parts[1].isdigit():
+            group = db.group_chats.find_one({"id": int(parts[1])})
+            if group:
+                if not group.get("invite_code"):
+                    db.group_chats.update_one({"id": group["id"]}, {"$set": {"invite_code": clean, "invite_enabled": True}})
+                    group["invite_code"] = clean
+                return group
+    # 3. Direct numeric ID match
+    if clean.isdigit():
+        group = db.group_chats.find_one({"id": int(clean)})
+        if group:
+            if not group.get("invite_code"):
+                new_c = uuid.uuid4().hex[:10]
+                db.group_chats.update_one({"id": group["id"]}, {"$set": {"invite_code": new_c, "invite_enabled": True}})
+                group["invite_code"] = new_c
+            return group
+    return None
+
 @router.get("/groups/invite/{invite_code}", response_model=TeamInviteInfoResponse)
 def get_invite_preview(invite_code: str, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    clean_code = invite_code.strip()
-    group = db.group_chats.find_one({"invite_code": clean_code})
+    group = _resolve_group_by_invite_code(invite_code, db)
     if not group:
         raise HTTPException(status_code=404, detail="Invalid or expired invite link.")
         
     if not group.get("invite_enabled", True):
         raise HTTPException(status_code=400, detail="Invites via link are currently disabled by the team leader.")
+
 
     # Get members
     member_records = list(db.group_members.find({"group_id": group["id"]}))
@@ -879,13 +914,13 @@ def get_invite_preview(invite_code: str, current_user = Depends(get_current_user
 
 @router.post("/groups/invite/{invite_code}/join", response_model=JoinTeamResponse)
 def join_group_via_invite(invite_code: str, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    clean_code = invite_code.strip()
-    group = db.group_chats.find_one({"invite_code": clean_code})
+    group = _resolve_group_by_invite_code(invite_code, db)
     if not group:
         raise HTTPException(status_code=404, detail="Invalid or expired invite link.")
         
     if not group.get("invite_enabled", True):
         raise HTTPException(status_code=400, detail="Invites via link are currently disabled by the team leader.")
+
 
     # Check mentor approved
     if (group.get("mentor_status") or "").upper() == "APPROVED":

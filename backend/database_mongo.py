@@ -8,7 +8,8 @@ load_env()
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGO_DB_NAME", "el_platform")
 
-client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=15000)
+
 db = client[DB_NAME]
 
 def get_mongo_db():
