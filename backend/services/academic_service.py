@@ -93,11 +93,19 @@ def parse_rvce_email(email: str) -> dict:
             "is_valid_rvce_student": True
         }
 
-    # Direct rule: All emails with 25 are considered second year students
-    if "25" in clean_email:
-        joining_year = 2025
-    elif "26" in clean_email:
+    # Direct rule:
+    # 26 in email -> 1st year (2026)
+    # 25 in email -> 2nd year (2025)
+    # 24 in email -> 3rd year (2024)
+    # 23 in email -> 4th year (2023)
+    if "26" in clean_email:
         joining_year = 2026
+    elif "25" in clean_email:
+        joining_year = 2025
+    elif "24" in clean_email:
+        joining_year = 2024
+    elif "23" in clean_email:
+        joining_year = 2023
     else:
         joining_year = 2025
 
@@ -140,7 +148,7 @@ def get_academic_settings(db):
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
         try:
-            db.academic_settings.update_one({"_id": "global"}, {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}}, upsert=True)
+            db.academic_settings.update_one({"_id": "global"}, {"$set": settings})
         except Exception:
             pass
     return settings
@@ -148,13 +156,21 @@ def get_academic_settings(db):
 def calculate_academic_year(joining_year: int, session_start_month: int = 8, email: str = "") -> int:
     """
     Dynamically calculates Academic Year (1, 2, 3, or 4).
-    Rule: all emails with 25 (or joining_year == 2025) are considered second year students.
+    Rules:
+      - 26 in email or joining_year == 2026: 1st year (1)
+      - 25 in email or joining_year == 2025: 2nd year (2)
+      - 24 in email or joining_year == 2024: 3rd year (3)
+      - 23 in email or joining_year == 2023: 4th year (4)
     """
     clean_email = (email or "").lower()
-    if "25" in clean_email or joining_year == 2025:
-        return 2
     if "26" in clean_email or joining_year == 2026:
         return 1
+    if "25" in clean_email or joining_year == 2025:
+        return 2
+    if "24" in clean_email or joining_year == 2024:
+        return 3
+    if "23" in clean_email or joining_year == 2023:
+        return 4
 
     if not joining_year:
         return 2

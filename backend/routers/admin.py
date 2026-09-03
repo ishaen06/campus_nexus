@@ -1242,16 +1242,17 @@ def fetch_report_dataframe(dataset: str, db) -> tuple:
             branch = s.get("branch") or "N/A"
             section = s.get("section") or "N/A"
             s_email = (s.get("email") or "").lower()
-            if "25" in s_email or s.get("joining_year") == 2025:
-                semester = "3rd Sem"
-            elif "26" in s_email or s.get("joining_year") == 2026:
+            if "26" in s_email or s.get("joining_year") == 2026:
                 semester = "1st Sem"
+            elif "25" in s_email or s.get("joining_year") == 2025:
+                semester = "3rd Sem"
             elif "24" in s_email or s.get("joining_year") == 2024:
                 semester = "5th Sem"
             elif "23" in s_email or s.get("joining_year") == 2023:
                 semester = "7th Sem"
             else:
-                semester = "3rd Sem" if s.get("year_of_study") == 2 else "1st Sem"
+                semester = "1st Sem" if s.get("year_of_study") == 1 else "3rd Sem" if s.get("year_of_study") == 2 else "5th Sem"
+
             
             group_id = "N/A"
 

@@ -323,6 +323,14 @@ BRANCH_CYCLE_MAP_1ST_YEAR = {
 _SESSION_START_MONTH = 8  # August
 
 def _get_year_of_study(joining_year: int) -> int:
+    if joining_year == 2026:
+        return 1
+    if joining_year == 2025:
+        return 2
+    if joining_year == 2024:
+        return 3
+    if joining_year == 2023:
+        return 4
     from datetime import datetime
     now = datetime.now()
     years_passed = now.year - joining_year
@@ -332,7 +340,11 @@ def _get_year_of_study(joining_year: int) -> int:
 
 def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     """Returns (branch_code, joining_year, year_of_study).
-    Rule: all emails with 25 are considered second year students.
+    Rules:
+      - 26 in email or USN -> 1st year (joining_year 2026, year_of_study 1)
+      - 25 in email or USN -> 2nd year (joining_year 2025, year_of_study 2)
+      - 24 in email or USN -> 3rd year (joining_year 2024, year_of_study 3)
+      - 23 in email or USN -> 4th year (joining_year 2023, year_of_study 4)
     """
     import re
     from services.academic_service import parse_rvce_email
@@ -342,11 +354,15 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     branch_code = (u.get("branch_code") or "").strip().upper()
     joining_year = u.get("joining_year")
 
-    # Direct rule: Any email or USN with 25 is a 2nd year student (joining year 2025)
-    if "25" in email or "25" in usn:
-        joining_year = 2025
-    elif "26" in email or "26" in usn:
+    # Direct rules:
+    if "26" in email or "26" in usn:
         joining_year = 2026
+    elif "25" in email or "25" in usn:
+        joining_year = 2025
+    elif "24" in email or "24" in usn:
+        joining_year = 2024
+    elif "23" in email or "23" in usn:
+        joining_year = 2023
 
     # 1. Direct short code in branch
     if not branch_code:
@@ -367,7 +383,7 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     # 3. If missing, try parsing valid RVCE email
     if (not branch_code or not joining_year) and email.endswith("@rvce.edu.in"):
         parsed = parse_rvce_email(email)
-        if parsed.get("is_valid_rvce_student") or "25" in email:
+        if parsed.get("is_valid_rvce_student") or any(y in email for y in ["24", "25", "26"]):
             if not branch_code:
                 branch_code = parsed.get("branch_code", "")
             if not joining_year:
@@ -379,15 +395,20 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     if not branch_code:
         branch_code = "CS"
 
-    # All emails with 25 are considered 2nd year students
-    if "25" in email or "25" in usn or int(joining_year) == 2025:
-        year_of_study = 2
-    elif "26" in email or "26" in usn or int(joining_year) == 2026:
+    # Precise year of study differentiation
+    if "26" in email or "26" in usn or int(joining_year) == 2026:
         year_of_study = 1
+    elif "25" in email or "25" in usn or int(joining_year) == 2025:
+        year_of_study = 2
+    elif "24" in email or "24" in usn or int(joining_year) == 2024:
+        year_of_study = 3
+    elif "23" in email or "23" in usn or int(joining_year) == 2023:
+        year_of_study = 4
     else:
         year_of_study = _get_year_of_study(int(joining_year))
 
     return branch_code, int(joining_year), year_of_study
+
 
 
 
