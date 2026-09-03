@@ -789,60 +789,10 @@ def get_group_messages(group_id: int, current_user = Depends(get_current_user), 
         })
     return results
 
-@router.get("/groups/{group_id}/invite")
-def get_group_invite(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    membership = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
-    if not membership and not current_user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Only team members can view the invite link.")
-        
-    group = db.group_chats.find_one({"id": group_id})
-    if not group:
-        raise HTTPException(status_code=404, detail="Team not found.")
-        
-    code = group.get("invite_code")
-    if not code:
-        code = uuid.uuid4().hex[:10]
-        db.group_chats.update_one({"id": group_id}, {"$set": {"invite_code": code, "invite_enabled": True}})
-        
-    return {
-        "group_id": group_id,
-        "invite_code": code,
-        "invite_enabled": bool(group.get("invite_enabled", True))
-    }
-
-@router.post("/groups/{group_id}/invite/regenerate")
-def regenerate_group_invite(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    group = db.group_chats.find_one({"id": group_id})
-    if not group:
-        raise HTTPException(status_code=404, detail="Team not found.")
-        
-    if group["created_by"] != current_user["id"] and not current_user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Only the team leader or an admin can regenerate the invite code.")
-        
-    new_code = uuid.uuid4().hex[:10]
-    db.group_chats.update_one({"id": group_id}, {"$set": {"invite_code": new_code, "invite_enabled": True}})
-    return {
-        "group_id": group_id,
-        "invite_code": new_code,
-        "invite_enabled": True,
-        "message": "Invite link regenerated successfully. Previous links have been revoked."
-    }
-
-@router.post("/groups/{group_id}/invite/toggle")
-def toggle_group_invite(group_id: int, enabled: bool = Query(...), current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
-    group = db.group_chats.find_one({"id": group_id})
-    if not group:
-        raise HTTPException(status_code=404, detail="Team not found.")
-        
-    if group["created_by"] != current_user["id"] and not current_user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Only the team leader or an admin can toggle invite link settings.")
-        
-    db.group_chats.update_one({"id": group_id}, {"$set": {"invite_enabled": enabled}})
-    return {
-        "group_id": group_id,
-        "invite_enabled": enabled,
-        "message": f"Invite link {'enabled' if enabled else 'disabled'} successfully."
-    }
+# ─── Public Invite Code Routes ──────────────────────────────────────────────
+# IMPORTANT: These MUST be declared BEFORE the @router.get("/groups/{group_id}/...")
+# routes below, otherwise FastAPI will match /groups/invite/... as group_id="invite"
+# and never reach these endpoints.
 
 @router.get("/groups/invite/{invite_code}", response_model=TeamInviteInfoResponse)
 def get_invite_preview(invite_code: str, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
@@ -1021,6 +971,65 @@ def join_group_via_invite(invite_code: str, current_user = Depends(get_current_u
         "group_id": group["id"],
         "message": f"Successfully joined {group['name']}!"
     }
+
+# ─── Group ID Parameterized Routes ──────────────────────────────────────────
+
+@router.get("/groups/{group_id}/invite")
+def get_group_invite(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+
+    membership = db.group_members.find_one({"group_id": group_id, "user_id": current_user["id"]})
+    if not membership and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only team members can view the invite link.")
+        
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Team not found.")
+        
+    code = group.get("invite_code")
+    if not code:
+        code = uuid.uuid4().hex[:10]
+        db.group_chats.update_one({"id": group_id}, {"$set": {"invite_code": code, "invite_enabled": True}})
+        
+    return {
+        "group_id": group_id,
+        "invite_code": code,
+        "invite_enabled": bool(group.get("invite_enabled", True))
+    }
+
+@router.post("/groups/{group_id}/invite/regenerate")
+def regenerate_group_invite(group_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Team not found.")
+        
+    if group["created_by"] != current_user["id"] and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only the team leader or an admin can regenerate the invite code.")
+        
+    new_code = uuid.uuid4().hex[:10]
+    db.group_chats.update_one({"id": group_id}, {"$set": {"invite_code": new_code, "invite_enabled": True}})
+    return {
+        "group_id": group_id,
+        "invite_code": new_code,
+        "invite_enabled": True,
+        "message": "Invite link regenerated successfully. Previous links have been revoked."
+    }
+
+@router.post("/groups/{group_id}/invite/toggle")
+def toggle_group_invite(group_id: int, enabled: bool = Query(...), current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    group = db.group_chats.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Team not found.")
+        
+    if group["created_by"] != current_user["id"] and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only the team leader or an admin can toggle invite link settings.")
+        
+    db.group_chats.update_one({"id": group_id}, {"$set": {"invite_enabled": enabled}})
+    return {
+        "group_id": group_id,
+        "invite_enabled": enabled,
+        "message": f"Invite link {'enabled' if enabled else 'disabled'} successfully."
+    }
+
 
 @router.post("/groups/{group_id}/leave")
 
