@@ -118,10 +118,16 @@ from fastapi.responses import FileResponse
 import os
 
 @router.get("/download-approved-teams")
-def download_approved_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
-    regenerate_approved_teams_csv(db)
-    file_path = "teachers_excel/approved_teams.csv"
-    return FileResponse(path=file_path, filename="approved_teams.csv", media_type="text/csv")
+def download_approved_teams(
+    year: Optional[int] = Query(None, description="Year of study: 1, 2, 3 or None for all"),
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
+    regenerate_approved_teams_csv(db, year=year)
+    file_path = f"teachers_excel/approved_teams_year{year}.csv" if year else "teachers_excel/approved_teams.csv"
+    filename = f"approved_teams_year{year}.csv" if year else "approved_teams.csv"
+    return FileResponse(path=file_path, filename=filename, media_type="text/csv")
+
 
 @router.get("/download-student-marks")
 def download_student_marks(
@@ -1091,12 +1097,43 @@ class BeautifulReportPDF(FPDF):
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cell(0, 10, f"Generated on {now_str}  |  Page {self.page_no()}/{{nb}}", align="C")
 
-def _group_belongs_to_year(group_id: int, year: int, db) -> bool:
-    member_recs = list(db.group_members.find({"group_id": group_id}))
-    m_uids = [r["user_id"] for r in member_recs]
+def _group_belongs_to_year(group, year: int, db) -> bool:
+    if isinstance(group, dict):
+        g = group
+        gid = g.get("id")
+    else:
+        gid = group
+        try:
+            num_gid = int(gid)
+        except (ValueError, TypeError):
+            num_gid = gid
+        g = db.group_chats.find_one({"id": gid})
+        if not g and str(gid) != gid:
+            g = db.group_chats.find_one({"id": str(gid)})
+        if not g and num_gid != gid:
+            g = db.group_chats.find_one({"id": num_gid})
+
+    try:
+        num_gid = int(gid)
+    except (ValueError, TypeError):
+        num_gid = gid
+
+    member_recs = list(db.group_members.find({"group_id": gid}))
+    if not member_recs and str(gid) != gid:
+        member_recs = list(db.group_members.find({"group_id": str(gid)}))
+    if not member_recs and num_gid != gid:
+        member_recs = list(db.group_members.find({"group_id": num_gid}))
+    m_uids = [r.get("user_id") for r in member_recs if r.get("user_id") is not None]
+
+    
+    if g and g.get("created_by") is not None:
+        m_uids.append(g["created_by"])
+
     stus = list(db.users.find({"id": {"$in": m_uids}, "is_mentor": {"$ne": True}, "is_admin": {"$ne": True}}))
-    st_years = [_extract_user_academic_info(s)[2] for s in stus]
-    return year in st_years
+    for s in stus:
+        if _extract_user_academic_info(s)[2] == year:
+            return True
+    return False
 
 def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tuple:
     year_suffix = f" (Year {year} Cohort)" if year else ""
@@ -1143,7 +1180,9 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                 "mentor_status": "APPROVED"
             }))
             if year is not None:
-                count = len([c for c in approved_chats if _group_belongs_to_year(c["id"], year, db)])
+                count = len([c for c in approved_chats if _group_belongs_to_year(c, year, db)])
+                if count == 0:
+                    continue
             else:
                 count = len(approved_chats)
 
@@ -1160,6 +1199,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         if df.empty:
             df = pd.DataFrame(columns=["Mentor ID", "Mentor Name", "Email", "Department", "Designation", "Active Teams", "Max Capacity"])
         return df, f"Mentor Directory Report{year_suffix}", (15, 45, 65, 45, 57, 30, 20)
+
 
     elif dataset == "teams":
         teams = list(db.group_chats.find())
@@ -1299,7 +1339,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "projects":
         teams = list(db.group_chats.find())
         if year is not None:
-            teams = [t for t in teams if _group_belongs_to_year(t["id"], year, db)]
+            teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
         data = []
         for t in teams:
             data.append({
@@ -1320,7 +1360,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "approvals":
         teams = list(db.group_chats.find())
         if year is not None:
-            teams = [t for t in teams if _group_belongs_to_year(t["id"], year, db)]
+            teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
         data = []
         for t in teams:
             data.append({
@@ -1357,7 +1397,8 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "approved_teams":
         approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
         if year is not None:
-            approved_groups = [g for g in approved_groups if _group_belongs_to_year(g["id"], year, db)]
+            approved_groups = [g for g in approved_groups if _group_belongs_to_year(g, year, db)]
+
         data = []
         for group in approved_groups:
             member_records = list(db.group_members.find({"group_id": group["id"]}))

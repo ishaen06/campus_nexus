@@ -1291,13 +1291,14 @@ import shutil
 import uuid
 
 # Helper to sync approved team to CSV/Excel folder
-def regenerate_approved_teams_csv(db):
+def regenerate_approved_teams_csv(db, year=None):
     import csv
     import os
     from datetime import datetime
     
     file_dir = "teachers_excel"
-    file_path = os.path.join(file_dir, "approved_teams.csv")
+    file_name = f"approved_teams_year{year}.csv" if year else "approved_teams.csv"
+    file_path = os.path.join(file_dir, file_name)
     os.makedirs(file_dir, exist_ok=True)
     
     headers = [
@@ -1310,7 +1311,11 @@ def regenerate_approved_teams_csv(db):
     ]
     
     approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
+    if year is not None:
+        from routers.admin import _group_belongs_to_year
+        approved_groups = [g for g in approved_groups if _group_belongs_to_year(g, year, db)]
     rows = []
+
     
     for group in approved_groups:
         # Get all members

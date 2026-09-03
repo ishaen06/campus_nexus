@@ -1567,6 +1567,108 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </motion.div>
                 </div>
 
+                {/* Cohort-Scoped Quick Reports Bar */}
+                <div className="p-5 rounded-3xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/40">
+                        <Download size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                          <span>{globalYear ? `${globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}` : 'All Batches'} Reports & Data Export</span>
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                            Active Cohort Scoped
+                          </span>
+                        </h3>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                          Generate and download officially formatted institution spreadsheets filtered for this cohort.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/reports')}
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                    >
+                      <span>Open Full Report Center</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+
+                  {/* 4 Quick Export Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {[
+                      {
+                        title: "Students Master List",
+                        desc: `${analytics.counts.total_students} students enrolled`,
+                        dataset: "students",
+                        icon: Users
+                      },
+                      {
+                        title: "Approved Teams Master",
+                        desc: `${analytics.counts.approved_teams} approved teams`,
+                        dataset: "approved_teams",
+                        icon: CheckCircle2
+                      },
+                      {
+                        title: "Student Marks & Rubrics",
+                        desc: "Phase 1, 2, 3 marks & remarks",
+                        dataset: "student_marks",
+                        icon: Award
+                      },
+                      {
+                        title: "Mentor Workloads",
+                        desc: `${Object.keys(analytics.mentor_workload || {}).length} active mentors`,
+                        dataset: "mentors",
+                        icon: UserCheck
+                      }
+                    ].map((rep) => {
+                      const Icon = rep.icon;
+                      return (
+                        <div key={rep.dataset} className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3 shadow-xs">
+                          <div className="flex items-start gap-2.5">
+                            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0">
+                              <Icon size={16} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                {rep.title}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-medium truncate">
+                                {rep.desc}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(rep.dataset, 'csv')}
+                              className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                            >
+                              CSV
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(rep.dataset, 'excel')}
+                              className="py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                            >
+                              Excel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerPreview(rep.dataset, 'pdf')}
+                              className="py-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                            >
+                              PDF
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 2. Charts Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Chart 1: Team Formation Progress (Donut Chart) */}
@@ -2072,8 +2174,31 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none w-56 focus:border-indigo-500 focus:w-64 transition-all"
                         />
                       </div>
+
+                      {/* Export Roster Buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadReport(analyticsRosterTab === 'students' ? 'students' : 'teams', 'csv')}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          title={`Export ${analyticsRosterTab} as CSV`}
+                        >
+                          <Download size={13} />
+                          <span>CSV</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadReport(analyticsRosterTab === 'students' ? 'students' : 'teams', 'excel')}
+                          className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          title={`Export ${analyticsRosterTab} as Excel`}
+                        >
+                          <Download size={13} />
+                          <span>Excel</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
+
 
                   {/* Table Content */}
                   {analyticsRosterTab === 'students' ? (
@@ -3781,36 +3906,119 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Global Cohort Active Banner */}
-            {globalYear !== null && (
-              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
-                <div className="flex items-center gap-2">
-                  <GraduationCap size={16} />
-                  <span>
-                    Reports Cohort Scope: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong> active.
-                  </span>
+            {/* Year-Wise Report Center Cohort Selector */}
+            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shadow-sm">
+                  <Download size={22} />
                 </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Cohort-Wise Report Generator & Data Export
+                    </h2>
+                    {globalYear !== null ? (
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                        {globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'} Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                        All Cohorts Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                    Select a cohort below to generate, preview, and download reports scoped strictly to that specific academic year.
+                  </p>
+                </div>
+              </div>
+
+              {/* Year Selector Tabs */}
+              <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1.5 self-start md:self-auto flex-wrap">
                 <button
                   type="button"
                   onClick={() => handleGlobalYearChange(null)}
-                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    globalYear === null
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                  }`}
                 >
-                  Clear Cohort Filter
+                  <span>All Years</span>
                 </button>
+
+                {[
+                  { yr: 1, label: "1st Year", batch: "2026 Batch" },
+                  { yr: 2, label: "2nd Year", batch: "2025 Batch" },
+                  { yr: 3, label: "3rd Year", batch: "2024 Batch" }
+                ].map(({ yr, label, batch }) => {
+                  const isSelected = globalYear === yr;
+                  return (
+                    <button
+                      key={yr}
+                      type="button"
+                      onClick={() => handleGlobalYearChange(yr)}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                        isSelected
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isSelected ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                      }`}>
+                        {batch}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
             {/* Grid of Report Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+              {/* Card 1: Students Master Directory */}
+              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
+                        <Users size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Students Master Directory</h3>
+                    </div>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Complete roster of enrolled undergraduate students with USN, branch, cycle allocation, and team membership status.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                  <button onClick={() => handleTriggerPreview('students', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
+                  <button onClick={() => handleTriggerPreview('students', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
+                  <button onClick={() => handleTriggerPreview('students', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
+                </div>
+              </div>
+
               {/* Card 6: Approved Teams Detailed CSV */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
-                      <Users size={18} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
+                        <Users size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approved Teams Export</h3>
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approved Teams Export</h3>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Full master spreadsheet of approved teams, project topics, mentors, and all individual student member details.</p>
                 </div>
@@ -3824,11 +4032,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {/* Card 7: Student Phase Marks CSV */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
-                      <CheckCircle2 size={18} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                        <CheckCircle2 size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Marks & Observations</h3>
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Marks & Observations</h3>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Complete breakdown of Phase 1, 2, and 3 marks, total scores, sections, year of study, and specific mentor observations.</p>
                 </div>
@@ -3842,11 +4057,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {/* Card 2: Mentors */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border border-purple-100 dark:border-purple-900 rounded-xl">
-                      <User size={18} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border border-purple-100 dark:border-purple-900 rounded-xl">
+                        <User size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Mentor Workload</h3>
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Mentor Workload</h3>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Directory of mentors, their departments, designations, and active approved team allocations.</p>
                 </div>
@@ -3860,11 +4082,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {/* Card 3: Team Members */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-655 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl">
-                      <Layers size={18} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-655 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl">
+                        <Layers size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Team Roster Mapping</h3>
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Team Roster Mapping</h3>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Cross-referenced sheet linking each group name to its student members and their branches.</p>
                 </div>
@@ -3878,11 +4107,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {/* Card 4: Marks */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 text-amber-655 dark:text-amber-400 border border-amber-100 dark:border-amber-900 rounded-xl">
-                      <Activity size={18} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 text-amber-655 dark:text-amber-400 border border-amber-100 dark:border-amber-900 rounded-xl">
+                        <Activity size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Evaluation Marks Summary</h3>
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Evaluation Marks Summary</h3>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">Comprehensive Phase 1, Phase 2, Phase 3 grading and total marks allocated to students.</p>
                 </div>
@@ -3896,11 +4132,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {/* Card 5: Projects */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
-                      <GitMerge size={18} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                        <GitMerge size={18} />
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Project Allocation</h3>
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Project Allocation</h3>
+                    {globalYear !== null && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">List of active team project titles, themes/topics, and their assigned mentors.</p>
                 </div>
