@@ -212,6 +212,8 @@ def list_connections(current_user = Depends(get_current_user), db = Depends(get_
             "other_user": {
                 "id": other_user["id"],
                 "full_name": other_user["full_name"],
+                "email": other_user.get("email"),
+                "usn": other_user.get("usn"),
                 "is_mentor": other_user.get("is_mentor", False),
                 "branch": other_user.get("branch"),
                 "year_of_study": other_user.get("year_of_study"),
@@ -223,3 +225,4 @@ def list_connections(current_user = Depends(get_current_user), db = Depends(get_
             }
         })
     return results
+

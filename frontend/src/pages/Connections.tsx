@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Users, Plus, X, Sparkles, MessageSquare, UserPlus, Check, Inbox } from 'lucide-react';
+import { Search, Users, Plus, X, Sparkles, MessageSquare, UserPlus, Check, Inbox, Mail } from 'lucide-react';
 
 import Avatar from '../components/Avatar';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
@@ -16,6 +16,8 @@ interface ConnectionItem {
   other_user: {
     id: number;
     full_name: string;
+    email?: string | null;
+    usn?: string | null;
     is_mentor?: boolean;
     branch?: string | null;
     year_of_study?: number | null;
@@ -28,6 +30,7 @@ interface ConnectionItem {
     post?: string | null;
   };
 }
+
 
 export default function Connections() {
   const [connections, setConnections] = useState<ConnectionItem[]>([]);
@@ -310,16 +313,23 @@ export default function Connections() {
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                             {conn.other_user.is_mentor 
                               ? `${conn.other_user.post || 'Mentor'} (${conn.other_user.department || 'N/A'})` 
-                              : `${(conn.other_user.branch || 'CSE').toUpperCase()} • ${getStudentSemester(conn.other_user)}`
+                              : `${(conn.other_user.branch || 'CSE').toUpperCase()} • ${getStudentSemester(conn.other_user)}${conn.other_user.usn ? ` • ${conn.other_user.usn}` : ''}`
                             }
                           </p>
+                          {conn.other_user.email && (
+                            <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 truncate select-all">
+                              <Mail size={12} className="text-emerald-500 shrink-0" />
+                              <span>{conn.other_user.email}</span>
+                            </p>
+                          )}
                           {conn.other_user.bio && (
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 line-clamp-2 font-normal">
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 font-normal">
                               "{conn.other_user.bio}"
                             </p>
                           )}
                         </div>
                       </div>
+
 
                       <div className="flex items-center gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800/80">
                         <button

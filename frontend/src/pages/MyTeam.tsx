@@ -971,10 +971,12 @@ export default function MyTeam() {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div 
+              role="dialog"
+              aria-modal="true"
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="w-full max-w-md glass-panel p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl relative z-10 bg-white dark:bg-slate-900"
+              className="w-full max-w-md p-6 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 bg-white dark:bg-[#1e1e24] !bg-white dark:!bg-[#1e1e24]"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>

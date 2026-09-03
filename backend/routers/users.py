@@ -373,3 +373,19 @@ def get_cluster_themes(current_user = Depends(get_current_user)):
     from routers.chat import CLUSTER_THEMES
     return CLUSTER_THEMES
 
+
+@router.get("/{user_id}/public-profile")
+def get_user_public_profile(user_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    """Returns a user's full public profile, including USN, email, branch, and academic year."""
+    target_user = db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    from services.academic_service import enrich_user_academic_profile
+    user_dict = enrich_user_academic_profile(dict(target_user), db)
+    user_dict.pop("_id", None)
+    user_dict.pop("hashed_password", None)
+    user_dict["is_online"] = MongoUser(target_user).is_online
+    return user_dict
+
+
