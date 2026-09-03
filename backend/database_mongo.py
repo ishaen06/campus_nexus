@@ -17,10 +17,29 @@ def get_mongo_db():
 def init_db():
     """Create required indexes. Called once at app startup."""
     try:
+        db.users.create_index([("id", 1)], unique=True, sparse=True)
         db.users.create_index("usn", unique=True, sparse=True, partialFilterExpression={"usn": {"$type": "string"}})
-        db.connections.create_index("id", unique=True)
+        db.users.create_index([("branch", 1)])
+        db.users.create_index([("year_of_study", 1)])
+        db.users.create_index([("is_mentor", 1)])
+        db.connections.create_index([("id", 1)], unique=True)
+        db.connections.create_index([("sender_id", 1)])
+        db.connections.create_index([("receiver_id", 1)])
+        db.connections.create_index([("status", 1)])
+        db.connections.create_index([("receiver_id", 1), ("status", 1)])
+        db.messages.create_index([("connection_id", 1)])
+        db.messages.create_index([("connection_id", 1), ("created_at", 1)])
+        db.messages.create_index([("connection_id", 1), ("sender_id", 1), ("is_read", 1)])
+        db.group_chats.create_index([("id", 1)], unique=True)
+        db.group_members.create_index([("group_id", 1)])
+        db.group_members.create_index([("user_id", 1)])
+        db.group_members.create_index([("group_id", 1), ("user_id", 1)])
+        db.group_messages.create_index([("group_id", 1)])
+        db.notifications.create_index([("user_id", 1)])
+        db.notifications.create_index([("user_id", 1), ("is_read", 1)])
     except Exception:
         pass
+
 
 
 def get_next_sequence_value(sequence_name: str) -> int:

@@ -278,26 +278,35 @@ export default function MyTeam() {
 
 
 
-  const fetchData = async () => {
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
-      const connRes = await api.get('/connections/');
+      const [connRes, groupRes, meRes] = await Promise.all([
+        api.get('/connections/'),
+        api.get('/chat/groups'),
+        api.get('/users/me').catch(() => null)
+      ]);
       setConnections(connRes.data);
-      const groupRes = await api.get('/chat/groups');
       setGroups(groupRes.data);
+      if (meRes?.data) setCurrentUser(meRes.data);
     } catch (err) {
       console.error("Error fetching data on MyTeam page:", err);
+    } finally {
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-    api.get('/users/me')
-      .then(res => setCurrentUser(res.data))
-      .catch(console.error);
+    fetchData(true);
 
-    const interval = setInterval(fetchData, 7000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchData(false);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
+
 
 
   const getSelectedCriteriaStatus = () => {
@@ -461,7 +470,20 @@ export default function MyTeam() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          {groups.length > 0 ? (
+          {loading ? (
+            <div className="py-24 flex flex-col items-center justify-center text-center">
+              <div className="relative mb-4">
+                <div className="w-12 h-12 rounded-full border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Users size={18} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
+                </div>
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">Loading team workspace...</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium max-w-xs">
+                Fetching your project group and team roster
+              </p>
+            </div>
+          ) : groups.length > 0 ? (
             (() => {
               const team = groups[0];
               const isAdmin = team.created_by === currentUser?.id;

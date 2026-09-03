@@ -184,6 +184,7 @@ export default function Layout() {
 
   useEffect(() => {
     const checkUnread = async () => {
+      if (document.hidden) return;
       const token = localStorage.getItem('token');
       if (!token) return;
       try {
@@ -197,15 +198,21 @@ export default function Layout() {
     };
 
     checkUnread();
-    const interval = setInterval(checkUnread, 7000); // Check every 7 seconds
-    return () => clearInterval(interval);
+    const interval = setInterval(checkUnread, 18000); // Check every 18s when active
+    const onVisibility = () => { if (!document.hidden) checkUnread(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   useEffect(() => {
     const checkUnreadNotifications = async () => {
+      if (document.hidden) return;
       const token = localStorage.getItem('token');
       if (!token) return;
-      // Don't bother polling while the user is already on the notifications page
       if (window.location.pathname === '/notifications') {
         setHasUnreadNotifications(false);
         return;
@@ -219,7 +226,9 @@ export default function Layout() {
     };
 
     checkUnreadNotifications();
-    const interval = setInterval(checkUnreadNotifications, 7000);
+    const interval = setInterval(checkUnreadNotifications, 18000);
+    const onVisibility = () => { if (!document.hidden) checkUnreadNotifications(); };
+    document.addEventListener('visibilitychange', onVisibility);
 
     const handleReadEvent = () => {
       setHasUnreadNotifications(false);
@@ -228,9 +237,11 @@ export default function Layout() {
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('nexus_notifications_read', handleReadEvent);
     };
   }, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');

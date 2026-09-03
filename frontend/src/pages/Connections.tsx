@@ -41,6 +41,7 @@ export default function Connections() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'requests' ? 'requests' : 'messages';
   const [activeTab, setActiveTab] = useState<'messages' | 'requests'>(initialTab);
+  const [loading, setLoading] = useState(true);
 
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
@@ -58,12 +59,15 @@ export default function Connections() {
     setSearchParams(tab === 'requests' ? { tab: 'requests' } : {});
   };
 
-  const fetchData = async () => {
+  const fetchData = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
-      const connRes = await api.get('/connections/');
+      const [connRes, meRes] = await Promise.all([
+        api.get('/connections/'),
+        api.get('/users/me')
+      ]);
       setConnections(connRes.data);
       
-      const meRes = await api.get('/users/me');
       const isMentorUser = meRes.data.is_mentor;
       setIsMentor(isMentorUser);
       
@@ -77,15 +81,20 @@ export default function Connections() {
       }
     } catch (err) {
       console.error("Error fetching connections and groups:", err);
+    } finally {
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
 
-    const interval = setInterval(fetchData, 7000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchData(false);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
+
 
   const handleAccept = async (id: number) => {
     try {
@@ -251,8 +260,24 @@ export default function Connections() {
           </div>
         </div>
 
-        {/* ─── TAB 1: REQUESTS ─── */}
-        {activeTab === 'requests' && (
+        {loading ? (
+          <div className="py-24 flex flex-col items-center justify-center text-center">
+            <div className="relative mb-4">
+              <div className="w-12 h-12 rounded-full border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <MessageSquare size={18} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">Loading chats & requests...</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium max-w-xs">
+              Fetching your latest messages, project groups, and connection requests
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* ─── TAB 1: REQUESTS ─── */}
+            {activeTab === 'requests' && (
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -524,7 +549,10 @@ export default function Connections() {
             </div>
           </motion.div>
         )}
+        </>
+        )}
       </div>
+
 
       {/* Group Creation Modal */}
       <AnimatePresence>
