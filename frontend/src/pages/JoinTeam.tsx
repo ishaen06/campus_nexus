@@ -71,7 +71,11 @@ export default function JoinTeam() {
       const res = await api.get(`/chat/groups/invite/${inviteCode}`);
       setTeamData(res.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'This invite link is invalid, expired, or disabled.');
+      if (err.response?.status === 404 && err.response?.data?.detail === "Not Found") {
+        setError('Backend server deployment is pending. Please trigger "Manual Deploy" -> "Deploy latest commit" on your Render dashboard, or retry in a few moments.');
+      } else {
+        setError(err.response?.data?.detail || 'This invite link is invalid, expired, or disabled.');
+      }
     } finally {
       setLoading(false);
     }
@@ -87,11 +91,16 @@ export default function JoinTeam() {
         navigate('/my-team');
       }, 1800);
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to join the team. Please try again.');
+      if (err.response?.status === 404 && err.response?.data?.detail === "Not Found") {
+        alert('The backend server update is still deploying on Render. Please deploy the latest commit on Render dashboard and try again.');
+      } else {
+        alert(err.response?.data?.detail || 'Failed to join the team. Please try again.');
+      }
       setJoining(false);
       fetchInviteDetails();
     }
   };
+
 
   if (loading) {
     return (
