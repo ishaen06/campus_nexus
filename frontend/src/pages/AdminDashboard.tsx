@@ -178,6 +178,7 @@ interface TeamData {
   mentor_name: string;
   mentor_email: string;
   mentor_status: string;
+  team_year?: number;
   members: {
     id: number;
     full_name: string;
@@ -185,8 +186,10 @@ interface TeamData {
     email: string;
     branch: string;
     cycle: string;
+    year_of_study?: number;
   }[];
 }
+
 
 interface AdminDashboardProps {
   tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports' | 'academic' | 'ratings';
@@ -203,11 +206,19 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
-  const [selectedAnalyticsYear, setSelectedAnalyticsYear] = useState<number | null>(null);
+  const [globalYear, setGlobalYear] = useState<number | null>(() => {
+    try {
+      const saved = localStorage.getItem('admin_selected_year');
+      return saved !== null && saved !== 'null' && saved !== '' ? Number(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [analyticsRosterTab, setAnalyticsRosterTab] = useState<'students' | 'teams'>('students');
   const [analyticsRosterSearch, setAnalyticsRosterSearch] = useState('');
 
   // Search states
+
 
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,9 +306,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [onlyWithFeedback, setOnlyWithFeedback] = useState(false);
 
 
-  const fetchReports = async () => {
+  const fetchReports = async (yearOverride?: number | null) => {
     try {
-      const res = await api.get('/admin/reports');
+      const yearToFetch = yearOverride !== undefined ? yearOverride : globalYear;
+      const url = yearToFetch ? `/admin/reports?year=${yearToFetch}` : '/admin/reports';
+      const res = await api.get(url);
       setReports(res.data || []);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to load reports. Are you an admin?");
@@ -310,7 +323,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     setAnalyticsLoading(true);
     setAnalyticsError(null);
     try {
-      const yearToFetch = yearOverride !== undefined ? yearOverride : selectedAnalyticsYear;
+      const yearToFetch = yearOverride !== undefined ? yearOverride : globalYear;
       const url = yearToFetch ? `/admin/analytics?year=${yearToFetch}` : '/admin/analytics';
       const res = await api.get(url);
       setAnalytics(res.data || null);
@@ -322,12 +335,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
-
-  const fetchMentorsData = async () => {
+  const fetchMentorsData = async (yearOverride?: number | null) => {
     try {
+      const yearToFetch = yearOverride !== undefined ? yearOverride : globalYear;
       const res = await api.get('/admin/mentors');
       setMentors(res.data || []);
-      const resTeams = await api.get('/admin/unassigned-teams');
+      const url = yearToFetch ? `/admin/unassigned-teams?year=${yearToFetch}` : '/admin/unassigned-teams';
+      const resTeams = await api.get(url);
       setAllTeams(resTeams.data || []);
     } catch (err) {
       console.error("Failed to fetch mentor management data", err);
@@ -336,10 +350,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
-  const fetchTeamsData = async () => {
+  const fetchTeamsData = async (yearOverride?: number | null) => {
     setTeamsLoading(true);
     try {
-      const res = await api.get('/admin/teams');
+      const yearToFetch = yearOverride !== undefined ? yearOverride : globalYear;
+      const url = yearToFetch ? `/admin/teams?year=${yearToFetch}` : '/admin/teams';
+      const res = await api.get(url);
       setTeams(res.data || []);
     } catch (err) {
       console.error("Failed to fetch teams data", err);
@@ -347,6 +363,35 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       setTeamsLoading(false);
     }
   };
+
+  const fetchAllUsers = async (yearOverride?: number | null) => {
+    setAllUsersLoading(true);
+    setDirectoryError(null);
+    try {
+      const yearToFetch = yearOverride !== undefined ? yearOverride : globalYear;
+      const url = yearToFetch ? `/admin/users?year=${yearToFetch}` : '/admin/users';
+      const res = await api.get(url);
+      setAllUsers(res.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch all users', err);
+      setDirectoryError(err.response?.data?.detail || err.message || 'Failed to load directory');
+    } finally {
+      setAllUsersLoading(false);
+    }
+  };
+
+  const handleGlobalYearChange = (yr: number | null) => {
+    setGlobalYear(yr);
+    try {
+      localStorage.setItem('admin_selected_year', yr === null ? 'null' : String(yr));
+    } catch (_) {}
+    fetchAnalytics(yr);
+    fetchTeamsData(yr);
+    fetchMentorsData(yr);
+    fetchAllUsers(yr);
+    fetchReports(yr);
+  };
+
 
   const fetchAcademicSettings = async () => {
     setAcademicLoading(true);
@@ -459,7 +504,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Trigger search on debounced query change
+  // Trigger search on debounced query change or globalYear change
   useEffect(() => {
     const performSearch = async () => {
       const q = debouncedQuery.trim();
@@ -469,7 +514,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       }
       setSearchLoading(true);
       try {
-        const res = await api.get(`/admin/search?q=${encodeURIComponent(q)}`);
+        const url = globalYear ? `/admin/search?q=${encodeURIComponent(q)}&year=${globalYear}` : `/admin/search?q=${encodeURIComponent(q)}`;
+        const res = await api.get(url);
         setSearchResults(res.data || { users: [], teams: [] });
         addRecentSearch(q);
       } catch (err) {
@@ -479,37 +525,24 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       }
     };
     performSearch();
-  }, [debouncedQuery]);
+  }, [debouncedQuery, globalYear]);
 
   useEffect(() => {
-    fetchReports();
-    fetchAnalytics();
-    fetchMentorsData();
-    fetchTeamsData();
+    fetchReports(globalYear);
+    fetchAnalytics(globalYear);
+    fetchMentorsData(globalYear);
+    fetchTeamsData(globalYear);
     fetchAcademicSettings();
-    // Fetch all users for the search directory
-    const fetchAllUsers = async () => {
-      setAllUsersLoading(true);
-      setDirectoryError(null);
-      try {
-        const res = await api.get('/admin/users');
-        setAllUsers(res.data || []);
-      } catch (err: any) {
-        console.error('Failed to fetch all users', err);
-        setDirectoryError(err.response?.data?.detail || err.message || 'Failed to load directory');
-      } finally {
-        setAllUsersLoading(false);
-      }
-    };
-    fetchAllUsers();
+    fetchAllUsers(globalYear);
 
     // Auto-refresh analytics every 30 seconds
     const interval = setInterval(() => {
-      fetchAnalytics();
+      fetchAnalytics(globalYear);
     }, 30000);
 
     return () => clearInterval(interval);
   }, []);
+
 
   // Sync URL search query parameters to teamsSearchText in Teams tab
   useEffect(() => {
@@ -842,6 +875,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   ];
 
   const filteredTeams = (teams || []).filter(t => {
+    if (globalYear !== null && t.team_year && t.team_year !== globalYear) return false;
     const matchesBranch = !branchFilter || (t.members || []).some(m => (m.branch || "N/A").trim().toUpperCase() === branchFilter);
     const matchesTheme = !themeFilter || (t.project_topic || "N/A").trim().toUpperCase() === themeFilter;
     const matchesStatus = !statusFilter || t.mentor_status === statusFilter;
@@ -863,6 +897,16 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     if (selectedCategoryFilter === 'student' && r.is_mentor) return false;
     if (selectedCategoryFilter === 'mentor' && !r.is_mentor) return false;
     if (onlyWithFeedback && !(r.feedback && r.feedback.trim())) return false;
+    if (globalYear !== null && !r.is_mentor) {
+      const email = (r.user_email || '').toLowerCase();
+      const usn = (r.usn || '').toUpperCase();
+      const is1st = email.includes('26') || usn.includes('26');
+      const is2nd = email.includes('25') || usn.includes('25');
+      const is3rd = email.includes('24') || usn.includes('24');
+      if (globalYear === 1 && !is1st) return false;
+      if (globalYear === 2 && !is2nd) return false;
+      if (globalYear === 3 && !is3rd) return false;
+    }
     if (ratingSearchQuery.trim()) {
       const q = ratingSearchQuery.toLowerCase().trim();
       const matchName = (r.user_name || '').toLowerCase().includes(q);
@@ -878,9 +922,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
   return (
     <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-10 px-4 md:px-8 space-y-8">
-      {/* Header section with context-aware Title, Subtitle */}
+      {/* Header section with context-aware Title, Subtitle, and GLOBAL COHORT FILTER */}
       {activeTab !== 'reports' && (
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
           <div>
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
               <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
@@ -901,10 +945,58 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               {activeTab === 'academic' && "Centralized academic profile generation, branch mappings, subject cycle allocation, and academic session settings."}
               {activeTab === 'ratings' && "Monitor real-time student and faculty satisfaction scores, feedback, and platform suggestions."}
             </p>
+          </div>
 
+          {/* Global Academic Year / Cohort Filter - Active across entire Admin Interface */}
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm self-start lg:self-auto flex-wrap">
+            <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Cohort:</span>
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => handleGlobalYearChange(null)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                globalYear === null
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span>All Years</span>
+            </button>
+
+            {[
+              { yr: 1, label: "1st Year", batch: "2026" },
+              { yr: 2, label: "2nd Year", batch: "2025" },
+              { yr: 3, label: "3rd Year", batch: "2024" }
+            ].map(({ yr, label, batch }) => {
+              const isSelected = globalYear === yr;
+              return (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => handleGlobalYearChange(yr)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                  title={`${label} (${batch} Batch)`}
+                >
+                  <span>{label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
+                    isSelected ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                  }`}>
+                    {batch}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
+
 
 
 
@@ -1042,18 +1134,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
                           Year-Wise Analytics Dashboard
                         </h2>
-                        {selectedAnalyticsYear !== null && (
+                        {globalYear !== null && (
                           <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
-                            {selectedAnalyticsYear === 1 ? '1st Year' : selectedAnalyticsYear === 2 ? '2nd Year' : '3rd Year'} Active
+                            {globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'} Active
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                        {selectedAnalyticsYear === null
+                        {globalYear === null
                           ? "Showing overall metrics across all undergraduate years (1st, 2nd, and 3rd year)"
-                          : selectedAnalyticsYear === 1
+                          : globalYear === 1
                           ? "Showing 1st Year cohort metrics (foundation cycle, student onboarding, initial teams)"
-                          : selectedAnalyticsYear === 2
+                          : globalYear === 2
                           ? "Showing 2nd Year cohort metrics (experiential learning, approved projects, mentor status)"
                           : "Showing 3rd Year cohort metrics (advanced domain projects & milestone evaluations)"}
                       </p>
@@ -1064,12 +1156,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1.5 self-start md:self-auto flex-wrap">
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedAnalyticsYear(null);
-                        fetchAnalytics(null);
-                      }}
+                      onClick={() => handleGlobalYearChange(null)}
                       className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                        selectedAnalyticsYear === null
+                        globalYear === null
                           ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
                           : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
                       }`}
@@ -1077,7 +1166,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       <span>All Years</span>
                       {analytics?.year_breakdown?.all && (
                         <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                          selectedAnalyticsYear === null 
+                          globalYear === null 
                             ? "bg-white/20 text-white" 
                             : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                         }`}>
@@ -1092,15 +1181,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       { yr: 3, label: "3rd Year", countKey: "3" }
                     ].map(({ yr, label, countKey }) => {
                       const count = analytics?.year_breakdown?.[countKey]?.students;
-                      const isSelected = selectedAnalyticsYear === yr;
+                      const isSelected = globalYear === yr;
                       return (
                         <button
                           key={yr}
                           type="button"
-                          onClick={() => {
-                            setSelectedAnalyticsYear(yr);
-                            fetchAnalytics(yr);
-                          }}
+                          onClick={() => handleGlobalYearChange(yr)}
                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
                             isSelected
                               ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
@@ -1122,6 +1208,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     })}
                   </div>
                 </div>
+
 
                 {/* 1. 8 Redesigned Statistics Cards */}
 
@@ -1759,7 +1846,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
                         <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                          {selectedAnalyticsYear ? `${selectedAnalyticsYear === 1 ? '1st' : selectedAnalyticsYear === 2 ? '2nd' : '3rd'} Year Branch Distribution` : 'All Years Branch Distribution'}
+                          {globalYear ? `${globalYear === 1 ? '1st' : globalYear === 2 ? '2nd' : '3rd'} Year Branch Distribution` : 'All Years Branch Distribution'}
                         </h4>
                       </div>
                       <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
@@ -1795,7 +1882,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          {selectedAnalyticsYear ? `${selectedAnalyticsYear === 1 ? '1st' : selectedAnalyticsYear === 2 ? '2nd' : '3rd'} Year Cohort Roster` : 'All Years Platform Roster'}
+                          {globalYear ? `${globalYear === 1 ? '1st' : globalYear === 2 ? '2nd' : '3rd'} Year Cohort Roster` : 'All Years Platform Roster'}
                         </h3>
                         <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
                           {analyticsRosterTab === 'students' 
@@ -1805,10 +1892,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                         {analyticsRosterTab === 'students'
-                          ? `Browse verified students enrolled in the ${selectedAnalyticsYear ? (selectedAnalyticsYear === 1 ? '1st Year (2026 Batch)' : selectedAnalyticsYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)') : 'undergraduate programs'}.`
-                          : `Browse project teams formed by the ${selectedAnalyticsYear ? (selectedAnalyticsYear === 1 ? '1st Year' : selectedAnalyticsYear === 2 ? '2nd Year' : '3rd Year') : 'all'} students.`}
+                          ? `Browse verified students enrolled in the ${globalYear ? (globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)') : 'undergraduate programs'}.`
+                          : `Browse project teams formed by the ${globalYear ? (globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year') : 'all'} students.`}
                       </p>
                     </div>
+
 
                     <div className="flex items-center gap-3 flex-wrap">
                       {/* Sub-tab toggle */}
@@ -1991,8 +2079,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                 <th className="pb-3">Project Topic</th>
                                 <th className="pb-3">Assigned Mentor</th>
                                 <th className="pb-3">Status</th>
-                                <th className="pb-3">Members ({selectedAnalyticsYear ? `${selectedAnalyticsYear} yr` : 'all'})</th>
+                                <th className="pb-3">Members ({globalYear ? `${globalYear} yr` : 'all'})</th>
                                 <th className="pb-3 text-right pr-2">Action</th>
+
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
@@ -2074,8 +2163,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Global Directory Filter: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong> active.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+
             {/* Google Search Bar Style */}
             <div className="flex items-center gap-3.5 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-full shadow-md hover:shadow-lg focus-within:shadow-lg focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 transition-all duration-300 w-full mb-2">
+
               <Search className="text-slate-400 dark:text-slate-550 flex-shrink-0" size={20} />
               <input
                 type="text"
@@ -2333,8 +2442,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Filtered by Global Cohort: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong>.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+
             {/* Search filter for Mentors */}
             <div className="glass-panel p-5 flex items-center gap-3">
+
               <Search className="text-slate-400 flex-shrink-0" size={20} />
               <input
                 type="text"
@@ -2506,8 +2635,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Filtered by Global Cohort: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong>. Showing {filteredTeams.length} teams.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+
             {/* Filters Section */}
             <div className="glass-panel p-5 grid grid-cols-1 sm:grid-cols-4 gap-4">
+
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
                   <Search size={10} /> Search Name / Topic / Mentor
@@ -3072,7 +3221,27 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </div>
             )}
 
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Filtered by Global Cohort: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong>. Showing {filteredRatings.length} reviews.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+
             {/* Top KPI Metrics */}
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {/* Card 1: Average Score */}

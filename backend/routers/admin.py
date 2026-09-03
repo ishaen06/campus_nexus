@@ -54,13 +54,27 @@ def verify_reauth(payload: AdminReauthRequest, admin = Depends(get_admin_user)):
     return {"status": "ok"}
 
 @router.get("/reports", response_model=List[dict])
-def get_reports(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+def get_reports(year: Optional[int] = Query(None), admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     reports = list(db.reports.find())
     results = []
     for r in reports:
         reporter = db.users.find_one({"id": r["reporter_id"]})
         reported = db.users.find_one({"id": r["reported_id"]})
         
+        # Filter by year if requested
+        if year is not None and year in [1, 2, 3, 4]:
+            match_year = False
+            if reporter and not reporter.get("is_mentor"):
+                _, _, y = _extract_user_academic_info(reporter)
+                if y == year:
+                    match_year = True
+            if reported and not reported.get("is_mentor"):
+                _, _, y = _extract_user_academic_info(reported)
+                if y == year:
+                    match_year = True
+            if not match_year:
+                continue
+
         reporter_data = {"id": reporter["id"], "name": reporter["full_name"]} if reporter else None
         reported_data = {"id": reported["id"], "name": reported["full_name"]} if reported else None
         
@@ -72,6 +86,7 @@ def get_reports(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
             "created_at": r["created_at"]
         })
     return results
+
 
 @router.post("/ban/{user_id}")
 def ban_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
@@ -393,7 +408,7 @@ def get_admin_analytics(
 
 
 @router.get("/users")
-def get_all_users(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+def get_all_users(year: Optional[int] = Query(None), admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     """Return all platform users (students + mentors) sorted by role then name."""
     users = list(db.users.find(
         {"email": {"$ne": "ishaen.vihaan@gmail.com"}},
@@ -401,8 +416,16 @@ def get_all_users(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     ))
     formatted_users = []
     for u in users:
+        is_mentor = bool(u.get("is_mentor"))
+        user_year = None
+        if not is_mentor:
+            _, _, y_study = _extract_user_academic_info(u)
+            user_year = y_study
+            if year is not None and year in [1, 2, 3, 4] and user_year != year:
+                continue
+
         group_info = None
-        if not u.get("is_mentor"):
+        if not is_mentor:
             membership = db.group_members.find_one({"user_id": u["id"]})
             if membership:
                 group = db.group_chats.find_one({"id": membership["group_id"]})
@@ -423,16 +446,16 @@ def get_all_users(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
             "branch": u.get("branch") or "N/A",
             "department": u.get("department") or "N/A",
             "post": u.get("post") or "N/A",
-            "is_mentor": bool(u.get("is_mentor")),
+            "is_mentor": is_mentor,
             "bio": u.get("bio") or "",
             "cycle": u.get("cycle") or "N/A",
-            "year_of_study": u.get("year_of_study"),
+            "year_of_study": user_year if not is_mentor else None,
             "group": group_info
         })
     return formatted_users
 
 @router.get("/search")
-def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+def admin_global_search(q: str = "", year: Optional[int] = Query(None), admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     q = q.strip()
     if not q:
         return {"users": [], "teams": []}
@@ -462,9 +485,17 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
     users = list(db.users.find(user_query).limit(50))
     formatted_users = []
     for u in users:
+        is_mentor = bool(u.get("is_mentor"))
+        user_year = None
+        if not is_mentor:
+            _, _, y_study = _extract_user_academic_info(u)
+            user_year = y_study
+            if year is not None and year in [1, 2, 3, 4] and user_year != year:
+                continue
+
         # Resolve group membership if student
         group_info = None
-        if not u.get("is_mentor"):
+        if not is_mentor:
             membership = db.group_members.find_one({"user_id": u["id"]})
             if membership:
                 group = db.group_chats.find_one({"id": membership["group_id"]})
@@ -485,9 +516,10 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
             "branch": u.get("branch") or "N/A",
             "department": u.get("department") or "N/A",
             "post": u.get("post") or "N/A",
-            "is_mentor": bool(u.get("is_mentor")),
+            "is_mentor": is_mentor,
             "bio": u.get("bio") or "",
             "cycle": u.get("cycle") or "N/A",
+            "year_of_study": user_year if not is_mentor else None,
             "group": group_info
         })
         
@@ -520,6 +552,20 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
         student_ids = [uid for uid in member_ids if uid != mentor_id]
         students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
         
+        team_years = []
+        for s in students:
+            _, _, y = _extract_user_academic_info(s)
+            team_years.append(y)
+        if not team_years:
+            creator = db.users.find_one({"id": t.get("created_by")})
+            if creator:
+                _, _, cy = _extract_user_academic_info(creator)
+                team_years.append(cy)
+        team_year = team_years[0] if team_years else 2
+
+        if year is not None and year in [1, 2, 3, 4] and team_year != year:
+            continue
+
         member_names = [s.get("full_name") for s in students if s.get("full_name")]
         
         formatted_teams.append({
@@ -529,6 +575,7 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
             "mentor_name": t.get("mentor_name") or "N/A",
             "mentor_email": t.get("mentor_email") or "N/A",
             "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED",
+            "team_year": team_year,
             "members": member_names
         })
         
@@ -536,6 +583,7 @@ def admin_global_search(q: str = "", admin = Depends(get_admin_user), db = Depen
         "users": formatted_users,
         "teams": formatted_teams
     }
+
 
 @router.get("/mentors")
 def get_admin_mentors(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
@@ -589,17 +637,35 @@ def get_admin_mentors(admin = Depends(get_admin_user), db = Depends(get_mongo_db
     return results
 
 @router.get("/unassigned-teams")
-def get_unassigned_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+def get_unassigned_teams(year: Optional[int] = Query(None), admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     teams = list(db.group_chats.find())
     results = []
     for t in teams:
+        member_recs = list(db.group_members.find({"group_id": t["id"]}))
+        member_ids = [r["user_id"] for r in member_recs]
+        students = list(db.users.find({"id": {"$in": member_ids}, "is_mentor": {"$ne": True}})) if member_ids else []
+        team_years = []
+        for s in students:
+            _, _, y = _extract_user_academic_info(s)
+            team_years.append(y)
+        if not team_years:
+            creator = db.users.find_one({"id": t.get("created_by")})
+            if creator:
+                _, _, cy = _extract_user_academic_info(creator)
+                team_years.append(cy)
+        team_year = team_years[0] if team_years else 2
+
+        if year is not None and year in [1, 2, 3, 4] and team_year != year:
+            continue
+
         results.append({
             "id": t["id"],
             "name": t.get("name") or "N/A",
             "project_topic": t.get("project_topic") or "N/A",
             "mentor_name": t.get("mentor_name") or "N/A",
             "mentor_email": t.get("mentor_email") or "N/A",
-            "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED"
+            "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED",
+            "team_year": team_year
         })
     return results
 
@@ -686,7 +752,7 @@ def remove_mentor_from_group(group_id: int, admin = Depends(get_admin_user), db 
     return {"detail": "Mentor removed successfully"}
 
 @router.get("/teams")
-def get_admin_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+def get_admin_teams(year: Optional[int] = Query(None), admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
     teams = list(db.group_chats.find())
     results = []
     
@@ -705,15 +771,31 @@ def get_admin_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db))
         student_ids = [uid for uid in member_ids if uid != mentor_id]
         students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
         
+        team_years = []
+        for s in students:
+            _, _, y = _extract_user_academic_info(s)
+            team_years.append(y)
+        if not team_years:
+            creator = db.users.find_one({"id": t.get("created_by")})
+            if creator:
+                _, _, cy = _extract_user_academic_info(creator)
+                team_years.append(cy)
+        team_year = team_years[0] if team_years else 2
+
+        if year is not None and year in [1, 2, 3, 4] and team_year != year:
+            continue
+
         formatted_students = []
         for s in students:
+            _, _, sy = _extract_user_academic_info(s)
             formatted_students.append({
                 "id": s["id"],
                 "full_name": s.get("full_name") or "N/A",
                 "usn": s.get("usn") or "N/A",
                 "email": s.get("email") or "N/A",
                 "branch": s.get("branch") or "N/A",
-                "cycle": s.get("cycle") or "N/A"
+                "cycle": s.get("cycle") or "N/A",
+                "year_of_study": sy
             })
             
         results.append({
@@ -723,10 +805,12 @@ def get_admin_teams(admin = Depends(get_admin_user), db = Depends(get_mongo_db))
             "mentor_name": t.get("mentor_name") or "N/A",
             "mentor_email": t.get("mentor_email") or "N/A",
             "mentor_status": t.get("mentor_status") or "NOT_SUBMITTED",
+            "team_year": team_year,
             "members": formatted_students
         })
         
     return results
+
 
 @router.post("/groups/{group_id}/dissolve")
 def dissolve_group_by_admin(group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
