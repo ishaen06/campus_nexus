@@ -300,6 +300,61 @@ def get_admin_analytics(
             month_str = dt.strftime("%b %Y")
             monthly_trend[month_str] = monthly_trend.get(month_str, 0) + 1
 
+    # Build list of students with team info for the selected scope
+    user_team_map = {}
+    for g in all_groups:
+        for uid in group_members_map.get(g["id"], []):
+            user_team_map[uid] = {
+                "team_id": g["id"],
+                "team_name": g.get("name"),
+                "mentor_name": g.get("mentor_name") or "Unassigned"
+            }
+
+    students_list = []
+    for s in filtered_students:
+        uid = s["id"]
+        t_info = user_team_map.get(uid)
+        students_list.append({
+            "id": uid,
+            "full_name": s.get("full_name") or "N/A",
+            "usn": s.get("usn") or "N/A",
+            "email": s.get("email") or "N/A",
+            "branch": (s.get("branch") or s.get("branch_code") or "N/A").strip().upper(),
+            "year_of_study": s.get("year_of_study") or 1,
+            "cycle": s.get("cycle") or "N/A",
+            "has_team": t_info is not None,
+            "team_id": t_info["team_id"] if t_info else None,
+            "team_name": t_info["team_name"] if t_info else "No Team",
+            "mentor_name": t_info["mentor_name"] if t_info else None
+        })
+
+    # Build list of teams for the selected scope
+    teams_list = []
+    for g in filtered_groups:
+        gid = g["id"]
+        m_uids = group_members_map.get(gid, [])
+        members_summary = []
+        for mid in m_uids:
+            if mid in student_map:
+                st = student_map[mid]
+                members_summary.append({
+                    "id": mid,
+                    "name": st.get("full_name") or "N/A",
+                    "usn": st.get("usn") or "N/A",
+                    "branch": (st.get("branch") or st.get("branch_code") or "N/A").strip().upper()
+                })
+        teams_list.append({
+            "id": gid,
+            "name": g.get("name") or f"Team #{gid}",
+            "project_topic": g.get("project_topic") or "Topic not submitted",
+            "project_theme": g.get("project_theme") or g.get("theme") or "N/A",
+            "mentor_name": g.get("mentor_name") or "Unassigned",
+            "mentor_status": g.get("mentor_status") or "NOT_SUBMITTED",
+            "member_count": len(members_summary),
+            "members": members_summary,
+            "team_year": group_year_map.get(gid, 2)
+        })
+
     return {
         "selected_year": year,
         "year_breakdown": {
@@ -330,8 +385,11 @@ def get_admin_analytics(
         "event_registrations": event_registrations,
         "team_formation_progress": team_formation_progress,
         "project_status_distribution": project_status_distribution,
-        "monthly_project_creation_trend": monthly_trend
+        "monthly_project_creation_trend": monthly_trend,
+        "students": students_list,
+        "teams": teams_list
     }
+
 
 
 @router.get("/users")

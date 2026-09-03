@@ -345,6 +345,8 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
       - 25 in email or USN -> 2nd year (joining_year 2025, year_of_study 2)
       - 24 in email or USN -> 3rd year (joining_year 2024, year_of_study 3)
       - 23 in email or USN -> 4th year (joining_year 2023, year_of_study 4)
+      - Cycle is P or C -> 1st year (2026)
+      - Saved year_of_study is respected
     """
     import re
     from services.academic_service import parse_rvce_email
@@ -353,61 +355,72 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     usn = (u.get("usn") or "").strip().upper()
     branch_code = (u.get("branch_code") or "").strip().upper()
     joining_year = u.get("joining_year")
+    saved_year = u.get("year_of_study")
+    cycle = (u.get("cycle") or "").strip().upper()
 
-    # Direct rules:
+    # 1. Direct explicit rules from email or USN:
     if "26" in email or "26" in usn:
         joining_year = 2026
+        year_of_study = 1
     elif "25" in email or "25" in usn:
         joining_year = 2025
+        year_of_study = 2
     elif "24" in email or "24" in usn:
         joining_year = 2024
+        year_of_study = 3
     elif "23" in email or "23" in usn:
         joining_year = 2023
+        year_of_study = 4
+    elif cycle in ["P", "C", "PHYSICS", "CHEMISTRY"]:
+        # Only 1st year students are divided into P-Cycle and C-Cycle
+        joining_year = 2026
+        year_of_study = 1
+    elif saved_year in [1, 2, 3, 4]:
+        year_of_study = int(saved_year)
+        joining_year = 2027 - year_of_study
+    elif joining_year:
+        try:
+            jy = int(joining_year)
+            if jy == 2026:
+                year_of_study = 1
+            elif jy == 2025:
+                year_of_study = 2
+            elif jy == 2024:
+                year_of_study = 3
+            elif jy == 2023:
+                year_of_study = 4
+            else:
+                year_of_study = _get_year_of_study(jy)
+        except Exception:
+            year_of_study = 2
+            joining_year = 2025
+    else:
+        year_of_study = 2
+        joining_year = 2025
 
-    # 1. Direct short code in branch
+    # Branch extraction:
     if not branch_code:
         b_val = (u.get("branch") or "").strip().upper()
         if b_val in BRANCH_CLUSTERS:
             branch_code = b_val
 
-    # 2. Check USN pattern (e.g., 1RV25CD001 -> 2025, CD)
-    if usn:
+    if usn and not branch_code:
         m = re.match(r"^1R[VZ](\d{2})([A-Z]{2,3})\d{3}$", usn)
         if m:
             yy, b = m.groups()
-            if not joining_year:
-                joining_year = 2000 + int(yy)
-            if not branch_code and b in BRANCH_CLUSTERS:
+            if b in BRANCH_CLUSTERS:
                 branch_code = b
 
-    # 3. If missing, try parsing valid RVCE email
-    if (not branch_code or not joining_year) and email.endswith("@rvce.edu.in"):
+    if (not branch_code) and email.endswith("@rvce.edu.in"):
         parsed = parse_rvce_email(email)
-        if parsed.get("is_valid_rvce_student") or any(y in email for y in ["24", "25", "26"]):
-            if not branch_code:
-                branch_code = parsed.get("branch_code", "")
-            if not joining_year:
-                joining_year = parsed.get("joining_year")
+        if parsed.get("branch_code"):
+            branch_code = parsed.get("branch_code")
 
-    # Final defaults if still unresolved
-    if not joining_year:
-        joining_year = 2025
     if not branch_code:
         branch_code = "CS"
 
-    # Precise year of study differentiation
-    if "26" in email or "26" in usn or int(joining_year) == 2026:
-        year_of_study = 1
-    elif "25" in email or "25" in usn or int(joining_year) == 2025:
-        year_of_study = 2
-    elif "24" in email or "24" in usn or int(joining_year) == 2024:
-        year_of_study = 3
-    elif "23" in email or "23" in usn or int(joining_year) == 2023:
-        year_of_study = 4
-    else:
-        year_of_study = _get_year_of_study(int(joining_year))
+    return branch_code, int(joining_year), int(year_of_study)
 
-    return branch_code, int(joining_year), year_of_study
 
 
 

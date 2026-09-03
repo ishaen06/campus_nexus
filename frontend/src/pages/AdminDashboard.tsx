@@ -85,7 +85,32 @@ interface AnalyticsData {
     all?: { students: number; teams: number };
     [key: string]: { students: number; teams: number } | undefined;
   };
+  students?: Array<{
+    id: number;
+    full_name: string;
+    usn: string;
+    email: string;
+    branch: string;
+    year_of_study: number;
+    cycle: string;
+    has_team: boolean;
+    team_id?: number | null;
+    team_name?: string;
+    mentor_name?: string | null;
+  }>;
+  teams?: Array<{
+    id: number;
+    name: string;
+    project_topic: string;
+    project_theme: string;
+    mentor_name: string;
+    mentor_status: string;
+    member_count: number;
+    members: Array<{ id: number; name: string; usn: string; branch: string }>;
+    team_year: number;
+  }>;
 }
+
 
 
 interface MatchedUser {
@@ -179,8 +204,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [selectedAnalyticsYear, setSelectedAnalyticsYear] = useState<number | null>(null);
+  const [analyticsRosterTab, setAnalyticsRosterTab] = useState<'students' | 'teams'>('students');
+  const [analyticsRosterSearch, setAnalyticsRosterSearch] = useState('');
 
   // Search states
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -1719,8 +1747,324 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     })()}
                   </motion.div>
                 </div>
+
+                {/* 3. Branch Breakdown Badges for the Active Year */}
+                {analytics.students_by_branch && Object.keys(analytics.students_by_branch).length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-panel p-5 space-y-3"
+                  >
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                          {selectedAnalyticsYear ? `${selectedAnalyticsYear === 1 ? '1st' : selectedAnalyticsYear === 2 ? '2nd' : '3rd'} Year Branch Distribution` : 'All Years Branch Distribution'}
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                        {Object.values(analytics.students_by_branch).reduce((a, b) => a + b, 0)} Total Students
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {Object.entries(analytics.students_by_branch)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([branch, count]) => (
+                          <div
+                            key={branch}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 shadow-sm"
+                          >
+                            <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">{branch}</span>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded-md shadow-xs">
+                              {count}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 4. Interactive Roster Explorer (Students & Teams for this Year) */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-panel p-6 space-y-5 shadow-sm"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                          {selectedAnalyticsYear ? `${selectedAnalyticsYear === 1 ? '1st' : selectedAnalyticsYear === 2 ? '2nd' : '3rd'} Year Cohort Roster` : 'All Years Platform Roster'}
+                        </h3>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                          {analyticsRosterTab === 'students' 
+                            ? `${(analytics.students || []).length} Students` 
+                            : `${(analytics.teams || []).length} Teams`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                        {analyticsRosterTab === 'students'
+                          ? `Browse verified students enrolled in the ${selectedAnalyticsYear ? (selectedAnalyticsYear === 1 ? '1st Year (2026 Batch)' : selectedAnalyticsYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)') : 'undergraduate programs'}.`
+                          : `Browse project teams formed by the ${selectedAnalyticsYear ? (selectedAnalyticsYear === 1 ? '1st Year' : selectedAnalyticsYear === 2 ? '2nd Year' : '3rd Year') : 'all'} students.`}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {/* Sub-tab toggle */}
+                      <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => setAnalyticsRosterTab('students')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                            analyticsRosterTab === 'students'
+                              ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Users size={14} />
+                          <span>Students</span>
+                          <span className="text-[10px] px-1 py-0.2 rounded-full bg-slate-200/60 dark:bg-slate-600/60 font-bold">
+                            {(analytics.students || []).length}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAnalyticsRosterTab('teams')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                            analyticsRosterTab === 'teams'
+                              ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Layers size={14} />
+                          <span>Teams</span>
+                          <span className="text-[10px] px-1 py-0.2 rounded-full bg-slate-200/60 dark:bg-slate-600/60 font-bold">
+                            {(analytics.teams || []).length}
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Quick Search in Roster */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <input
+                          type="text"
+                          placeholder={analyticsRosterTab === 'students' ? 'Search student name, USN, branch...' : 'Search team name, topic...'}
+                          value={analyticsRosterSearch}
+                          onChange={(e) => setAnalyticsRosterSearch(e.target.value)}
+                          className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none w-56 focus:border-indigo-500 focus:w-64 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Table Content */}
+                  {analyticsRosterTab === 'students' ? (
+                    <div className="overflow-x-auto">
+                      {(() => {
+                        const rawStudents = analytics.students || [];
+                        const q = analyticsRosterSearch.toLowerCase().trim();
+                        const filtered = rawStudents.filter(s => 
+                          !q ||
+                          s.full_name.toLowerCase().includes(q) ||
+                          s.usn.toLowerCase().includes(q) ||
+                          s.email.toLowerCase().includes(q) ||
+                          s.branch.toLowerCase().includes(q) ||
+                          (s.team_name || '').toLowerCase().includes(q)
+                        );
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="text-center py-12 text-slate-400 font-medium">
+                              <UserX size={32} className="mx-auto mb-2 opacity-50" />
+                              <p className="text-sm">No students found matching your criteria in this year cohort.</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="text-[11px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                                <th className="pb-3 pl-2">Student</th>
+                                <th className="pb-3">USN</th>
+                                <th className="pb-3">Branch</th>
+                                <th className="pb-3">Cohort / Year</th>
+                                <th className="pb-3">Cycle</th>
+                                <th className="pb-3 text-right pr-2">Team Assignment</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                              {filtered.map((student) => (
+                                <tr key={student.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td className="py-3 pl-2">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs uppercase border border-indigo-500/20 flex-shrink-0">
+                                        {student.full_name.charAt(0) || 'S'}
+                                      </div>
+                                      <div>
+                                        <div className="font-extrabold text-slate-900 dark:text-white">
+                                          {student.full_name}
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                                          {student.email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 font-mono font-bold text-slate-700 dark:text-slate-300">
+                                    {student.usn}
+                                  </td>
+                                  <td className="py-3">
+                                    <span className="font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 text-[11px]">
+                                      {student.branch}
+                                    </span>
+                                  </td>
+                                  <td className="py-3">
+                                    <span className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                      student.year_of_study === 1 
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                                        : student.year_of_study === 2
+                                        ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                                        : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                                    }`}>
+                                      {student.year_of_study === 1 ? '1st Year (1st Sem)' : student.year_of_study === 2 ? '2nd Year (3rd Sem)' : `${student.year_of_study}rd Year`}
+                                    </span>
+                                  </td>
+                                  <td className="py-3">
+                                    {student.cycle && student.cycle !== 'N/A' ? (
+                                      <span className="font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px]">
+                                        {student.cycle}-Cycle
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 italic text-[11px]">N/A</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 text-right pr-2">
+                                    {student.has_team ? (
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
+                                        <CheckCircle2 size={13} />
+                                        <span>{student.team_name}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-800/40">
+                                        <AlertTriangle size={13} />
+                                        <span>No Team</span>
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      {(() => {
+                        const rawTeams = analytics.teams || [];
+                        const q = analyticsRosterSearch.toLowerCase().trim();
+                        const filtered = rawTeams.filter(t => 
+                          !q ||
+                          t.name.toLowerCase().includes(q) ||
+                          t.project_topic.toLowerCase().includes(q) ||
+                          t.mentor_name.toLowerCase().includes(q) ||
+                          String(t.id).includes(q)
+                        );
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="text-center py-12 text-slate-400 font-medium">
+                              <Layers size={32} className="mx-auto mb-2 opacity-50" />
+                              <p className="text-sm">No teams found matching your criteria in this year cohort.</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="text-[11px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                                <th className="pb-3 pl-2">Team</th>
+                                <th className="pb-3">Project Topic</th>
+                                <th className="pb-3">Assigned Mentor</th>
+                                <th className="pb-3">Status</th>
+                                <th className="pb-3">Members ({selectedAnalyticsYear ? `${selectedAnalyticsYear} yr` : 'all'})</th>
+                                <th className="pb-3 text-right pr-2">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                              {filtered.map((team) => (
+                                <tr key={team.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td className="py-3 pl-2">
+                                    <div className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                      <span>{team.name}</span>
+                                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                        ID: {team.id}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 font-medium">
+                                      Theme: {team.project_theme || 'N/A'}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 max-w-xs truncate font-medium text-slate-700 dark:text-slate-300" title={team.project_topic}>
+                                    {team.project_topic}
+                                  </td>
+                                  <td className="py-3 font-semibold text-slate-600 dark:text-slate-400">
+                                    {team.mentor_name}
+                                  </td>
+                                  <td className="py-3">
+                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                      team.mentor_status === 'APPROVED'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                                        : team.mentor_status === 'PENDING'
+                                        ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                                    }`}>
+                                      {team.mentor_status}
+                                    </span>
+                                  </td>
+                                  <td className="py-3">
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      <span className="font-black text-slate-800 dark:text-slate-200 mr-1">
+                                        {team.member_count} / 5
+                                      </span>
+                                      {(team.members || []).slice(0, 3).map((m, idx) => (
+                                        <span key={idx} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400">
+                                          {m.name.split(' ')[0]}
+                                        </span>
+                                      ))}
+                                      {(team.members || []).length > 3 && (
+                                        <span className="text-[10px] text-slate-400">
+                                          +{team.members.length - 3} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 text-right pr-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate(`/admin/teams?teamSearch=${encodeURIComponent(team.name)}`)}
+                                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <span>Manage</span>
+                                      <ChevronRight size={14} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </motion.div>
               </>
             )}
+
           </motion.div>
         ) : activeTab === 'search' ? (
           <motion.div 
