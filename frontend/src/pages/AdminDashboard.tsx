@@ -191,10 +191,43 @@ interface TeamData {
 }
 
 
+export const resolveStudentYear = (s: any): number => {
+  if (s?.year_of_study && Number(s.year_of_study) >= 1 && Number(s.year_of_study) <= 4) {
+    return Number(s.year_of_study);
+  }
+  const email = (s?.email || s?.user_email || '').toLowerCase();
+  const usn = (s?.usn || '').toUpperCase();
+  const cycle = (s?.cycle || '').toUpperCase();
+
+  if (email.includes('26') || usn.includes('26') || (cycle && cycle !== 'N/A' && cycle !== 'NONE')) return 1;
+  if (email.includes('25') || usn.includes('25')) return 2;
+  if (email.includes('24') || usn.includes('24')) return 3;
+  if (email.includes('23') || usn.includes('23')) return 4;
+  return 2;
+};
+
+export const resolveTeamYear = (t: any): number => {
+  if (t?.team_year && Number(t.team_year) >= 1 && Number(t.team_year) <= 4) {
+    return Number(t.team_year);
+  }
+  const members = t?.members || [];
+  for (const m of members) {
+    if (typeof m === 'object' && m !== null) {
+      const yr = resolveStudentYear(m);
+      if (yr) return yr;
+    }
+  }
+  const name = (t?.name || '').toLowerCase();
+  const topic = (t?.project_topic || '').toLowerCase();
+  if (name.includes('26') || topic.includes('26')) return 1;
+  if (name.includes('25') || topic.includes('25')) return 2;
+  if (name.includes('24') || topic.includes('24')) return 3;
+  return 2;
+};
+
 interface AdminDashboardProps {
   tab?: 'moderation' | 'analytics' | 'search' | 'mentors' | 'teams' | 'reports' | 'academic' | 'ratings';
 }
-
 
 export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const navigate = useNavigate();
@@ -216,6 +249,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   });
   const [analyticsRosterTab, setAnalyticsRosterTab] = useState<'students' | 'teams'>('students');
   const [analyticsRosterSearch, setAnalyticsRosterSearch] = useState('');
+
 
   // Search states
 
@@ -875,7 +909,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   ];
 
   const filteredTeams = (teams || []).filter(t => {
-    if (globalYear !== null && t.team_year && t.team_year !== globalYear) return false;
+    if (globalYear !== null && resolveTeamYear(t) !== globalYear) return false;
     const matchesBranch = !branchFilter || (t.members || []).some(m => (m.branch || "N/A").trim().toUpperCase() === branchFilter);
     const matchesTheme = !themeFilter || (t.project_topic || "N/A").trim().toUpperCase() === themeFilter;
     const matchesStatus = !statusFilter || t.mentor_status === statusFilter;
@@ -898,14 +932,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     if (selectedCategoryFilter === 'mentor' && !r.is_mentor) return false;
     if (onlyWithFeedback && !(r.feedback && r.feedback.trim())) return false;
     if (globalYear !== null && !r.is_mentor) {
-      const email = (r.user_email || '').toLowerCase();
-      const usn = (r.usn || '').toUpperCase();
-      const is1st = email.includes('26') || usn.includes('26');
-      const is2nd = email.includes('25') || usn.includes('25');
-      const is3rd = email.includes('24') || usn.includes('24');
-      if (globalYear === 1 && !is1st) return false;
-      if (globalYear === 2 && !is2nd) return false;
-      if (globalYear === 3 && !is3rd) return false;
+      if (resolveStudentYear(r) !== globalYear) return false;
     }
     if (ratingSearchQuery.trim()) {
       const q = ratingSearchQuery.toLowerCase().trim();
@@ -919,86 +946,121 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     return true;
   });
 
+  const filteredReports = (reports || []).filter(r => {
+    if (globalYear !== null) {
+      const u = r.reported || (r as any).reported_user;
+      if (u && !u.is_mentor) {
+        if (resolveStudentYear(u) !== globalYear) return false;
+      }
+    }
+    return true;
+  });
+
+  const filteredAllUsers = (allUsers || []).filter(u => {
+    if (userListFilter === 'mentors' && !u.is_mentor) return false;
+    if (userListFilter === 'students' && u.is_mentor) return false;
+    if (globalYear !== null && !u.is_mentor) {
+      if (resolveStudentYear(u) !== globalYear) return false;
+    }
+    return true;
+  });
+
+  const filteredSearchUsers = (searchResults.users || []).filter(u => {
+    if (globalYear !== null && !u.is_mentor) {
+      return resolveStudentYear(u) === globalYear;
+    }
+    return true;
+  });
+
+  const filteredSearchTeams = (searchResults.teams || []).filter(t => {
+    if (globalYear !== null) {
+      return resolveTeamYear(t) === globalYear;
+    }
+    return true;
+  });
+
+  const filteredUnassignedTeams = (allTeams || []).filter(t => {
+    if (globalYear !== null && resolveTeamYear(t) !== globalYear) return false;
+    return true;
+  });
+
 
   return (
-    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-10 px-4 md:px-8 space-y-8">
-      {/* Header section with context-aware Title, Subtitle, and GLOBAL COHORT FILTER */}
-      {activeTab !== 'reports' && (
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-              <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
-              {activeTab === 'moderation' && "Moderation Logs"}
-              {activeTab === 'analytics' && "Analytics Dashboard"}
-              {activeTab === 'search' && "Global Database Search"}
-              {activeTab === 'mentors' && "Mentor Workloads"}
-              {activeTab === 'teams' && "Teams & Project Roster"}
-              {activeTab === 'academic' && "Academic Settings & Subject Cycle Configuration"}
-              {activeTab === 'ratings' && "App Ratings & User Reviews"}
-            </h1>
-            <p className="text-slate-500 text-sm font-semibold mt-1">
-              {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
-              {activeTab === 'analytics' && "Real-time statistics, registrations, approvals, and workloads."}
-              {activeTab === 'search' && "Query users, mentors, and student groups across the database."}
-              {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
-              {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
-              {activeTab === 'academic' && "Centralized academic profile generation, branch mappings, subject cycle allocation, and academic session settings."}
-              {activeTab === 'ratings' && "Monitor real-time student and faculty satisfaction scores, feedback, and platform suggestions."}
-            </p>
-          </div>
-
-          {/* Global Academic Year / Cohort Filter - Active across entire Admin Interface */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm self-start lg:self-auto flex-wrap">
-            <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Cohort:</span>
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => handleGlobalYearChange(null)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                globalYear === null
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              <span>All Years</span>
-            </button>
-
-            {[
-              { yr: 1, label: "1st Year", batch: "2026" },
-              { yr: 2, label: "2nd Year", batch: "2025" },
-              { yr: 3, label: "3rd Year", batch: "2024" }
-            ].map(({ yr, label, batch }) => {
-              const isSelected = globalYear === yr;
-              return (
-                <button
-                  key={yr}
-                  type="button"
-                  onClick={() => handleGlobalYearChange(yr)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                  title={`${label} (${batch} Batch)`}
-                >
-                  <span>{label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
-                    isSelected ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
-                  }`}>
-                    {batch}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+    <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-6 px-4 md:px-8 space-y-6">
+      {/* Sticky Header section with Title, Subtitle, and GLOBAL COHORT FILTER */}
+      <div className="sticky top-0 z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md pb-5 pt-3 border-b border-slate-200/80 dark:border-slate-800/80 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
+            {activeTab === 'moderation' && "Moderation Logs"}
+            {activeTab === 'analytics' && "Analytics Dashboard"}
+            {activeTab === 'search' && "Global Database Search"}
+            {activeTab === 'mentors' && "Mentor Workloads"}
+            {activeTab === 'teams' && "Teams & Project Roster"}
+            {activeTab === 'academic' && "Academic Settings & Subject Cycle Configuration"}
+            {activeTab === 'reports' && "Report Center & Data Export"}
+            {activeTab === 'ratings' && "App Ratings & User Reviews"}
+          </h1>
+          <p className="text-slate-500 text-sm font-semibold mt-1">
+            {activeTab === 'moderation' && "Monitor campus network activity, safety logs, and report violations."}
+            {activeTab === 'analytics' && "Real-time statistics, registrations, approvals, and workloads."}
+            {activeTab === 'search' && "Query users, mentors, and student groups across the database."}
+            {activeTab === 'mentors' && "Manage project assignment capacity, reallocations, and workload."}
+            {activeTab === 'teams' && "View and filter student project teams, transfer members, and approve themes."}
+            {activeTab === 'academic' && "Centralized academic profile generation, branch mappings, subject cycle allocation, and academic session settings."}
+            {activeTab === 'reports' && "Export, download, and review platform records, team allocations, and grades."}
+            {activeTab === 'ratings' && "Monitor real-time student and faculty satisfaction scores, feedback, and platform suggestions."}
+          </p>
         </div>
-      )}
 
+        {/* Global Academic Year / Cohort Filter - Active across entire Admin Interface */}
+        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-md self-start lg:self-auto flex-wrap ring-1 ring-slate-900/5">
+          <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
+            <span>Cohort:</span>
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => handleGlobalYearChange(null)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+              globalYear === null
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            <span>All Years</span>
+          </button>
 
-
+          {[
+            { yr: 1, label: "1st Year", batch: "2026" },
+            { yr: 2, label: "2nd Year", batch: "2025" },
+            { yr: 3, label: "3rd Year", batch: "2024" }
+          ].map(({ yr, label, batch }) => {
+            const isSelected = globalYear === yr;
+            return (
+              <button
+                key={yr}
+                type="button"
+                onClick={() => handleGlobalYearChange(yr)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+                title={`${label} (${batch} Batch)`}
+              >
+                <span>{label}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
+                  isSelected ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                }`}>
+                  {batch}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Render Active Tab Panel */}
       <AnimatePresence mode="wait">
@@ -1010,7 +1072,26 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-4"
           >
-            {reports.map((report, index) => (
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Filtered by Global Cohort: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong>. Showing {filteredReports.length} reports.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+            {filteredReports.map((report, index) => (
+
               <motion.div 
                 key={report.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -1084,12 +1165,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </motion.div>
             ))}
 
-            {reports.length === 0 && (
+            {filteredReports.length === 0 && (
               <div className="text-center py-16 text-slate-400 font-semibold glass-panel p-10 max-w-md mx-auto mt-10">
                 <span className="text-4xl block mb-4">🛡️</span>
-                No reports found. Everyone is behaving well!
+                No reports found for this cohort. Everyone is behaving well!
               </div>
             )}
+
           </motion.div>
         ) : activeTab === 'analytics' ? (
           <motion.div
@@ -2217,13 +2299,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     {/* Column 1: Users */}
                     <div className="space-y-4">
                       <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                        <Users size={16} className="text-[#1e3a8a]" /> Users ({(searchResults.users || []).length})
+                        <Users size={16} className="text-[#1e3a8a]" /> Users ({filteredSearchUsers.length})
                       </h3>
                       <div className="space-y-3">
-                        {(searchResults.users || []).length === 0 ? (
-                          <p className="text-xs text-slate-400 italic font-medium p-4 glass-panel text-center">No matching users found.</p>
+                        {filteredSearchUsers.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic font-medium p-4 glass-panel text-center">No matching users found in this cohort.</p>
                         ) : (
-                          (searchResults.users || []).map((user) => (
+                          filteredSearchUsers.map((user) => (
                             <div
                               key={user.id}
                               onClick={() => setSelectedUser(user)}
@@ -2262,13 +2344,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     {/* Column 2: Teams */}
                     <div className="space-y-4">
                       <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                        <Layers size={16} className="text-[#1e3a8a]" /> Teams ({(searchResults.teams || []).length})
+                        <Layers size={16} className="text-[#1e3a8a]" /> Teams ({filteredSearchTeams.length})
                       </h3>
                       <div className="space-y-3">
-                        {(searchResults.teams || []).length === 0 ? (
-                          <p className="text-xs text-slate-400 italic font-medium p-4 glass-panel text-center">No matching teams found.</p>
+                        {filteredSearchTeams.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic font-medium p-4 glass-panel text-center">No matching teams found in this cohort.</p>
                         ) : (
-                          (searchResults.teams || []).map((team) => (
+                          filteredSearchTeams.map((team) => (
                             <div
                               key={team.id}
                               onClick={() => navigate(`/admin/teams?teamSearch=${encodeURIComponent(team.name)}`)}
@@ -2317,23 +2399,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           {recentSearches.map((term, index) => (
                             <div
                               key={index}
-                              className="group flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/40 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-800/80 rounded-xl text-xs font-bold transition-all cursor-pointer"
                               onClick={() => setSearchQuery(term)}
+                              className="px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700/60 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer transition-all flex items-center gap-2 group"
                             >
                               <span>{term}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRecentSearches(prev => {
-                                    const updated = prev.filter((_, i) => i !== index);
-                                    localStorage.setItem('recent_searches', JSON.stringify(updated));
-                                    return updated;
-                                  });
-                                }}
-                                className="text-slate-400 hover:text-rose-500 transition-colors rounded p-0.5"
-                              >
-                                <X size={10} />
-                              </button>
                             </div>
                           ))}
                         </div>
@@ -2346,7 +2415,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         <div className="flex items-center gap-2">
                           <Users size={15} className="text-indigo-500" />
                           <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Platform Directory</span>
-                          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">{allUsers.length}</span>
+                          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">{filteredAllUsers.length}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           {(['all', 'mentors', 'students'] as const).map(f => (
@@ -2364,7 +2433,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           ))}
                         </div>
                       </div>
-                      {directoryError && allUsers.length === 0 ? (
+                      {directoryError && filteredAllUsers.length === 0 ? (
                         <div className="p-6 text-center">
                           <p className="text-xs text-rose-500 font-bold bg-rose-500/10 border border-rose-500/25 px-4 py-3 rounded-2xl inline-block">
                             Network directory temporarily offline. Please search above. (Error: {directoryError})
@@ -2377,9 +2446,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5 max-h-[550px] overflow-y-auto no-scrollbar">
-                          {allUsers
-                            .filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor)
-                            .map((user) => (
+                          {filteredAllUsers.map((user) => (
                             <div
                               key={user.id}
                               onClick={() => setSelectedUser(user)}
@@ -2423,8 +2490,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                               </div>
                             </div>
                           ))}
-                          {allUsers.filter(u => userListFilter === 'all' ? true : userListFilter === 'mentors' ? u.is_mentor : !u.is_mentor).length === 0 && (
-                            <div className="col-span-full text-center py-16 text-slate-400 text-xs font-semibold">No users match the filter criteria.</div>
+                          {filteredAllUsers.length === 0 && (
+                            <div className="col-span-full text-center py-16 text-slate-400 text-xs font-semibold">No users match the filter criteria in this cohort.</div>
                           )}
                         </div>
                       )}
@@ -2534,7 +2601,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                             <div className="space-y-3.5">
                               <div className="flex justify-between items-center border-b border-slate-200/60 dark:border-slate-800/60 pb-2">
                                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Layers size={13} /> Assigned Teams ({(mentor.assigned_teams || []).length})
+                                  <Layers size={13} /> Assigned Teams ({
+                                    (mentor.assigned_teams || []).filter(t => globalYear === null || resolveTeamYear(t) === globalYear).length
+                                  })
                                 </h4>
 
                                 {/* Assign new team select dropdown */}
@@ -2546,7 +2615,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                     className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-705 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
                                   >
                                     <option value="" disabled>+ Assign / Transfer Team...</option>
-                                    {(allTeams || []).map((team) => (
+                                    {filteredUnassignedTeams.map((team) => (
                                       <option key={team.id} value={team.id}>
                                         {team.name} (ID: {team.id} - Current Mentor: {team.mentor_name})
                                       </option>
@@ -2555,11 +2624,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                 </div>
                               </div>
 
-                              {(mentor.assigned_teams || []).length === 0 ? (
-                                <p className="text-xs text-slate-400 font-medium italic">This mentor has no active team assignments.</p>
+                              {(mentor.assigned_teams || []).filter(t => globalYear === null || resolveTeamYear(t) === globalYear).length === 0 ? (
+                                <p className="text-xs text-slate-400 font-medium italic">This mentor has no active team assignments in this cohort.</p>
                               ) : (
                                 <div className="flex flex-col gap-4">
-                                  {(mentor.assigned_teams || []).map((team) => (
+                                  {(mentor.assigned_teams || []).filter(t => globalYear === null || resolveTeamYear(t) === globalYear).map((team) => (
+
                                     <div key={team.id} className="bg-white dark:bg-slate-950/20 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 flex flex-col justify-between gap-4">
                                       <div className="space-y-3">
                                         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -3636,8 +3706,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            {/* Global Cohort Active Banner */}
+            {globalYear !== null && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} />
+                  <span>
+                    Reports Cohort Scope: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong> active.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(null)}
+                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                >
+                  Clear Cohort Filter
+                </button>
+              </div>
+            )}
+
             {/* Grid of Report Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
               {/* Card 6: Approved Teams Detailed CSV */}
               <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
                 <div className="space-y-2">
