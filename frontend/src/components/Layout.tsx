@@ -388,7 +388,7 @@ export default function Layout() {
           <div className="p-4 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               {!isCollapsed && (
-                <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="flex items-center gap-3">
+                <Link to={isAdmin ? "/admin/analytics" : (isMentor ? "/mentor-dashboard" : "/discovery")} className="flex items-center gap-3">
                   <Logo size={44} showText={false} />
                   <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                     <span className="text-[#1e3a8a] dark:text-[#3b82f6]">Campus</span> Nexus
@@ -396,7 +396,7 @@ export default function Layout() {
                 </Link>
               )}
               {isCollapsed && (
-                <Link to={isMentor ? "/mentor-dashboard" : "/discovery"} className="mx-auto">
+                <Link to={isAdmin ? "/admin/analytics" : (isMentor ? "/mentor-dashboard" : "/discovery")} className="mx-auto">
                   <Logo size={36} showText={false} />
                 </Link>
               )}
@@ -472,17 +472,20 @@ export default function Layout() {
           <div className="p-3 border-t border-slate-200/20 dark:border-white/10 space-y-2">
             {!isCollapsed && (
               <div className="flex items-center justify-center w-full">
-                <img
-                  src="/rvce_logo_header.png"
-                  alt="RV College of Engineering"
-                  className="w-full object-contain"
-                  style={{
-                    filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none',
-                    maxHeight: '80px'
-                  }}
-                />
+                <Link to={isAdmin ? "/admin/analytics" : (isMentor ? "/mentor-dashboard" : "/discovery")} className="w-full flex items-center justify-center">
+                  <img
+                    src="/rvce_logo_header.png"
+                    alt="RV College of Engineering"
+                    className="w-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                    style={{
+                      filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none',
+                      maxHeight: '80px'
+                    }}
+                  />
+                </Link>
               </div>
             )}
+
             
             {/* Profile Card */}
             <div 

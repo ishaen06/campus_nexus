@@ -33,7 +33,8 @@ import {
   Sparkles,
   RefreshCw
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+
 
 
 interface Report {
@@ -1033,8 +1034,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       <div className="sticky top-0 z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md pb-5 pt-3 border-b border-slate-200/80 dark:border-slate-800/80 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
+            <Link to="/admin/analytics" className="hover:opacity-80 transition cursor-pointer" title="Go to Analytics Dashboard">
+              <ShieldAlert className="text-[#1e3a8a] w-8 h-8" />
+            </Link>
             {activeTab === 'moderation' && "Moderation Logs"}
+
             {activeTab === 'analytics' && "Analytics Dashboard"}
             {activeTab === 'search' && "Global Database Search"}
             {activeTab === 'mentors' && "Mentor Workloads"}
