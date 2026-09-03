@@ -38,8 +38,15 @@ def init_db():
         db.group_messages.create_index([("group_id", 1)])
         db.notifications.create_index([("user_id", 1)])
         db.notifications.create_index([("user_id", 1), ("is_read", 1)])
+
+        # Ensure administrators and mentors are never in student team rosters
+        admin_users = list(db.users.find({"$or": [{"is_admin": True}, {"email": "ishaen.vihaan@gmail.com"}]}))
+        admin_ids = [u["id"] for u in admin_users if "id" in u]
+        if admin_ids:
+            db.group_members.delete_many({"user_id": {"$in": admin_ids}})
     except Exception:
         pass
+
 
 
 

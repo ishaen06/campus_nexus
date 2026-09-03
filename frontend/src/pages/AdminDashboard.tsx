@@ -2263,20 +2263,30 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                   <td className="py-2.5 font-bold uppercase text-indigo-650 dark:text-blue-450">{member.branch}</td>
                                   <td className="py-2.5">{member.email}</td>
                                   <td className="py-2.5 text-right">
-                                    {/* Student transfer select */}
-                                    <select
-                                      value=""
-                                      onChange={(e) => handleMoveStudent(member.id, Number(e.target.value))}
-                                      className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-650 dark:text-slate-400 outline-none cursor-pointer"
-                                    >
-                                      <option value="" disabled>Move Student...</option>
-                                      <option value="0">Remove from Team (No Team)</option>
-                                      {teams.filter(other => other.id !== team.id).map(other => (
-                                        <option key={other.id} value={other.id}>
-                                          To: {other.name} (ID: {other.id})
-                                        </option>
-                                      ))}
-                                    </select>
+                                    {(member as any).is_admin || (member.email || '').toLowerCase() === 'ishaen.vihaan@gmail.com' ? (
+                                      <select
+                                        value=""
+                                        onChange={(e) => handleMoveStudent(member.id, Number(e.target.value))}
+                                        className="bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 outline-none cursor-pointer"
+                                      >
+                                        <option value="" disabled>Admin in Team (Action Required)</option>
+                                        <option value="0">Remove Admin from Team</option>
+                                      </select>
+                                    ) : (
+                                      <select
+                                        value=""
+                                        onChange={(e) => handleMoveStudent(member.id, Number(e.target.value))}
+                                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-650 dark:text-slate-400 outline-none cursor-pointer"
+                                      >
+                                        <option value="" disabled>Move Student...</option>
+                                        <option value="0">Remove from Team (No Team)</option>
+                                        {teams.filter(other => other.id !== team.id).map(other => (
+                                          <option key={other.id} value={other.id}>
+                                            To: {other.name} (ID: {other.id})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
                                   </td>
                                 </tr>
                               ))}

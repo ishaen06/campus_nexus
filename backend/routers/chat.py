@@ -554,6 +554,11 @@ def populate_group_response(group: dict, db, current_user = None) -> dict:
 
 @router.post("/groups", response_model=GroupChatResponse)
 def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    if current_user.get("is_admin") or (current_user.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
+        raise HTTPException(status_code=400, detail="Administrators cannot create or join student project teams.")
+    if current_user.get("is_mentor"):
+        raise HTTPException(status_code=400, detail="Mentors cannot create or join student project teams as members.")
+
     members_to_add = list(set(group_data.member_ids + [current_user["id"]]))
     
     # Enforce team limit criteria: maximum 5 members (Only enforced when submitting for mentor approval)
@@ -566,6 +571,13 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
             status_code=400,
             detail="One or more member IDs are invalid."
         )
+
+    for u in member_users:
+        if u.get("is_admin") or (u.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
+            raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is an administrator and cannot be added to a student team.")
+        if u.get("is_mentor"):
+            raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is a mentor and cannot be added as a student team member.")
+
         
     # Enforce that a user can only be in one team at a time
     for uid in members_to_add:
@@ -703,6 +715,13 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
                 status_code=400,
                 detail="One or more member IDs are invalid."
             )
+
+        for u in member_users:
+            if u.get("is_admin") or (u.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
+                raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is an administrator and cannot be added to a student team.")
+            if u.get("is_mentor"):
+                raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is a mentor and cannot be added as a student team member.")
+
             
         # Enforce that a user can only be in one team at a time
         for uid in new_members:
@@ -865,9 +884,16 @@ def get_invite_preview(invite_code: str, current_user = Depends(get_current_user
     can_join = True
     reason = None
 
-    if already_member:
+    if current_user.get("is_admin") or (current_user.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
+        can_join = False
+        reason = "Administrators cannot join student project teams."
+    elif current_user.get("is_mentor"):
+        can_join = False
+        reason = "Mentors cannot join student project teams as members."
+    elif already_member:
         can_join = False
         reason = "You are already a member of this team."
+
     else:
         existing_membership = db.group_members.find_one({"user_id": current_user["id"]})
         if existing_membership and existing_membership["group_id"] != group["id"]:
@@ -921,8 +947,13 @@ def join_group_via_invite(invite_code: str, current_user = Depends(get_current_u
     if not group.get("invite_enabled", True):
         raise HTTPException(status_code=400, detail="Invites via link are currently disabled by the team leader.")
 
+    if current_user.get("is_admin") or (current_user.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
+        raise HTTPException(status_code=400, detail="Administrators cannot join student project teams.")
+    if current_user.get("is_mentor"):
+        raise HTTPException(status_code=400, detail="Mentors cannot join student project teams as members.")
 
     # Check mentor approved
+
     if (group.get("mentor_status") or "").upper() == "APPROVED":
         raise HTTPException(status_code=400, detail="This team is already approved by a mentor and its roster is finalized.")
 

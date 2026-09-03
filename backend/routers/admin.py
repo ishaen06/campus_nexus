@@ -706,12 +706,18 @@ def move_student_by_admin(
         return {"detail": f"{student_name} has been removed from their team."}
 
     # Case B: target_group_id > 0 -> Move student to target team
+    if student.get("is_admin") or (student.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
+        raise HTTPException(status_code=400, detail="Administrators cannot be added or assigned to a student project team.")
+    if student.get("is_mentor"):
+        raise HTTPException(status_code=400, detail="Mentors cannot be added as student project team members.")
+
     target_group = db.group_chats.find_one({"id": target_group_id})
     if not target_group:
         raise HTTPException(status_code=404, detail="Target team not found")
         
     if old_group_id == target_group_id:
         return {"detail": f"{student_name} is already in {target_group['name']}."}
+
         
     # Check target team capacity (max 5 members)
     target_members = list(db.group_members.find({"group_id": target_group_id}))
