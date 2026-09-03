@@ -97,13 +97,20 @@ export default function Connections() {
   };
 
   const handleReject = async (id: number) => {
+    // Optimistic UI update: instantly dismiss card from Requests view
+    setConnections(prev => prev.filter(c => c.connection_id !== id));
     try {
       await api.put(`/connections/${id}/reject`);
-      fetchData();
     } catch (err) {
-      console.error("Error declining connection:", err);
+      try {
+        await api.delete(`/connections/${id}`);
+      } catch (fallbackErr) {
+        console.warn("Decline API call failed:", fallbackErr);
+      }
     }
+    fetchData();
   };
+
 
   const openProfilePreview = (user: any, e: React.MouseEvent) => {
     e.stopPropagation();

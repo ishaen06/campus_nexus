@@ -163,16 +163,32 @@ def accept_connection(conn_id: int, current_user = Depends(get_current_user), db
     return updated_conn
 
 @router.put("/{conn_id}/reject")
+@router.delete("/{conn_id}")
+@router.post("/{conn_id}/reject")
 def reject_connection(conn_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     conn = db.connections.find_one({"id": conn_id})
     if not conn:
         raise HTTPException(status_code=404, detail="Connection not found")
         
-    if conn["receiver_id"] != current_user["id"]:
+    if conn["receiver_id"] != current_user["id"] and conn["sender_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized to decline this request")
         
+    sender_id = conn["sender_id"]
+    receiver_id = conn["receiver_id"]
+
+    # Delete connection record so user is unblocked from discovery
     db.connections.delete_one({"id": conn_id})
-    return {"message": "Request declined"}
+
+    # Clear dismissals so student immediately reappears in Discovery tab
+    db.dismissed_users.delete_many({
+        "$or": [
+            {"user_id": receiver_id, "dismissed_id": sender_id},
+            {"user_id": sender_id, "dismissed_id": receiver_id}
+        ]
+    })
+    
+    return {"message": "Request declined and restored to discovery feed"}
+
 
 @router.get("/")
 
