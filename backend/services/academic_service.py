@@ -162,14 +162,17 @@ def calculate_academic_year(joining_year: int, session_start_month: int = 8, ema
       - 24 in email or joining_year == 2024: 3rd year (3)
       - 23 in email or joining_year == 2023: 4th year (4)
     """
-    clean_email = (email or "").lower()
-    if "26" in clean_email or joining_year == 2026:
+    clean_email = (email or "").lower().strip()
+    em_match = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", clean_email) or re.search(r"(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)", clean_email)
+    em_yy = int(em_match.group(1)) if em_match else None
+
+    if em_yy == 26 or joining_year == 2026:
         return 1
-    if "25" in clean_email or joining_year == 2025:
+    if em_yy == 25 or joining_year == 2025:
         return 2
-    if "24" in clean_email or joining_year == 2024:
+    if em_yy == 24 or joining_year == 2024:
         return 3
-    if "23" in clean_email or joining_year == 2023:
+    if em_yy == 23 or joining_year == 2023:
         return 4
 
     if not joining_year:
@@ -188,15 +191,19 @@ def calculate_academic_semester(joining_year: int, session_start_month: int = 8,
     Dynamically calculates Current Academic Semester (1 to 8).
     Rule: all emails with 25 (or joining_year == 2025) are 3rd sem students.
     """
-    clean_email = (email or "").lower()
-    if "25" in clean_email or joining_year == 2025:
+    clean_email = (email or "").lower().strip()
+    em_match = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", clean_email) or re.search(r"(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)", clean_email)
+    em_yy = int(em_match.group(1)) if em_match else None
+
+    if em_yy == 25 or joining_year == 2025:
         return 3
-    if "26" in clean_email or joining_year == 2026:
+    if em_yy == 26 or joining_year == 2026:
         return 1
-    if "24" in clean_email or joining_year == 2024:
+    if em_yy == 24 or joining_year == 2024:
         return 5
-    if "23" in clean_email or joining_year == 2023:
+    if em_yy == 23 or joining_year == 2023:
         return 7
+
         
     if year_of_study == 2:
         return 3

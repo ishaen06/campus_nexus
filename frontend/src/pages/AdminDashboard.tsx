@@ -192,19 +192,53 @@ interface TeamData {
 
 
 export const resolveStudentYear = (s: any): number => {
+  const email = (s?.email || s?.user_email || '').toLowerCase().trim();
+  const usn = (s?.usn || '').toUpperCase().trim();
+
+  // 1. Check USN admission year (e.g. 1RV25CS126 or 1RZ25CS126 -> cohort year is 25, 126 is roll number)
+  if (usn) {
+    const usnMatch = usn.match(/^1[A-Z]{2}(\d{2})[A-Z]{2,4}\d+/);
+    if (usnMatch) {
+      const yy = parseInt(usnMatch[1], 10);
+      if (yy === 26) return 1;
+      if (yy === 25) return 2;
+      if (yy === 24) return 3;
+      if (yy === 23) return 4;
+    }
+  }
+
+  // 2. Check RVCE Email admission year (e.g. prekshar.cs25@rvce.edu.in -> cohort year is 25)
+  if (email) {
+    const emailMatch = email.match(/[a-z]{2,4}(\d{2})@rvce\.edu\.in/);
+    if (emailMatch) {
+      const yy = parseInt(emailMatch[1], 10);
+      if (yy === 26) return 1;
+      if (yy === 25) return 2;
+      if (yy === 24) return 3;
+      if (yy === 23) return 4;
+    }
+    const looseMatch = email.match(/(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)/);
+    if (looseMatch) {
+      const yy = parseInt(looseMatch[1], 10);
+      if (yy === 26) return 1;
+      if (yy === 25) return 2;
+      if (yy === 24) return 3;
+      if (yy === 23) return 4;
+    }
+  }
+
+  // 3. Fallback to year_of_study if valid
   if (s?.year_of_study && Number(s.year_of_study) >= 1 && Number(s.year_of_study) <= 4) {
     return Number(s.year_of_study);
   }
-  const email = (s?.email || s?.user_email || '').toLowerCase();
-  const usn = (s?.usn || '').toUpperCase();
-  const cycle = (s?.cycle || '').toUpperCase();
 
-  if (email.includes('26') || usn.includes('26') || (cycle && cycle !== 'N/A' && cycle !== 'NONE')) return 1;
-  if (email.includes('25') || usn.includes('25')) return 2;
-  if (email.includes('24') || usn.includes('24')) return 3;
-  if (email.includes('23') || usn.includes('23')) return 4;
+  // 4. Cycle check (only 1st year students are divided into cycles)
+  const cycle = (s?.cycle || '').toUpperCase();
+  if (cycle && cycle !== 'N/A' && cycle !== 'NONE') return 1;
+
   return 2;
 };
+
 
 export const resolveTeamYear = (t: any): number => {
   if (t?.team_year && Number(t.team_year) >= 1 && Number(t.team_year) <= 4) {
@@ -2035,14 +2069,17 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       {(() => {
                         const rawStudents = analytics.students || [];
                         const q = analyticsRosterSearch.toLowerCase().trim();
-                        const filtered = rawStudents.filter(s => 
-                          !q ||
-                          s.full_name.toLowerCase().includes(q) ||
-                          s.usn.toLowerCase().includes(q) ||
-                          s.email.toLowerCase().includes(q) ||
-                          s.branch.toLowerCase().includes(q) ||
-                          (s.team_name || '').toLowerCase().includes(q)
-                        );
+                        const filtered = rawStudents.filter(s => {
+                          if (globalYear !== null && resolveStudentYear(s) !== globalYear) return false;
+                          if (!q) return true;
+                          return (
+                            (s.full_name || '').toLowerCase().includes(q) ||
+                            (s.usn || '').toLowerCase().includes(q) ||
+                            (s.email || '').toLowerCase().includes(q) ||
+                            (s.branch || '').toLowerCase().includes(q) ||
+                            (s.team_name || '').toLowerCase().includes(q)
+                          );
+                        });
 
                         if (filtered.length === 0) {
                           return (
@@ -2066,7 +2103,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
-                              {filtered.map((student) => (
+                              {filtered.map((student) => {
+                                const sYear = resolveStudentYear(student);
+                                return (
                                 <tr key={student.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                                   <td className="py-3 pl-2">
                                     <div className="flex items-center gap-2.5">
@@ -2093,17 +2132,17 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                   </td>
                                   <td className="py-3">
                                     <span className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                                      student.year_of_study === 1 
+                                      sYear === 1 
                                         ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-                                        : student.year_of_study === 2
+                                        : sYear === 2
                                         ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
                                         : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
                                     }`}>
-                                      {student.year_of_study === 1 ? '1st Year (1st Sem)' : student.year_of_study === 2 ? '2nd Year (3rd Sem)' : `${student.year_of_study}rd Year`}
+                                      {sYear === 1 ? '1st Year (1st Sem)' : sYear === 2 ? '2nd Year (3rd Sem)' : `${sYear}rd Year`}
                                     </span>
                                   </td>
                                   <td className="py-3">
-                                    {student.cycle && student.cycle !== 'N/A' ? (
+                                    {sYear === 1 && student.cycle && student.cycle !== 'N/A' ? (
                                       <span className="font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px]">
                                         {student.cycle}-Cycle
                                       </span>
@@ -2111,6 +2150,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                       <span className="text-slate-400 italic text-[11px]">N/A</span>
                                     )}
                                   </td>
+
                                   <td className="py-3 text-right pr-2">
                                     {student.has_team ? (
                                       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
@@ -2125,8 +2165,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                     )}
                                   </td>
                                 </tr>
-                              ))}
+                              );
+                            })}
                             </tbody>
+
                           </table>
                         );
                       })()}

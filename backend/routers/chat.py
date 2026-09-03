@@ -358,26 +358,50 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     saved_year = u.get("year_of_study")
     cycle = (u.get("cycle") or "").strip().upper()
 
-    # 1. Direct explicit rules from email or USN:
-    if "26" in email or "26" in usn:
+    # 1. Parse USN admission year (e.g. 1RV25CS126 or 1RZ25CS126 -> cohort year is 25, 126 is roll number)
+    usn_year = None
+    if usn:
+        m_usn = re.search(r"1[A-Z]{2}(\d{2})[A-Z]{2,4}\d+", usn)
+        if m_usn:
+            yy = int(m_usn.group(1))
+            if yy in [23, 24, 25, 26]:
+                usn_year = yy
+
+    # 2. Parse RVCE Email admission year (e.g. prekshar.cs25@rvce.edu.in -> cohort year is 25)
+    email_year = None
+    if email:
+        m_email = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", email)
+        if m_email:
+            yy = int(m_email.group(1))
+            if yy in [23, 24, 25, 26]:
+                email_year = yy
+        else:
+            m_loose = re.search(r"(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)", email)
+            if m_loose:
+                email_year = int(m_loose.group(1))
+
+    # Authoritative cohort resolution (USN or Email):
+    detected_yy = usn_year or email_year
+    if detected_yy == 26:
         joining_year = 2026
         year_of_study = 1
-    elif "25" in email or "25" in usn:
+    elif detected_yy == 25:
         joining_year = 2025
         year_of_study = 2
-    elif "24" in email or "24" in usn:
+    elif detected_yy == 24:
         joining_year = 2024
         year_of_study = 3
-    elif "23" in email or "23" in usn:
+    elif detected_yy == 23:
         joining_year = 2023
         year_of_study = 4
-    elif cycle in ["P", "C", "PHYSICS", "CHEMISTRY"]:
+    elif cycle in ["P", "C", "PHYSICS", "CHEMISTRY"] and (not usn_year) and (not email_year):
         # Only 1st year students are divided into P-Cycle and C-Cycle
         joining_year = 2026
         year_of_study = 1
     elif saved_year in [1, 2, 3, 4]:
         year_of_study = int(saved_year)
         joining_year = 2027 - year_of_study
+
     elif joining_year:
         try:
             jy = int(joining_year)

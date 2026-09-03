@@ -45,22 +45,49 @@ def init_db():
         if admin_ids:
             db.group_members.delete_many({"user_id": {"$in": admin_ids}})
 
-        # Synchronize academic cohorts across all student records
+        # Synchronize academic cohorts across all student records with precise regex matching
+        # USN format: ^1[A-Za-z]{2}(YY) -> 2 digits after college code
+        # Email format: [a-zA-Z]{2,4}(YY)@ -> 2 digits after branch code
         # 26 -> 1st Year (joining_year 2026, year_of_study 1)
         # 25 -> 2nd Year (joining_year 2025, year_of_study 2)
         # 24 -> 3rd Year (joining_year 2024, year_of_study 3)
         db.users.update_many(
-            {"$or": [{"email": {"$regex": "26"}}, {"usn": {"$regex": "26"}}], "is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}},
+            {
+                "$or": [
+                    {"email": {"$regex": r"[a-zA-Z]{2,4}26@"}},
+                    {"usn": {"$regex": r"^1[A-Za-z]{2}26"}}
+                ],
+                "is_mentor": {"$ne": True},
+                "is_admin": {"$ne": True},
+                "email": {"$ne": "ishaen.vihaan@gmail.com"}
+            },
             {"$set": {"joining_year": 2026, "year_of_study": 1}}
         )
         db.users.update_many(
-            {"$or": [{"email": {"$regex": "25"}}, {"usn": {"$regex": "25"}}], "is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}},
+            {
+                "$or": [
+                    {"email": {"$regex": r"[a-zA-Z]{2,4}25@"}},
+                    {"usn": {"$regex": r"^1[A-Za-z]{2}25"}}
+                ],
+                "is_mentor": {"$ne": True},
+                "is_admin": {"$ne": True},
+                "email": {"$ne": "ishaen.vihaan@gmail.com"}
+            },
             {"$set": {"joining_year": 2025, "year_of_study": 2}}
         )
         db.users.update_many(
-            {"$or": [{"email": {"$regex": "24"}}, {"usn": {"$regex": "24"}}], "is_mentor": {"$ne": True}, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}},
+            {
+                "$or": [
+                    {"email": {"$regex": r"[a-zA-Z]{2,4}24@"}},
+                    {"usn": {"$regex": r"^1[A-Za-z]{2}24"}}
+                ],
+                "is_mentor": {"$ne": True},
+                "is_admin": {"$ne": True},
+                "email": {"$ne": "ishaen.vihaan@gmail.com"}
+            },
             {"$set": {"joining_year": 2024, "year_of_study": 3}}
         )
+
     except Exception:
         pass
 
