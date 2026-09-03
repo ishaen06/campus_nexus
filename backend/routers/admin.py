@@ -8,7 +8,13 @@ from datetime import datetime
 
 from database_mongo import get_mongo_db, get_next_sequence_value
 from routers.users import get_current_user
-from routers.chat import regenerate_approved_teams_csv, regenerate_mentor_marks_csv
+from routers.chat import (
+    regenerate_approved_teams_csv,
+    regenerate_mentor_marks_csv,
+    validate_team_criteria,
+    _extract_user_academic_info,
+    BRANCH_CLUSTERS
+)
 
 from pydantic import BaseModel
 import os
@@ -628,8 +634,141 @@ def dissolve_group_by_admin(group_id: int, admin = Depends(get_admin_user), db =
     
     return {"detail": "Team dissolved successfully"}
 
+def _update_team_criteria_by_id(group_id: int, db):
+    member_records = list(db.group_members.find({"group_id": group_id}))
+    member_ids = [m["user_id"] for m in member_records]
+    member_users = list(db.users.find({"id": {"$in": member_ids}}))
+    for mu in member_users:
+        mu.pop("_id", None)
+        b_code, j_yr, y_study = _extract_user_academic_info(mu)
+        mu["branch_code"] = b_code
+        mu["joining_year"] = j_yr
+        mu["year_of_study"] = y_study
+        mu["cluster"] = BRANCH_CLUSTERS.get(b_code)
+    
+    crit_met, val_err = validate_team_criteria(member_users)
+    db.group_chats.update_one({"id": group_id}, {
+        "$set": {
+            "criteria_met": crit_met,
+            "validation_error": val_err if not crit_met else None
+        }
+    })
+
+@router.post("/groups/move-student")
+def move_student_by_admin(
+    student_id: int = Query(...),
+    target_group_id: int = Query(...),
+    admin = Depends(get_admin_user),
+    db = Depends(get_mongo_db)
+):
+    student = db.users.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    student_name = student.get("full_name") or f"Student #{student_id}"
+
+    # 1. Find student's current team (if any)
+    current_membership = db.group_members.find_one({"user_id": student_id})
+    old_group_id = current_membership["group_id"] if current_membership else None
+
+    # Case A: target_group_id == 0 -> Remove student from team (No Team)
+    if target_group_id == 0:
+        if not current_membership:
+            return {"detail": f"{student_name} is not currently in any team."}
+            
+        # Delete from group_members
+        db.group_members.delete_many({"user_id": student_id})
+        
+        # Check old group
+        old_group = db.group_chats.find_one({"id": old_group_id})
+        if old_group:
+            # If student was creator, reassign created_by to another remaining student member if available
+            if old_group.get("created_by") == student_id:
+                remaining_member = db.group_members.find_one({"group_id": old_group_id})
+                if remaining_member:
+                    db.group_chats.update_one({"id": old_group_id}, {"$set": {"created_by": remaining_member["user_id"]}})
+            
+            # Recalculate team criteria for old group
+            _update_team_criteria_by_id(old_group_id, db)
+            
+            # Post a system message in old group chat
+            new_msg_id = get_next_sequence_value("group_messages")
+            db.group_messages.insert_one({
+                "id": new_msg_id,
+                "group_id": old_group_id,
+                "sender_id": admin["id"],
+                "content": f"ℹ️ Admin removed {student_name} from the team.",
+                "created_at": datetime.utcnow()
+            })
+            
+        regenerate_approved_teams_csv(db)
+        regenerate_mentor_marks_csv(db)
+        return {"detail": f"{student_name} has been removed from their team."}
+
+    # Case B: target_group_id > 0 -> Move student to target team
+    target_group = db.group_chats.find_one({"id": target_group_id})
+    if not target_group:
+        raise HTTPException(status_code=404, detail="Target team not found")
+        
+    if old_group_id == target_group_id:
+        return {"detail": f"{student_name} is already in {target_group['name']}."}
+        
+    # Check target team capacity (max 5 members)
+    target_members = list(db.group_members.find({"group_id": target_group_id}))
+    target_member_uids = [m["user_id"] for m in target_members]
+    target_member_users = list(db.users.find({"id": {"$in": target_member_uids}}))
+    non_mentor_count = len([u for u in target_member_users if not u.get("is_mentor")])
+    if non_mentor_count >= 5:
+        raise HTTPException(status_code=400, detail=f"Target team '{target_group['name']}' already has the maximum capacity of 5 members.")
+        
+    # Remove from previous group if any
+    if current_membership:
+        db.group_members.delete_many({"user_id": student_id})
+        old_group = db.group_chats.find_one({"id": old_group_id})
+        if old_group:
+            if old_group.get("created_by") == student_id:
+                remaining_member = db.group_members.find_one({"group_id": old_group_id})
+                if remaining_member:
+                    db.group_chats.update_one({"id": old_group_id}, {"$set": {"created_by": remaining_member["user_id"]}})
+            _update_team_criteria_by_id(old_group_id, db)
+            
+            new_msg_id = get_next_sequence_value("group_messages")
+            db.group_messages.insert_one({
+                "id": new_msg_id,
+                "group_id": old_group_id,
+                "sender_id": admin["id"],
+                "content": f"ℹ️ Admin transferred {student_name} to team '{target_group['name']}'.",
+                "created_at": datetime.utcnow()
+            })
+            
+    # Add to target group
+    new_member_id = get_next_sequence_value("group_members")
+    db.group_members.insert_one({
+        "id": new_member_id,
+        "group_id": target_group_id,
+        "user_id": student_id
+    })
+    
+    # Recalculate target group criteria
+    _update_team_criteria_by_id(target_group_id, db)
+    
+    # Post system message in target group chat
+    new_msg_id = get_next_sequence_value("group_messages")
+    db.group_messages.insert_one({
+        "id": new_msg_id,
+        "group_id": target_group_id,
+        "sender_id": admin["id"],
+        "content": f"🎉 Admin transferred {student_name} into this team.",
+        "created_at": datetime.utcnow()
+    })
+    
+    regenerate_approved_teams_csv(db)
+    regenerate_mentor_marks_csv(db)
+    return {"detail": f"{student_name} has been transferred to {target_group['name']}."}
+
 @router.post("/groups/{group_id}/approve")
 def approve_project_by_admin(group_id: int, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+
     group = db.group_chats.find_one({"id": group_id})
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")

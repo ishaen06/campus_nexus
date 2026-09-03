@@ -703,8 +703,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       
     if (!window.confirm(confirmationMsg)) return;
     try {
-      await api.post(`/admin/groups/move-student?student_id=${studentId}&target_group_id=${targetGroupId}`);
-      alert("Student updated successfully.");
+      const res = await api.post(`/admin/groups/move-student?student_id=${studentId}&target_group_id=${targetGroupId}`);
+      alert(res.data?.detail || "Student updated successfully.");
+
       fetchTeamsData();
       fetchMentorsData();
       fetchAnalytics();
