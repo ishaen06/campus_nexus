@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle, Link2, Copy, Check, RefreshCw, MessageCircle } from 'lucide-react';
+import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle, Link2, Copy, Check, RefreshCw } from 'lucide-react';
+
+
+
 
 
 import Avatar from '../components/Avatar';
@@ -1016,16 +1019,7 @@ export default function MyTeam() {
                 </div>
               </div>
 
-              {/* WhatsApp Share Button */}
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Join our team "${inviteData.team_name}" on Campus Nexus! Click this link to preview and join: ${window.location.origin}/join-team/${inviteData.invite_code}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 mb-4 cursor-pointer shadow-sm"
-              >
-                <MessageCircle size={16} />
-                Share on WhatsApp
-              </a>
+
 
               {/* Leader Controls */}
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
