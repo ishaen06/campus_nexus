@@ -274,8 +274,11 @@ def enrich_user_academic_profile(user_dict: dict, db) -> dict:
 
 
         
-        # Resolve live Subject Cycle
-        res["cycle"] = get_subject_cycle(branch_code, db)
+        # Resolve live Subject Cycle (strictly for 1st Year students; 2nd & 3rd year follow core branch)
+        if res.get("year_of_study") == 1:
+            res["cycle"] = get_subject_cycle(branch_code, db)
+        else:
+            res["cycle"] = "N/A"
         
         # Resolve full branch name
         if branch_code:

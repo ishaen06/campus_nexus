@@ -31,7 +31,9 @@ import {
   Star,
   Download,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -495,6 +497,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
 
   const handleUpdateCycle = async (code: string, newCycle: 'C' | 'P') => {
+    if (globalYear === 2 || globalYear === 3) {
+      alert(`Subject cycle configuration is restricted to 1st Year only. ${globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'} students follow core departmental curriculum.`);
+      return;
+    }
     if (!academicSettings) return;
     const currentMappings = academicSettings.cycle_mappings || {};
     const previousCycle = currentMappings[code];
@@ -504,7 +510,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: updatedCycles } : prev);
     
     const doUpdate = async () => {
-      const res = await api.put('/admin/academic-settings', { cycle_mappings: updatedCycles });
+      const yearQuery = globalYear ? `?year=${globalYear}` : '';
+      const res = await api.put(`/admin/academic-settings${yearQuery}`, { 
+        cycle_mappings: updatedCycles,
+        year: globalYear || 1
+      });
       if (res.data?.cycle_mappings) {
         setAcademicSettings(prev => prev ? { ...prev, cycle_mappings: res.data.cycle_mappings } : prev);
       }
@@ -541,11 +551,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     if (!academicSettings) return;
     setAcademicSaving(true);
     try {
-      await api.put('/admin/academic-settings', {
+      const payload: any = {
         session_start_month: academicSettings.session_start_month,
         branch_mappings: academicSettings.branch_mappings,
-        cycle_mappings: academicSettings.cycle_mappings
-      });
+      };
+      if (globalYear !== 2 && globalYear !== 3) {
+        payload.cycle_mappings = academicSettings.cycle_mappings;
+      }
+      if (globalYear !== null) {
+        payload.year = globalYear;
+      }
+      const yearQuery = globalYear ? `?year=${globalYear}` : '';
+      await api.put(`/admin/academic-settings${yearQuery}`, payload);
       alert("Academic settings updated successfully!");
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to update settings");
@@ -3297,21 +3314,109 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-8 text-left"
           >
-            {/* Global Cohort Active Banner */}
-            {globalYear !== null && (
-              <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
-                <div className="flex items-center gap-2">
-                  <GraduationCap size={16} />
-                  <span>
-                    Academic Settings Cohort Scope: <strong>{globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}</strong> active.
-                  </span>
+            {/* Academic Settings Cohort Scope Selector */}
+            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shrink-0">
+                  <GraduationCap size={20} />
                 </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    Academic Cohort Scope
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Configure branch allocations. Subject cycle editing (Physics / Chemistry) is restricted strictly to 1st Year.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cohort Tabs */}
+              <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(1)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    globalYear === 1
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 scale-[1.02]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                  }`}
+                >
+                  <CheckCircle2 size={13} />
+                  <span>1st Year (2026)</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-white/20 text-white">
+                    Cycles Active
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(2)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    globalYear === 2
+                      ? "bg-amber-600 text-white shadow-md shadow-amber-600/30 scale-[1.02]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                  }`}
+                >
+                  <Lock size={12} />
+                  <span>2nd Year (2025)</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    Restricted
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(3)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    globalYear === 3
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 scale-[1.02]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                  }`}
+                >
+                  <Lock size={12} />
+                  <span>3rd Year (2024)</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    Restricted
+                  </span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleGlobalYearChange(null)}
-                  className="underline cursor-pointer hover:text-indigo-900 dark:hover:text-white"
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    globalYear === null
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                  }`}
                 >
-                  Clear Cohort Filter
+                  All Years
+                </button>
+              </div>
+            </div>
+
+            {/* Restriction Banner for 2nd & 3rd Year */}
+            {(globalYear === 2 || globalYear === 3) && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                    <Lock size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider">
+                      Subject Cycle Changing Restricted for {globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
+                    </h4>
+                    <p className="text-[11px] font-medium opacity-90 mt-0.5">
+                      Physics Cycle and Chemistry Cycle allocations apply strictly to <strong>1st Year</strong> engineering students. 2nd and 3rd Year students follow core departmental curriculum with no cycle division.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleGlobalYearChange(1)}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shrink-0 cursor-pointer shadow-sm transition flex items-center gap-1.5"
+                >
+                  <Unlock size={14} />
+                  Switch to 1st Year to Edit Cycles
                 </button>
               </div>
             )}
@@ -3324,7 +3429,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   Branch & Subject Cycle Configuration
                 </h2>
                 <p className="text-xs text-slate-400 font-semibold mt-1">
-                  Assign each engineering department to C Cycle or P Cycle. Changes apply live across all student profiles immediately.
+                  Assign each engineering department to C Cycle or P Cycle for 1st Year students. Changes apply live across profiles.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -3370,7 +3475,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           <th className="pb-3">Code</th>
                           <th className="pb-3">Department Name</th>
                           <th className="pb-3 text-center">{globalYear !== null ? `Students (Yr ${globalYear})` : 'Students'}</th>
-                          <th className="pb-3 text-center">Subject Cycle</th>
+                          <th className="pb-3 text-center">
+                            Subject Cycle {(globalYear === 2 || globalYear === 3) ? '(1st Yr Only - Locked)' : '(1st Year)'}
+                          </th>
                           <th className="pb-3 text-right">Action</th>
 
                         </tr>
@@ -3379,6 +3486,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         {Object.entries(academicSettings?.branch_mappings || {}).map(([code, name]) => {
                           const currentCycle = academicSettings?.cycle_mappings?.[code] || 'P';
                           const count = academicSettings?.branch_counts?.[code] || 0;
+                          const isRestrictedYear = globalYear === 2 || globalYear === 3;
 
                           return (
                             <tr key={code} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
@@ -3394,28 +3502,38 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                 </span>
                               </td>
                               <td className="py-3.5 text-center">
-                                <div className="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                                  <button
-                                    onClick={() => handleUpdateCycle(code, 'C')}
-                                    className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                                      currentCycle === 'C'
-                                        ? 'bg-emerald-500 text-white shadow-md'
-                                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                                    }`}
+                                {isRestrictedYear ? (
+                                  <div 
+                                    title="Cycle changing is restricted to 1st Year only. 2nd and 3rd Year follow core branch curriculum."
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500 font-bold text-[10px] cursor-not-allowed select-none"
                                   >
-                                    C-Cycle
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateCycle(code, 'P')}
-                                    className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                                      currentCycle === 'P'
-                                        ? 'bg-indigo-600 text-white shadow-md'
-                                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                                    }`}
-                                  >
-                                    P-Cycle
-                                  </button>
-                                </div>
+                                    <Lock size={12} className="text-slate-400" />
+                                    <span>N/A (Core Branch)</span>
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                                    <button
+                                      onClick={() => handleUpdateCycle(code, 'C')}
+                                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                        currentCycle === 'C'
+                                          ? 'bg-emerald-500 text-white shadow-md'
+                                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                      }`}
+                                    >
+                                      C-Cycle
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateCycle(code, 'P')}
+                                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                        currentCycle === 'P'
+                                          ? 'bg-indigo-600 text-white shadow-md'
+                                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                      }`}
+                                    >
+                                      P-Cycle
+                                    </button>
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3.5 text-right">
                                 <button
@@ -3523,7 +3641,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         </div>
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-bold text-slate-500">Subject Cycle:</span>
-                          <span className="font-black text-emerald-600 dark:text-emerald-400">{cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}</span>
+                          {yearOfStudy === 1 ? (
+                            <span className="font-black text-emerald-600 dark:text-emerald-400">{cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}</span>
+                          ) : (
+                            <span className="font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                              <Lock size={11} /> N/A (Core Branch - 1st Yr Only)
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -3575,7 +3699,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Initial Subject Cycle</label>
+                        <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">1st Year Subject Cycle Allocation</label>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-1.5 font-medium">
+                          Assigns cycle for 1st Year cohort section balance. 2nd & 3rd years follow core branch curriculum.
+                        </p>
                         <select
                           value={newBranchCycle}
                           onChange={(e) => setNewBranchCycle(e.target.value as 'C' | 'P')}

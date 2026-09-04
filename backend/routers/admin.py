@@ -348,7 +348,7 @@ def get_admin_analytics(
             "email": s.get("email") or "N/A",
             "branch": (s.get("branch") or s.get("branch_code") or "N/A").strip().upper(),
             "year_of_study": s.get("year_of_study") or 1,
-            "cycle": s.get("cycle") or "N/A",
+            "cycle": (s.get("cycle") or "N/A") if s.get("year_of_study") == 1 else "N/A",
             "has_team": t_info is not None,
             "team_id": t_info["team_id"] if t_info else None,
             "team_name": t_info["team_name"] if t_info else "No Team",
@@ -460,7 +460,7 @@ def get_all_users(year: Optional[int] = Query(None), admin = Depends(get_admin_u
             "post": u.get("post") or "N/A",
             "is_mentor": is_mentor,
             "bio": u.get("bio") or "",
-            "cycle": u.get("cycle") or "N/A",
+            "cycle": (u.get("cycle") or "N/A") if user_year == 1 else "N/A",
             "year_of_study": user_year if not is_mentor else None,
             "group": group_info
         })
@@ -530,7 +530,7 @@ def admin_global_search(q: str = "", year: Optional[int] = Query(None), admin = 
             "post": u.get("post") or "N/A",
             "is_mentor": is_mentor,
             "bio": u.get("bio") or "",
-            "cycle": u.get("cycle") or "N/A",
+            "cycle": (u.get("cycle") or "N/A") if user_year == 1 else "N/A",
             "year_of_study": user_year if not is_mentor else None,
             "group": group_info
         })
@@ -806,7 +806,7 @@ def get_admin_teams(year: Optional[int] = Query(None), admin = Depends(get_admin
                 "usn": s.get("usn") or "N/A",
                 "email": s.get("email") or "N/A",
                 "branch": s.get("branch") or "N/A",
-                "cycle": s.get("cycle") or "N/A",
+                "cycle": (s.get("cycle") or "N/A") if sy == 1 else "N/A",
                 "year_of_study": sy
             })
             
@@ -1172,7 +1172,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                 "Email": s.get("email") or "N/A",
                 "USN": s.get("usn") or "N/A",
                 "Branch": s.get("branch") or "N/A",
-                "Cycle": s.get("cycle") or "N/A",
+                "Cycle": (s.get("cycle") or "N/A") if y_study == 1 else "N/A",
                 "Team ID": group_id,
                 "Team Name": group_name
             })
@@ -1756,6 +1756,7 @@ class AcademicSettingsUpdateRequest(BaseModel):
     session_start_month: Optional[int] = None
     branch_mappings: Optional[dict] = None
     cycle_mappings: Optional[dict] = None
+    year: Optional[int] = None
 
 class AddBranchRequest(BaseModel):
     code: str
@@ -1785,20 +1786,39 @@ def get_admin_academic_settings(
         b_code, _, _ = _extract_user_academic_info(s)
         branch_counts[b_code] = branch_counts.get(b_code, 0) + 1
         
+    can_edit_cycles = (year == 1 or year is None)
+    cycle_restriction_message = ""
+    if year in [2, 3]:
+        cycle_restriction_message = f"Subject cycle modifications are restricted for Year {year}. Physics and Chemistry cycles apply exclusively to 1st Year students."
+
     return {
         "session_start_month": settings.get("session_start_month", 8),
         "branch_mappings": settings.get("branch_mappings", DEFAULT_BRANCH_NAMES),
         "cycle_mappings": settings.get("cycle_mappings", DEFAULT_CYCLE_MAPPINGS),
         "branch_counts": branch_counts,
         "total_students": len(students),
-        "year": year
+        "year": year,
+        "can_edit_cycles": can_edit_cycles,
+        "cycle_restriction_message": cycle_restriction_message
     }
 
 @router.put("/academic-settings")
-def update_admin_academic_settings(payload: AcademicSettingsUpdateRequest, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
+def update_admin_academic_settings(
+    payload: AcademicSettingsUpdateRequest, 
+    year: Optional[int] = Query(None),
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
     from services.academic_service import get_academic_settings
     settings = get_academic_settings(db)
     
+    target_year = payload.year if payload.year is not None else year
+    if payload.cycle_mappings is not None and target_year in [2, 3]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Subject cycle modifications are restricted for {target_year}{'nd' if target_year == 2 else 'rd'} Year students. Physics and Chemistry cycles apply exclusively to 1st Year students."
+        )
+
     update_data = {}
     if payload.session_start_month is not None:
         if not (1 <= payload.session_start_month <= 12):
@@ -1820,7 +1840,8 @@ def update_admin_academic_settings(payload: AcademicSettingsUpdateRequest, admin
         "message": "Academic settings updated successfully.",
         "session_start_month": updated_settings.get("session_start_month", 8),
         "branch_mappings": updated_settings.get("branch_mappings", {}),
-        "cycle_mappings": updated_settings.get("cycle_mappings", {})
+        "cycle_mappings": updated_settings.get("cycle_mappings", {}),
+        "can_edit_cycles": (target_year == 1 or target_year is None)
     }
 
 @router.post("/academic-settings/branches")
