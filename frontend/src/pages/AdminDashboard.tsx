@@ -32,8 +32,7 @@ import {
   Download,
   Sparkles,
   RefreshCw,
-  Lock,
-  Unlock
+  Lock
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -1357,91 +1356,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </div>
             ) : (
               <>
-                {/* Year-Wise Dashboard Selector */}
-                <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shadow-sm">
-                      <GraduationCap size={22} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          Year-Wise Analytics Dashboard
-                        </h2>
-                        {globalYear !== null && (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
-                            {globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'} Active
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                        {globalYear === null
-                          ? "Showing overall metrics across all undergraduate years (1st, 2nd, and 3rd year)"
-                          : globalYear === 1
-                          ? "Showing 1st Year cohort metrics (foundation cycle, student onboarding, initial teams)"
-                          : globalYear === 2
-                          ? "Showing 2nd Year cohort metrics (experiential learning, approved projects, mentor status)"
-                          : "Showing 3rd Year cohort metrics (advanced domain projects & milestone evaluations)"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Year Tabs */}
-                  <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1.5 self-start md:self-auto flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handleGlobalYearChange(null)}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                        globalYear === null
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                      }`}
-                    >
-                      <span>All Years</span>
-                      {analytics?.year_breakdown?.all && (
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                          globalYear === null 
-                            ? "bg-white/20 text-white" 
-                            : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                        }`}>
-                          {analytics.year_breakdown.all.students}
-                        </span>
-                      )}
-                    </button>
-
-                    {[
-                      { yr: 1, label: "1st Year", countKey: "1" },
-                      { yr: 2, label: "2nd Year", countKey: "2" },
-                      { yr: 3, label: "3rd Year", countKey: "3" }
-                    ].map(({ yr, label, countKey }) => {
-                      const count = analytics?.year_breakdown?.[countKey]?.students;
-                      const isSelected = globalYear === yr;
-                      return (
-                        <button
-                          key={yr}
-                          type="button"
-                          onClick={() => handleGlobalYearChange(yr)}
-                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                            isSelected
-                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                          }`}
-                        >
-                          <span>{label}</span>
-                          {count !== undefined && (
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                              isSelected 
-                                ? "bg-white/20 text-white" 
-                                : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                            }`}>
-                              {count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
 
                 {/* 1. 8 Redesigned Statistics Cards */}
@@ -3301,73 +3215,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-8 text-left"
           >
-            {/* Academic Settings Cohort Scope Selector */}
-            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shrink-0">
-                  <GraduationCap size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    Academic Cohort Scope
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Configure branch allocations. Subject cycle editing (Physics / Chemistry) is restricted strictly to 1st Year.
-                  </p>
-                </div>
-              </div>
-
-              {/* Cohort Tabs */}
-              {/* Active Cohort Scope Indicator */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Scope:</span>
-                <span className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 ${
-                  globalYear === 1
-                    ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                    : globalYear === 2 || globalYear === 3
-                    ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                    : "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800"
-                }`}>
-                  <GraduationCap size={14} />
-                  <span>
-                    {globalYear === 1 
-                      ? "1st Year (2026) • Cycles Active" 
-                      : globalYear === 2 
-                      ? "2nd Year (2025) • Cycles Restricted" 
-                      : globalYear === 3 
-                      ? "3rd Year (2024) • Cycles Restricted" 
-                      : "All Years"}
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            {/* Restriction Banner for 2nd & 3rd Year */}
-            {(globalYear === 2 || globalYear === 3) && (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
-                    <Lock size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-wider">
-                      Subject Cycle Changing Restricted for {globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
-                    </h4>
-                    <p className="text-[11px] font-medium opacity-90 mt-0.5">
-                      Physics Cycle and Chemistry Cycle allocations apply strictly to <strong>1st Year</strong> engineering students. 2nd and 3rd Year students follow core departmental curriculum with no cycle division.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleGlobalYearChange(1)}
-                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shrink-0 cursor-pointer shadow-sm transition flex items-center gap-1.5"
-                >
-                  <Unlock size={14} />
-                  Switch to 1st Year to Edit Cycles
-                </button>
-              </div>
-            )}
 
             {/* Header Control Panel */}
             <div className="glass-panel p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
