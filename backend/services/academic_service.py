@@ -38,6 +38,13 @@ DEFAULT_CYCLE_MAPPINGS = {
     "CH": "P",
 }
 
+DEFAULT_CLUSTER_MAPPINGS = {
+    "CS": "CS", "CI": "CS", "CD": "CS", "CY": "CS",
+    "EC": "EC", "EE": "EC", "ET": "EC",
+    "AS": "ME", "IM": "ME", "ME": "ME",
+    "CV": "CV", "BT": "CV", "CH": "CV",
+}
+
 
 ALLOWED_GMAIL_ACCOUNTS = {
     "ishaen06@gmail.com",
@@ -129,7 +136,8 @@ def get_academic_settings(db):
             "_id": "global",
             "session_start_month": 8, # August session start
             "branch_mappings": DEFAULT_BRANCH_NAMES,
-            "cycle_mappings": DEFAULT_CYCLE_MAPPINGS
+            "cycle_mappings": DEFAULT_CYCLE_MAPPINGS,
+            "cluster_mappings": DEFAULT_CLUSTER_MAPPINGS
         }
         try:
             db.academic_settings.insert_one(settings)
@@ -139,14 +147,19 @@ def get_academic_settings(db):
         # Self-heal missing mappings if any
         b_map = settings.get("branch_mappings", {})
         c_map = settings.get("cycle_mappings", {})
+        cl_map = settings.get("cluster_mappings", {})
         for k, v in DEFAULT_BRANCH_NAMES.items():
             if k not in b_map:
                 b_map[k] = v
         for k, v in DEFAULT_CYCLE_MAPPINGS.items():
             if k not in c_map:
                 c_map[k] = v
+        for k, v in DEFAULT_CLUSTER_MAPPINGS.items():
+            if k not in cl_map:
+                cl_map[k] = v
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
+        settings["cluster_mappings"] = cl_map
         try:
             db.academic_settings.update_one({"_id": "global"}, {"$set": settings})
         except Exception:

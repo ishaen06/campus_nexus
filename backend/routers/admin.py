@@ -1756,12 +1756,14 @@ class AcademicSettingsUpdateRequest(BaseModel):
     session_start_month: Optional[int] = None
     branch_mappings: Optional[dict] = None
     cycle_mappings: Optional[dict] = None
+    cluster_mappings: Optional[dict] = None
     year: Optional[int] = None
 
 class AddBranchRequest(BaseModel):
     code: str
     name: str
-    cycle: str
+    cycle: Optional[str] = "P"
+    cluster: Optional[str] = "CS"
 
 @router.get("/academic-settings")
 def get_admin_academic_settings(
@@ -1769,7 +1771,7 @@ def get_admin_academic_settings(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings, DEFAULT_BRANCH_NAMES, DEFAULT_CYCLE_MAPPINGS
+    from services.academic_service import get_academic_settings, DEFAULT_BRANCH_NAMES, DEFAULT_CYCLE_MAPPINGS, DEFAULT_CLUSTER_MAPPINGS
     settings = get_academic_settings(db)
     
     # Calculate student count per branch code
@@ -1795,6 +1797,7 @@ def get_admin_academic_settings(
         "session_start_month": settings.get("session_start_month", 8),
         "branch_mappings": settings.get("branch_mappings", DEFAULT_BRANCH_NAMES),
         "cycle_mappings": settings.get("cycle_mappings", DEFAULT_CYCLE_MAPPINGS),
+        "cluster_mappings": settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "branch_counts": branch_counts,
         "total_students": len(students),
         "year": year,
@@ -1809,7 +1812,7 @@ def update_admin_academic_settings(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings
+    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_MAPPINGS
     settings = get_academic_settings(db)
     
     target_year = payload.year if payload.year is not None else year
@@ -1830,6 +1833,9 @@ def update_admin_academic_settings(
         
     if payload.cycle_mappings is not None:
         update_data["cycle_mappings"] = payload.cycle_mappings
+
+    if payload.cluster_mappings is not None:
+        update_data["cluster_mappings"] = payload.cluster_mappings
         
     if update_data:
         db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
@@ -1841,31 +1847,37 @@ def update_admin_academic_settings(
         "session_start_month": updated_settings.get("session_start_month", 8),
         "branch_mappings": updated_settings.get("branch_mappings", {}),
         "cycle_mappings": updated_settings.get("cycle_mappings", {}),
+        "cluster_mappings": updated_settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "can_edit_cycles": (target_year == 1 or target_year is None)
     }
 
 @router.post("/academic-settings/branches")
 def add_or_update_branch(payload: AddBranchRequest, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):
-    from services.academic_service import get_academic_settings
+    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_MAPPINGS
     code = payload.code.strip().upper()
     name = payload.name.strip()
-    cycle = payload.cycle.strip().upper()
+    cycle = (payload.cycle or "P").strip().upper()
+    cluster = (payload.cluster or "CS").strip().upper()
     
     if not code or not name:
         raise HTTPException(status_code=400, detail="Branch code and branch name are required")
     if cycle not in ["C", "P"]:
         raise HTTPException(status_code=400, detail="Subject cycle must be 'C' or 'P'")
+    if cluster not in ["CS", "EC", "ME", "CV"]:
+        cluster = "CS"
         
     settings = get_academic_settings(db)
     b_map = dict(settings.get("branch_mappings", {}))
     c_map = dict(settings.get("cycle_mappings", {}))
+    cl_map = dict(settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS))
     
     b_map[code] = name
     c_map[code] = cycle
+    cl_map[code] = cluster
     
     db.academic_settings.update_one(
         {"_id": "global"}, 
-        {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}}, 
+        {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map, "cluster_mappings": cl_map}}, 
         upsert=True
     )
     
@@ -1879,14 +1891,16 @@ def delete_branch(code: str, admin = Depends(get_admin_user), db = Depends(get_m
     
     b_map = dict(settings.get("branch_mappings", {}))
     c_map = dict(settings.get("cycle_mappings", {}))
+    cl_map = dict(settings.get("cluster_mappings", {}))
     
-    if branch_code in b_map or branch_code in c_map:
+    if branch_code in b_map or branch_code in c_map or branch_code in cl_map:
         b_map.pop(branch_code, None)
         c_map.pop(branch_code, None)
+        cl_map.pop(branch_code, None)
         
         db.academic_settings.update_one(
             {"_id": "global"}, 
-            {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map}}, 
+            {"$set": {"branch_mappings": b_map, "cycle_mappings": c_map, "cluster_mappings": cl_map}}, 
             upsert=True
         )
         return {"status": "success", "message": f"Branch '{branch_code}' removed successfully."}

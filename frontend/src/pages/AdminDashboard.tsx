@@ -31,8 +31,7 @@ import {
   Star,
   Download,
   Sparkles,
-  RefreshCw,
-  Lock
+  RefreshCw
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -332,10 +331,25 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [teamsLoading, setTeamsLoading] = useState(true);
 
   // Academic Settings states
+  const INSTITUTIONAL_CLUSTERS = [
+    { id: 'CS', label: 'CS Cluster (Computer Science)' },
+    { id: 'EC', label: 'EC Cluster (Electronics & Comm)' },
+    { id: 'ME', label: 'ME Cluster (Mechanical & Aerospace)' },
+    { id: 'CV', label: 'CV Cluster (Civil & Biotech/Chem)' },
+  ];
+
+  const DEFAULT_CLUSTER_MAPPINGS: Record<string, string> = {
+    CS: 'CS', CI: 'CS', CD: 'CS', CY: 'CS',
+    EC: 'EC', EE: 'EC', ET: 'EC',
+    AS: 'ME', IM: 'ME', ME: 'ME',
+    CV: 'CV', BT: 'CV', CH: 'CV',
+  };
+
   const [academicSettings, setAcademicSettings] = useState<{
     session_start_month: number;
     branch_mappings: Record<string, string>;
     cycle_mappings: Record<string, string>;
+    cluster_mappings?: Record<string, string>;
     branch_counts: Record<string, number>;
     total_students: number;
   } | null>(null);
@@ -344,6 +358,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [newBranchCode, setNewBranchCode] = useState('');
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchCycle, setNewBranchCycle] = useState<'C' | 'P'>('C');
+  const [newBranchCluster, setNewBranchCluster] = useState<string>('CS');
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
   const [previewEmail, setPreviewEmail] = useState('ishaensbethur.cs25@rvce.edu.in');
   const [branchFilter, setBranchFilter] = useState('');
@@ -532,6 +547,53 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
+  const handleUpdateCluster = async (code: string, newCluster: string) => {
+    if (!academicSettings) return;
+    const currentMappings = academicSettings.cluster_mappings || DEFAULT_CLUSTER_MAPPINGS;
+    const previousCluster = currentMappings[code] || 'CS';
+    const updatedClusters = { ...currentMappings, [code]: newCluster };
+    
+    // Optimistic UI update
+    setAcademicSettings(prev => prev ? { ...prev, cluster_mappings: updatedClusters } : prev);
+    
+    const doUpdate = async () => {
+      const yearQuery = globalYear ? `?year=${globalYear}` : '';
+      const res = await api.put(`/admin/academic-settings${yearQuery}`, { 
+        cluster_mappings: updatedClusters,
+        year: globalYear || 2
+      });
+      if (res.data?.cluster_mappings) {
+        setAcademicSettings(prev => prev ? { ...prev, cluster_mappings: res.data.cluster_mappings } : prev);
+      }
+    };
+
+    try {
+      await doUpdate();
+    } catch (err: any) {
+      const isNetworkError = !err.response && (err.message === 'Network Error' || err.code === 'ERR_NETWORK');
+      if (isNetworkError) {
+        // Server may be cold-starting — ping to wake it, then retry once
+        try {
+          await api.get('/ping');
+        } catch (_) { /* ignore ping errors */ }
+        try {
+          await doUpdate();
+          return; // retry succeeded
+        } catch (retryErr: any) {
+          console.error('Cluster update retry also failed', retryErr);
+          setAcademicSettings(prev => prev ? { ...prev, cluster_mappings: { ...currentMappings, [code]: previousCluster } } : prev);
+          alert(`Cluster Update: Server is starting up, please wait a moment and try again.`);
+          return;
+        }
+      }
+      // Non-network error (4xx/5xx): show real server message
+      console.error('Failed to update cluster mapping', err);
+      setAcademicSettings(prev => prev ? { ...prev, cluster_mappings: { ...currentMappings, [code]: previousCluster } } : prev);
+      const errMsg = err.response?.data?.detail || err.message || 'Unknown error';
+      alert(`Cluster Update failed: ${errMsg}`);
+    }
+  };
+
   const handleSaveAcademicSettings = async () => {
     if (!academicSettings) return;
     setAcademicSaving(true);
@@ -539,6 +601,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       const payload: any = {
         session_start_month: academicSettings.session_start_month,
         branch_mappings: academicSettings.branch_mappings,
+        cluster_mappings: academicSettings.cluster_mappings,
       };
       if (globalYear !== 2 && globalYear !== 3) {
         payload.cycle_mappings = academicSettings.cycle_mappings;
@@ -566,10 +629,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       await api.post('/admin/academic-settings/branches', {
         code: newBranchCode,
         name: newBranchName,
-        cycle: newBranchCycle
+        cycle: newBranchCycle,
+        cluster: newBranchCluster
       });
       setNewBranchCode('');
       setNewBranchName('');
+      setNewBranchCycle('C');
+      setNewBranchCluster('CS');
       setIsAddBranchOpen(false);
       fetchAcademicSettings();
     } catch (err: any) {
@@ -3271,17 +3337,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           <th className="pb-3">Department Name</th>
                           <th className="pb-3 text-center">{globalYear !== null ? `Students (Yr ${globalYear})` : 'Students'}</th>
                           <th className="pb-3 text-center">
-                            Subject Cycle {(globalYear === 2 || globalYear === 3) ? '(1st Yr Only - Locked)' : '(1st Year)'}
+                            {globalYear === 1 
+                              ? 'Subject Cycle (1st Year)' 
+                              : (globalYear === 2 || globalYear === 3)
+                                ? `Academic Cluster (${globalYear === 2 ? '2nd Year' : '3rd Year'})`
+                                : 'Cycle (1st Yr) / Cluster (2nd & 3rd Yr)'}
                           </th>
                           <th className="pb-3 text-right">Action</th>
-
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-850 font-semibold text-slate-700 dark:text-slate-300">
                         {Object.entries(academicSettings?.branch_mappings || {}).map(([code, name]) => {
                           const currentCycle = academicSettings?.cycle_mappings?.[code] || 'P';
+                          const currentCluster = academicSettings?.cluster_mappings?.[code] || DEFAULT_CLUSTER_MAPPINGS[code] || 'CS';
                           const count = academicSettings?.branch_counts?.[code] || 0;
-                          const isRestrictedYear = globalYear === 2 || globalYear === 3;
+                          const isSecondOrThirdYear = globalYear === 2 || globalYear === 3;
 
                           return (
                             <tr key={code} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
@@ -3297,15 +3367,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                 </span>
                               </td>
                               <td className="py-3.5 text-center">
-                                {isRestrictedYear ? (
-                                  <div 
-                                    title="Cycle changing is restricted to 1st Year only. 2nd and 3rd Year follow core branch curriculum."
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500 font-bold text-[10px] cursor-not-allowed select-none"
-                                  >
-                                    <Lock size={12} className="text-slate-400" />
-                                    <span>N/A (Core Branch)</span>
+                                {isSecondOrThirdYear ? (
+                                  <div className="inline-flex items-center">
+                                    <select
+                                      value={currentCluster}
+                                      onChange={(e) => handleUpdateCluster(code, e.target.value)}
+                                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm outline-none"
+                                    >
+                                      {INSTITUTIONAL_CLUSTERS.map(c => (
+                                        <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-semibold">
+                                          {c.label}
+                                        </option>
+                                      ))}
+                                    </select>
                                   </div>
-                                ) : (
+                                ) : globalYear === 1 ? (
                                   <div className="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
                                     <button
                                       onClick={() => handleUpdateCycle(code, 'C')}
@@ -3327,6 +3403,43 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                     >
                                       P-Cycle
                                     </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                                    <div className="inline-flex items-center gap-1 rounded-xl p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                                      <span className="text-[9px] font-bold text-slate-400 px-1">1st:</span>
+                                      <button
+                                        onClick={() => handleUpdateCycle(code, 'C')}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                          currentCycle === 'C'
+                                            ? 'bg-emerald-500 text-white shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                        }`}
+                                      >
+                                        C
+                                      </button>
+                                      <button
+                                        onClick={() => handleUpdateCycle(code, 'P')}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                          currentCycle === 'P'
+                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                        }`}
+                                      >
+                                        P
+                                      </button>
+                                    </div>
+                                    <select
+                                      value={currentCluster}
+                                      onChange={(e) => handleUpdateCluster(code, e.target.value)}
+                                      className="px-2 py-1 bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl text-[11px] font-bold text-slate-800 dark:text-slate-200 cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    >
+                                      {INSTITUTIONAL_CLUSTERS.map(c => (
+                                        <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                                          {c.id} Cluster
+                                        </option>
+                                      ))}
+                                    </select>
                                   </div>
                                 )}
                               </td>
@@ -3435,13 +3548,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           <span className="font-black text-indigo-600 dark:text-indigo-400">{yearOfStudy}{yearOfStudy === 1 ? 'st' : yearOfStudy === 2 ? 'nd' : 'th'} Year</span>
                         </div>
                         <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">Subject Cycle:</span>
                           {yearOfStudy === 1 ? (
-                            <span className="font-black text-emerald-600 dark:text-emerald-400">{cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}</span>
+                            <>
+                              <span className="font-bold text-slate-500">Subject Cycle:</span>
+                              <span className="font-black text-emerald-600 dark:text-emerald-400">{cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}</span>
+                            </>
                           ) : (
-                            <span className="font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                              <Lock size={11} /> N/A (Core Branch - 1st Yr Only)
-                            </span>
+                            <>
+                              <span className="font-bold text-slate-500">Academic Cluster:</span>
+                              <span className="font-black text-indigo-600 dark:text-indigo-400">
+                                {(academicSettings?.cluster_mappings?.[bCode] || DEFAULT_CLUSTER_MAPPINGS[bCode] || 'CS')} Cluster
+                              </span>
+                            </>
                           )}
                         </div>
                       </div>
@@ -3505,6 +3623,23 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         >
                           <option value="C" className="bg-white dark:bg-slate-900">C-Cycle (Chemistry)</option>
                           <option value="P" className="bg-white dark:bg-slate-900">P-Cycle (Physics)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">2nd & 3rd Year Academic Cluster</label>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-1.5 font-medium">
+                          Assigns institutional cluster for multidisciplinary teams & themes in 2nd/3rd year.
+                        </p>
+                        <select
+                          value={newBranchCluster}
+                          onChange={(e) => setNewBranchCluster(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                        >
+                          {INSTITUTIONAL_CLUSTERS.map(c => (
+                            <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
+                              {c.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
