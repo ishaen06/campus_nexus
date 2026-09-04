@@ -45,6 +45,59 @@ DEFAULT_CLUSTER_MAPPINGS = {
     "CV": "CV", "BT": "CV", "CH": "CV",
 }
 
+DEFAULT_CLUSTER_THEMES = {
+    "CS": [
+        "Artificial Intelligence",
+        "Internet of Things",
+        "AR, VR & MR",
+        "Quantum Security",
+        "Edge Computing",
+        "Ethical AI",
+        "Cloud Security",
+        "Programming Mechanics (Coding for App Development)",
+        "AI for Social Good",
+        "AI in Education",
+        "Data Science and Analytics",
+    ],
+    "EC": [
+        "Semiconductor Engineering",
+        "Cyber Physical Systems",
+        "Drone Technology",
+        "Biomedical Instrumentation",
+        "Bionics and Prosthetics",
+        "Renewable Energy Solutions",
+        "Embedded Systems and IoT",
+        "AI in Electronics",
+        "5G and Wireless Communications",
+        "Power Systems Engineering",
+        "Autonomous Vehicles",
+    ],
+    "ME": [
+        "Smart Manufacturing",
+        "Digital Metrology",
+        "Ergonomics in Automation",
+        "Advanced Materials",
+        "Energy Systems",
+        "Eco-friendly Materials and Waste Reduction Strategies",
+        "Mechatronics & Industrial Internet of Things",
+        "Thermodynamic Simulations",
+        "AI for Mechanical Systems",
+        "Electric Vehicle Technology",
+        "Supply Chain Management",
+    ],
+    "CV": [
+        "Environmental Engineering and Sustainability",
+        "Pollution Control, Waste Management and Bioremediation",
+        "Urban Planning and Development, including Digital Twins",
+        "Smart Materials and Structures",
+        "Innovative Solutions for Water and Wastewater Purification, Reuse and Recycling",
+        "Technologies to Mitigate Climate Change Impacts",
+        "Bioinformatics",
+        "Biomaterials and Computational Biology",
+    ],
+}
+
+
 
 ALLOWED_GMAIL_ACCOUNTS = {
     "ishaen06@gmail.com",
@@ -137,7 +190,8 @@ def get_academic_settings(db):
             "session_start_month": 8, # August session start
             "branch_mappings": DEFAULT_BRANCH_NAMES,
             "cycle_mappings": DEFAULT_CYCLE_MAPPINGS,
-            "cluster_mappings": DEFAULT_CLUSTER_MAPPINGS
+            "cluster_mappings": DEFAULT_CLUSTER_MAPPINGS,
+            "cluster_themes": {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()}
         }
         try:
             db.academic_settings.insert_one(settings)
@@ -148,6 +202,7 @@ def get_academic_settings(db):
         b_map = settings.get("branch_mappings", {})
         c_map = settings.get("cycle_mappings", {})
         cl_map = settings.get("cluster_mappings", {})
+        cl_themes = settings.get("cluster_themes", {})
         for k, v in DEFAULT_BRANCH_NAMES.items():
             if k not in b_map:
                 b_map[k] = v
@@ -157,9 +212,16 @@ def get_academic_settings(db):
         for k, v in DEFAULT_CLUSTER_MAPPINGS.items():
             if k not in cl_map:
                 cl_map[k] = v
+        if not cl_themes:
+            cl_themes = {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()}
+        else:
+            for k, v in DEFAULT_CLUSTER_THEMES.items():
+                if k not in cl_themes:
+                    cl_themes[k] = list(v)
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
         settings["cluster_mappings"] = cl_map
+        settings["cluster_themes"] = cl_themes
         try:
             db.academic_settings.update_one({"_id": "global"}, {"$set": settings})
         except Exception:

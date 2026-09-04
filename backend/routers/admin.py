@@ -1757,7 +1757,12 @@ class AcademicSettingsUpdateRequest(BaseModel):
     branch_mappings: Optional[dict] = None
     cycle_mappings: Optional[dict] = None
     cluster_mappings: Optional[dict] = None
+    cluster_themes: Optional[dict] = None
     year: Optional[int] = None
+
+class ThemeRequest(BaseModel):
+    cluster: str
+    theme: str
 
 class AddBranchRequest(BaseModel):
     code: str
@@ -1771,7 +1776,13 @@ def get_admin_academic_settings(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings, DEFAULT_BRANCH_NAMES, DEFAULT_CYCLE_MAPPINGS, DEFAULT_CLUSTER_MAPPINGS
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_BRANCH_NAMES, 
+        DEFAULT_CYCLE_MAPPINGS, 
+        DEFAULT_CLUSTER_MAPPINGS,
+        DEFAULT_CLUSTER_THEMES
+    )
     settings = get_academic_settings(db)
     
     # Calculate student count per branch code
@@ -1798,6 +1809,7 @@ def get_admin_academic_settings(
         "branch_mappings": settings.get("branch_mappings", DEFAULT_BRANCH_NAMES),
         "cycle_mappings": settings.get("cycle_mappings", DEFAULT_CYCLE_MAPPINGS),
         "cluster_mappings": settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
+        "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
         "branch_counts": branch_counts,
         "total_students": len(students),
         "year": year,
@@ -1812,7 +1824,7 @@ def update_admin_academic_settings(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_MAPPINGS
+    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_MAPPINGS, DEFAULT_CLUSTER_THEMES
     settings = get_academic_settings(db)
     
     target_year = payload.year if payload.year is not None else year
@@ -1836,6 +1848,9 @@ def update_admin_academic_settings(
 
     if payload.cluster_mappings is not None:
         update_data["cluster_mappings"] = payload.cluster_mappings
+
+    if payload.cluster_themes is not None:
+        update_data["cluster_themes"] = payload.cluster_themes
         
     if update_data:
         db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
@@ -1848,8 +1863,88 @@ def update_admin_academic_settings(
         "branch_mappings": updated_settings.get("branch_mappings", {}),
         "cycle_mappings": updated_settings.get("cycle_mappings", {}),
         "cluster_mappings": updated_settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
+        "cluster_themes": updated_settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
         "can_edit_cycles": (target_year == 1 or target_year is None)
     }
+
+@router.post("/academic-settings/themes")
+def add_cluster_theme(
+    payload: ThemeRequest, 
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
+    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
+    cluster = payload.cluster.strip().upper()
+    theme = payload.theme.strip()
+    
+    if not theme:
+        raise HTTPException(status_code=400, detail="Theme name cannot be empty.")
+    if cluster not in ["CS", "EC", "ME", "CV"]:
+        raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
+        
+    settings = get_academic_settings(db)
+    themes_map = dict(settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES))
+    cluster_list = list(themes_map.get(cluster, []))
+    
+    if any(t.lower() == theme.lower() for t in cluster_list):
+        raise HTTPException(status_code=400, detail=f"Theme '{theme}' already exists in {cluster} cluster.")
+        
+    cluster_list.append(theme)
+    themes_map[cluster] = cluster_list
+    
+    db.academic_settings.update_one(
+        {"_id": "global"},
+        {"$set": {"cluster_themes": themes_map}},
+        upsert=True
+    )
+    return {
+        "status": "success",
+        "message": f"Theme '{theme}' added to {cluster} cluster successfully.",
+        "cluster": cluster,
+        "themes": cluster_list,
+        "cluster_themes": themes_map
+    }
+
+@router.delete("/academic-settings/themes")
+def delete_cluster_theme(
+    payload: ThemeRequest, 
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
+    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
+    cluster = payload.cluster.strip().upper()
+    theme = payload.theme.strip()
+    
+    if cluster not in ["CS", "EC", "ME", "CV"]:
+        raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
+        
+    settings = get_academic_settings(db)
+    themes_map = dict(settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES))
+    cluster_list = list(themes_map.get(cluster, []))
+    
+    updated_list = [t for t in cluster_list if t.lower() != theme.lower()]
+    themes_map[cluster] = updated_list
+    
+    db.academic_settings.update_one(
+        {"_id": "global"},
+        {"$set": {"cluster_themes": themes_map}},
+        upsert=True
+    )
+    return {
+        "status": "success",
+        "message": f"Theme '{theme}' removed from {cluster} cluster successfully.",
+        "cluster": cluster,
+        "themes": updated_list,
+        "cluster_themes": themes_map
+    }
+
+@router.post("/academic-settings/themes/delete")
+def delete_cluster_theme_post(
+    payload: ThemeRequest, 
+    admin = Depends(get_admin_user), 
+    db = Depends(get_mongo_db)
+):
+    return delete_cluster_theme(payload, admin, db)
 
 @router.post("/academic-settings/branches")
 def add_or_update_branch(payload: AddBranchRequest, admin = Depends(get_admin_user), db = Depends(get_mongo_db)):

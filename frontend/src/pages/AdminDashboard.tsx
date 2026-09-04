@@ -345,11 +345,64 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     CV: 'CV', BT: 'CV', CH: 'CV',
   };
 
+  const DEFAULT_CLUSTER_THEMES: Record<string, string[]> = {
+    CS: [
+      "Artificial Intelligence",
+      "Internet of Things",
+      "AR, VR & MR",
+      "Quantum Security",
+      "Edge Computing",
+      "Ethical AI",
+      "Cloud Security",
+      "Programming Mechanics (Coding for App Development)",
+      "AI for Social Good",
+      "AI in Education",
+      "Data Science and Analytics",
+    ],
+    EC: [
+      "Semiconductor Engineering",
+      "Cyber Physical Systems",
+      "Drone Technology",
+      "Biomedical Instrumentation",
+      "Bionics and Prosthetics",
+      "Renewable Energy Solutions",
+      "Embedded Systems and IoT",
+      "AI in Electronics",
+      "5G and Wireless Communications",
+      "Power Systems Engineering",
+      "Autonomous Vehicles",
+    ],
+    ME: [
+      "Smart Manufacturing",
+      "Digital Metrology",
+      "Ergonomics in Automation",
+      "Advanced Materials",
+      "Energy Systems",
+      "Eco-friendly Materials and Waste Reduction Strategies",
+      "Mechatronics & Industrial Internet of Things",
+      "Thermodynamic Simulations",
+      "AI for Mechanical Systems",
+      "Electric Vehicle Technology",
+      "Supply Chain Management",
+    ],
+    CV: [
+      "Environmental Engineering and Sustainability",
+      "Pollution Control, Waste Management and Bioremediation",
+      "Urban Planning and Development, including Digital Twins",
+      "Smart Materials and Structures",
+      "Innovative Solutions for Water and Wastewater Purification, Reuse and Recycling",
+      "Technologies to Mitigate Climate Change Impacts",
+      "Bioinformatics",
+      "Biomaterials and Computational Biology",
+    ],
+  };
+
   const [academicSettings, setAcademicSettings] = useState<{
     session_start_month: number;
     branch_mappings: Record<string, string>;
     cycle_mappings: Record<string, string>;
     cluster_mappings?: Record<string, string>;
+    cluster_themes?: Record<string, string[]>;
     branch_counts: Record<string, number>;
     total_students: number;
   } | null>(null);
@@ -360,7 +413,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [newBranchCycle, setNewBranchCycle] = useState<'C' | 'P'>('C');
   const [newBranchCluster, setNewBranchCluster] = useState<string>('CS');
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
-  const [previewEmail, setPreviewEmail] = useState('ishaensbethur.cs25@rvce.edu.in');
+  const [selectedThemeCluster, setSelectedThemeCluster] = useState<'CS' | 'EC' | 'ME' | 'CV'>('CS');
+  const [newThemeText, setNewThemeText] = useState('');
+  const [themeSubmitting, setThemeSubmitting] = useState(false);
   const [branchFilter, setBranchFilter] = useState('');
   const [themeFilter, setThemeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -602,6 +657,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         session_start_month: academicSettings.session_start_month,
         branch_mappings: academicSettings.branch_mappings,
         cluster_mappings: academicSettings.cluster_mappings,
+        cluster_themes: academicSettings.cluster_themes,
       };
       if (globalYear !== 2 && globalYear !== 3) {
         payload.cycle_mappings = academicSettings.cycle_mappings;
@@ -616,6 +672,74 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       alert(err.response?.data?.detail || "Failed to update settings");
     } finally {
       setAcademicSaving(false);
+    }
+  };
+
+  const handleAddTheme = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newThemeText.trim();
+    if (!trimmed) return;
+
+    const currentThemes = academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || [];
+    if (currentThemes.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+      alert(`Theme "${trimmed}" already exists in ${selectedThemeCluster} Cluster.`);
+      return;
+    }
+
+    setThemeSubmitting(true);
+    const updatedList = [...currentThemes, trimmed];
+    const updatedThemesMap = {
+      ...(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES),
+      [selectedThemeCluster]: updatedList
+    };
+    // Optimistic UI update
+    setAcademicSettings(prev => prev ? { ...prev, cluster_themes: updatedThemesMap } : prev);
+
+    try {
+      const res = await api.post('/admin/academic-settings/themes', {
+        cluster: selectedThemeCluster,
+        theme: trimmed
+      });
+      if (res.data?.cluster_themes) {
+        setAcademicSettings(prev => prev ? { ...prev, cluster_themes: res.data.cluster_themes } : prev);
+      }
+      setNewThemeText('');
+    } catch (err: any) {
+      console.error("Failed to add cluster theme", err);
+      // Revert optimistic update
+      setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
+      alert(err.response?.data?.detail || "Failed to add theme");
+    } finally {
+      setThemeSubmitting(false);
+    }
+  };
+
+  const handleDeleteTheme = async (themeToDelete: string) => {
+    if (!window.confirm(`Are you sure you want to remove theme "${themeToDelete}" from ${selectedThemeCluster} Cluster?`)) return;
+
+    const currentThemes = academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || [];
+    const updatedList = currentThemes.filter(t => t !== themeToDelete);
+    const updatedThemesMap = {
+      ...(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES),
+      [selectedThemeCluster]: updatedList
+    };
+    
+    // Optimistic update
+    setAcademicSettings(prev => prev ? { ...prev, cluster_themes: updatedThemesMap } : prev);
+
+    try {
+      const res = await api.post('/admin/academic-settings/themes/delete', {
+        cluster: selectedThemeCluster,
+        theme: themeToDelete
+      });
+      if (res.data?.cluster_themes) {
+        setAcademicSettings(prev => prev ? { ...prev, cluster_themes: res.data.cluster_themes } : prev);
+      }
+    } catch (err: any) {
+      console.error("Failed to delete cluster theme", err);
+      // Revert
+      setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
+      alert(err.response?.data?.detail || "Failed to remove theme");
     }
   };
 
@@ -3495,76 +3619,118 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
                 </div>
 
-                {/* Live Email Parsing & Academic Profile Preview */}
+                {/* Cluster-Wise Project Theme Manager & Live Adder */}
                 <div className="glass-panel p-6 space-y-4">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-                    <Activity size={16} className="text-emerald-500" /> Live Profile Auto-Generation Tester
-                  </h3>
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles size={16} className="text-amber-500" /> Cluster Project Themes
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync
+                    </span>
+                  </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                    Test how Campus Nexus automatically extracts and resolves academic profiles from student Google email addresses:
+                    Manage multidisciplinary project themes cluster-wise. Changes reflect instantly to students when selecting themes during team creation.
                   </p>
-                  <div>
-                    <input
-                      type="email"
-                      value={previewEmail}
-                      onChange={(e) => setPreviewEmail(e.target.value)}
-                      placeholder="e.g. student.cs25@rvce.edu.in"
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none"
-                    />
+
+                  {/* Cluster Selector Tabs */}
+                  <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                    {(['CS', 'EC', 'ME', 'CV'] as const).map(cKey => {
+                      const count = (academicSettings?.cluster_themes?.[cKey] || DEFAULT_CLUSTER_THEMES[cKey] || []).length;
+                      const isSelected = selectedThemeCluster === cKey;
+                      return (
+                        <button
+                          key={cKey}
+                          type="button"
+                          onClick={() => setSelectedThemeCluster(cKey)}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white shadow-md'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <span>{cKey}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-indigo-500/80 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  {(() => {
-                    const clean = previewEmail.trim().toLowerCase();
-                    const isRvce = clean.endsWith('@rvce.edu.in');
-                    if (!isRvce) {
-                      return (
-                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl text-xs text-amber-700 dark:text-amber-400 font-semibold">
-                          ⚠️ Non-RVCE email. Login will be restricted to whitelisted admin accounts.
-                        </div>
-                      );
-                    }
-                    
-                    // Simple frontend regex parse simulation
-                    const match = clean.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
-                    const bCode = match ? match[2].toUpperCase() : 'CS';
-                    const yy = match ? 2000 + Number(match[3]) : 2025;
-                    const fullBranch = academicSettings?.branch_mappings?.[bCode] || `${bCode} Engineering`;
-                    const cycle = academicSettings?.cycle_mappings?.[bCode] || 'P';
-                    const yearsPassed = new Date().getFullYear() - yy;
-                    const yearOfStudy = Math.max(1, Math.min(4, yearsPassed + 1));
+                  {/* Active Cluster Title */}
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      {selectedThemeCluster === 'CS' && 'Computer Science Cluster'}
+                      {selectedThemeCluster === 'EC' && 'Electronics Cluster'}
+                      {selectedThemeCluster === 'ME' && 'Mechanical Cluster'}
+                      {selectedThemeCluster === 'CV' && 'Civil & Bio Cluster'}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {(academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).length} Themes
+                    </span>
+                  </div>
 
-                    return (
-                      <div className="p-4 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">Branch Name:</span>
-                          <span className="font-black text-slate-800 dark:text-slate-100">{fullBranch}</span>
+                  {/* Themes List */}
+                  <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 no-scrollbar divide-y divide-slate-100 dark:divide-slate-800/60 border border-slate-100 dark:border-slate-800/80 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/30">
+                    {(academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).map((themeName, idx) => (
+                      <div
+                        key={`${themeName}-${idx}`}
+                        className="flex items-center justify-between gap-2 p-2 hover:bg-white dark:hover:bg-slate-850 rounded-xl transition-all group"
+                      >
+                        <div className="flex items-start gap-2 min-w-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-snug break-words">
+                            {themeName}
+                          </span>
                         </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">Joining Year:</span>
-                          <span className="font-black text-slate-800 dark:text-slate-100">{yy}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">Academic Year:</span>
-                          <span className="font-black text-indigo-600 dark:text-indigo-400">{yearOfStudy}{yearOfStudy === 1 ? 'st' : yearOfStudy === 2 ? 'nd' : 'th'} Year</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          {yearOfStudy === 1 ? (
-                            <>
-                              <span className="font-bold text-slate-500">Subject Cycle:</span>
-                              <span className="font-black text-emerald-600 dark:text-emerald-400">{cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="font-bold text-slate-500">Academic Cluster:</span>
-                              <span className="font-black text-indigo-600 dark:text-indigo-400">
-                                {(academicSettings?.cluster_mappings?.[bCode] || DEFAULT_CLUSTER_MAPPINGS[bCode] || 'CS')} Cluster
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTheme(themeName)}
+                          title={`Remove "${themeName}" from ${selectedThemeCluster}`}
+                          className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all opacity-80 group-hover:opacity-100 cursor-pointer shrink-0"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
-                    );
-                  })()}
+                    ))}
+                    {(academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).length === 0 && (
+                      <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                        No themes added for {selectedThemeCluster} Cluster yet.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add New Theme Form */}
+                  <form onSubmit={handleAddTheme} className="space-y-2 pt-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Add New Theme to {selectedThemeCluster} Cluster
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={newThemeText}
+                        onChange={(e) => setNewThemeText(e.target.value)}
+                        placeholder={`e.g. Next-Gen ${selectedThemeCluster} Technology...`}
+                        className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                      />
+                      <button
+                        type="submit"
+                        disabled={themeSubmitting || !newThemeText.trim()}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md shadow-indigo-500/20 cursor-pointer transition-all shrink-0 flex items-center gap-1.5"
+                      >
+                        {themeSubmitting ? (
+                          <RefreshCw size={13} className="animate-spin" />
+                        ) : (
+                          <>
+                            <span>+</span>
+                            <span>Add</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>

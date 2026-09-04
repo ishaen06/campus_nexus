@@ -52,6 +52,7 @@ export default function ProjectDashboard() {
   const [mentorSearchQuery, setMentorSearchQuery] = useState('');
   const [showMentorDropdown, setShowMentorDropdown] = useState(false);
   const [mentorValidationError, setMentorValidationError] = useState<string | null>(null);
+  const [dynamicClusterThemes, setDynamicClusterThemes] = useState<Record<string, string[]> | null>(null);
 
   const navigate = useNavigate();
 
@@ -69,6 +70,8 @@ export default function ProjectDashboard() {
 
       const mentorRes = await api.get('/users/mentors');
       setRegisteredMentors(mentorRes.data || []);
+
+      api.get('/users/cluster-themes').then(res => setDynamicClusterThemes(res.data)).catch(() => {});
     } catch (err) {
       console.error(err);
     } finally {
@@ -506,7 +509,7 @@ export default function ProjectDashboard() {
 
                                 const cluster = getClusterForBranch(students[0]?.branch_code || '');
                                 if (cluster) {
-                                  clusterThemes = CLUSTER_THEMES[cluster] || null;
+                                  clusterThemes = (dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES[cluster] || null;
                                   clusterLabel = cluster;
                                 }
                               }

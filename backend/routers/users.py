@@ -368,10 +368,11 @@ def get_registered_mentors(current_user = Depends(get_current_user), db = Depend
 
 
 @router.get("/cluster-themes")
-def get_cluster_themes(current_user = Depends(get_current_user)):
-    """Returns the allowed project themes for each cluster (2nd year teams)."""
-    from routers.chat import CLUSTER_THEMES
-    return CLUSTER_THEMES
+def get_cluster_themes(db = Depends(get_mongo_db)):
+    """Returns the allowed project themes for each cluster (from DB or default)."""
+    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
+    settings = get_academic_settings(db)
+    return settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
 
 
 @router.get("/{user_id}/public-profile")

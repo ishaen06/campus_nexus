@@ -196,6 +196,7 @@ export default function MyTeam() {
   const [projectTopic, setProjectTopic] = useState('');
   const [projectSubTopic, setProjectSubTopic] = useState('');
   const [projectTheme, setProjectTheme] = useState('');
+  const [dynamicClusterThemes, setDynamicClusterThemes] = useState<Record<string, string[]> | null>(null);
 
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
@@ -283,14 +284,16 @@ export default function MyTeam() {
   const fetchData = async (isInitial = false) => {
     if (isInitial) setLoading(true);
     try {
-      const [connRes, groupRes, meRes] = await Promise.all([
+      const [connRes, groupRes, meRes, themesRes] = await Promise.all([
         api.get('/connections/'),
         api.get('/chat/groups'),
-        api.get('/users/me').catch(() => null)
+        api.get('/users/me').catch(() => null),
+        api.get('/users/cluster-themes').catch(() => null)
       ]);
       setConnections(connRes.data);
       setGroups(groupRes.data);
       if (meRes?.data) setCurrentUser(meRes.data);
+      if (themesRes?.data) setDynamicClusterThemes(themesRes.data);
     } catch (err) {
       console.error("Error fetching data on MyTeam page:", err);
     } finally {
@@ -886,7 +889,9 @@ export default function MyTeam() {
                         const yr = getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn);
                         if (yr >= 2) {
                           const cluster = getClusterForBranch(currentUser.branch_code || '');
-                          const themes = cluster ? CLUSTER_THEMES[cluster] : [];
+                          const themes = cluster 
+                            ? ((dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES[cluster] || []) 
+                            : [];
                           return themes.map(t => <option key={t} value={t}>{t}</option>);
                         }
                       }

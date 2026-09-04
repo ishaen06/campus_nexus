@@ -1506,7 +1506,10 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
                     clusters.discard(None)
                     if len(clusters) == 1:
                         cluster = next(iter(clusters))
-                        allowed = CLUSTER_THEMES.get(cluster, [])
+                        from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
+                        settings = get_academic_settings(db)
+                        cl_themes = settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
+                        allowed = cl_themes.get(cluster, [])
                         if allowed and details.project_theme not in allowed:
                             raise HTTPException(
                                 status_code=400,
