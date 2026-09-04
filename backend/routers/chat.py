@@ -338,7 +338,33 @@ def _get_year_of_study(joining_year: int) -> int:
         years_passed -= 1
     return max(1, min(4, years_passed + 1))
 
-def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
+import time
+_COHORT_MAP_CACHE = {"ts": time.time(), "map": {"26": 1, "25": 2, "24": 3, "23": 4}}
+
+def get_cached_cohort_map(db=None) -> dict:
+    global _COHORT_MAP_CACHE
+    now = time.time()
+    if (now - _COHORT_MAP_CACHE["ts"] < 30.0) and _COHORT_MAP_CACHE["map"]:
+        return _COHORT_MAP_CACHE["map"]
+    if db is not None:
+        try:
+            doc = db.academic_settings.find_one({"_id": "global"}, {"cohort_mappings": 1})
+            if doc and "cohort_mappings" in doc and doc["cohort_mappings"]:
+                _COHORT_MAP_CACHE = {"ts": now, "map": doc["cohort_mappings"]}
+                return _COHORT_MAP_CACHE["map"]
+        except Exception:
+            pass
+    return _COHORT_MAP_CACHE.get("map", {"26": 1, "25": 2, "24": 3, "23": 4})
+
+def invalidate_cohort_map_cache(new_map=None):
+    import time
+    global _COHORT_MAP_CACHE
+    if new_map:
+        _COHORT_MAP_CACHE = {"ts": time.time(), "map": new_map}
+    else:
+        _COHORT_MAP_CACHE["ts"] = 0.0
+
+def _extract_user_academic_info(u: dict, cohort_map: dict = None) -> tuple[str, int, int]:
     """Returns (branch_code, joining_year, year_of_study).
     Rules:
       - 26 in email or USN -> 1st year (joining_year 2026, year_of_study 1)
@@ -382,16 +408,9 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     detected_yy = usn_year or email_year
     detected_yy_str = str(detected_yy) if detected_yy is not None else None
 
-    # Retrieve live cohort mappings from academic settings if available
-    cohort_map = {"26": 1, "25": 2, "24": 3, "23": 4}
-    try:
-        from database_mongo import get_mongo_db
-        db_conn = get_mongo_db()
-        doc = db_conn.academic_settings.find_one({"_id": "global"}, {"cohort_mappings": 1})
-        if doc and "cohort_mappings" in doc and doc["cohort_mappings"]:
-            cohort_map = doc["cohort_mappings"]
-    except Exception:
-        pass
+    # Retrieve live cohort mappings from memory cache or academic settings
+    if cohort_map is None:
+        cohort_map = get_cached_cohort_map()
 
     if detected_yy_str and detected_yy_str in cohort_map:
         joining_year = 2000 + int(detected_yy)

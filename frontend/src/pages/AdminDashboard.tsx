@@ -1272,9 +1272,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       const yearParam = activeYear !== null && activeYear !== undefined ? `?dataset=${dataset}&year=${activeYear}` : `?dataset=${dataset}`;
       const res = await api.get(`/admin/reports/preview${yearParam}`);
       setPreviewData(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load report preview", err);
-      alert("Failed to load report preview. Opening direct download...");
+      const detail = err.response?.data?.detail || "Could not generate live preview";
+      alert(`Failed to load report preview (${detail}). Opening direct download...`);
       handleDownloadReport(dataset, format, activeYear);
       setPreviewDataset(null);
       setPreviewFormat(null);

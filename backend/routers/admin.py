@@ -1097,7 +1097,7 @@ class BeautifulReportPDF(FPDF):
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cell(0, 10, f"Generated on {now_str}  |  Page {self.page_no()}/{{nb}}", align="C")
 
-def _group_belongs_to_year(group, year: int, db) -> bool:
+def _group_belongs_to_year(group, year: int, db, cohort_map: dict = None) -> bool:
     if isinstance(group, dict):
         g = group
         gid = g.get("id")
@@ -1125,21 +1125,33 @@ def _group_belongs_to_year(group, year: int, db) -> bool:
         member_recs = list(db.group_members.find({"group_id": num_gid}))
     m_uids = [r.get("user_id") for r in member_recs if r.get("user_id") is not None]
 
-    
     if g and g.get("created_by") is not None:
         m_uids.append(g["created_by"])
     stus = list(db.users.find({"id": {"$in": m_uids}, "is_mentor": {"$ne": True}, "is_admin": {"$ne": True}}))
     for s in stus:
-        if _extract_user_academic_info(s)[2] == year:
+        if _extract_user_academic_info(s, cohort_map=cohort_map)[2] == year:
             return True
     return False
 
 def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tuple:
+    from services.academic_service import DEFAULT_COHORT_MAPPINGS
+    cohort_map = dict(DEFAULT_COHORT_MAPPINGS)
+    try:
+        doc = db.academic_settings.find_one({"_id": "global"}, {"cohort_mappings": 1})
+        if doc and "cohort_mappings" in doc and doc["cohort_mappings"]:
+            cohort_map = doc["cohort_mappings"]
+    except Exception:
+        pass
+
+    year_batches = {}
+    for b_code, y_val in cohort_map.items():
+        year_batches[y_val] = f"20{b_code}"
+
     year_labels = {
-        1: "1st Year (2026 Batch)",
-        2: "2nd Year (2025 Batch)",
-        3: "3rd Year (2024 Batch)",
-        4: "4th Year (2023 Batch)"
+        1: f"1st Year ({year_batches.get(1, '2026')} Batch)",
+        2: f"2nd Year ({year_batches.get(2, '2025')} Batch)",
+        3: f"3rd Year ({year_batches.get(3, '2024')} Batch)",
+        4: f"4th Year ({year_batches.get(4, '2023')} Batch)"
     }
     year_suffix = f" - {year_labels.get(year, f'Year {year} Cohort')}" if year else " - All Years (Separated)"
 
@@ -1150,12 +1162,12 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             "email": {"$ne": "ishaen.vihaan@gmail.com"}
         }))
         if year is not None:
-            students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+            students = [s for s in students if _extract_user_academic_info(s, cohort_map=cohort_map)[2] == year]
         else:
-            students = sorted(students, key=lambda s: _extract_user_academic_info(s)[2])
+            students = sorted(students, key=lambda s: _extract_user_academic_info(s, cohort_map=cohort_map)[2])
         data = []
         for s in students:
-            _, _, s_yr = _extract_user_academic_info(s)
+            _, _, s_yr = _extract_user_academic_info(s, cohort_map=cohort_map)
             y_badge = year_labels.get(s_yr, f"Year {s_yr}")
             group_id = "N/A"
             group_name = "N/A"
@@ -1172,7 +1184,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                 "Email": s.get("email") or "N/A",
                 "USN": s.get("usn") or "N/A",
                 "Branch": s.get("branch") or "N/A",
-                "Cycle": (s.get("cycle") or "N/A") if y_study == 1 else "N/A",
+                "Cycle": (s.get("cycle") or "N/A") if s_yr == 1 else "N/A",
                 "Team ID": group_id,
                 "Team Name": group_name
             })
@@ -1190,7 +1202,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                 "mentor_status": "APPROVED"
             }))
             if year is not None:
-                count = len([c for c in approved_chats if _group_belongs_to_year(c, year, db)])
+                count = len([c for c in approved_chats if _group_belongs_to_year(c, year, db, cohort_map=cohort_map)])
                 if count == 0:
                     continue
                 y_badge = year_labels.get(year, f"Year {year}")
@@ -1216,7 +1228,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "teams":
         teams = list(db.group_chats.find())
         if year is not None:
-            teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
+            teams = [t for t in teams if _group_belongs_to_year(t, year, db, cohort_map=cohort_map)]
         data = []
         for t in teams:
             member_recs = list(db.group_members.find({"group_id": t["id"]}))
@@ -1231,12 +1243,12 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             student_ids = [uid for uid in member_ids if uid != mentor_id]
             students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
             if year is not None:
-                students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+                students = [s for s in students if _extract_user_academic_info(s, cohort_map=cohort_map)[2] == year]
                 if not students:
                     continue
             
             for s in students:
-                _, _, s_yr = _extract_user_academic_info(s)
+                _, _, s_yr = _extract_user_academic_info(s, cohort_map=cohort_map)
                 y_badge = year_labels.get(s_yr, f"Year {s_yr}")
                 data.append({
                     "Academic Year": y_badge,
@@ -1260,16 +1272,16 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             "email": {"$ne": "ishaen.vihaan@gmail.com"}
         }))
         if year is not None:
-            students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+            students = [s for s in students if _extract_user_academic_info(s, cohort_map=cohort_map)[2] == year]
         else:
-            students = sorted(students, key=lambda s: _extract_user_academic_info(s)[2])
+            students = sorted(students, key=lambda s: _extract_user_academic_info(s, cohort_map=cohort_map)[2])
         data = []
         for s in students:
             student_id = s.get("id")
             usn = s.get("usn") or "N/A"
             name = s.get("full_name") or "N/A"
             branch = s.get("branch") or "N/A"
-            _, _, s_yr = _extract_user_academic_info(s)
+            _, _, s_yr = _extract_user_academic_info(s, cohort_map=cohort_map)
             y_badge = year_labels.get(s_yr, f"Year {s_yr}")
             
             group_id = "N/A"
@@ -1361,13 +1373,13 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "projects":
         teams = list(db.group_chats.find())
         if year is not None:
-            teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
+            teams = [t for t in teams if _group_belongs_to_year(t, year, db, cohort_map=cohort_map)]
         data = []
         for t in teams:
             t_yr = year
             if t_yr is None:
                 for y_check in [1, 2, 3]:
-                    if _group_belongs_to_year(t, y_check, db):
+                    if _group_belongs_to_year(t, y_check, db, cohort_map=cohort_map):
                         t_yr = y_check
                         break
             y_badge = year_labels.get(t_yr, f"Year {t_yr}") if t_yr else "N/A"
@@ -1390,13 +1402,13 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "approvals":
         teams = list(db.group_chats.find())
         if year is not None:
-            teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
+            teams = [t for t in teams if _group_belongs_to_year(t, year, db, cohort_map=cohort_map)]
         data = []
         for t in teams:
             t_yr = year
             if t_yr is None:
                 for y_check in [1, 2, 3]:
-                    if _group_belongs_to_year(t, y_check, db):
+                    if _group_belongs_to_year(t, y_check, db, cohort_map=cohort_map):
                         t_yr = y_check
                         break
             y_badge = year_labels.get(t_yr, f"Year {t_yr}") if t_yr else "N/A"
@@ -1436,14 +1448,14 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
     elif dataset == "approved_teams":
         approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
         if year is not None:
-            approved_groups = [g for g in approved_groups if _group_belongs_to_year(g, year, db)]
+            approved_groups = [g for g in approved_groups if _group_belongs_to_year(g, year, db, cohort_map=cohort_map)]
 
         data = []
         for group in approved_groups:
             group_yr = year
             if group_yr is None:
                 for y_check in [1, 2, 3]:
-                    if _group_belongs_to_year(group, y_check, db):
+                    if _group_belongs_to_year(group, y_check, db, cohort_map=cohort_map):
                         group_yr = y_check
                         break
             y_badge = year_labels.get(group_yr, f"Year {group_yr}") if group_yr else "N/A"
@@ -1460,7 +1472,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             student_ids = [uid for uid in member_ids if uid != mentor_id]
             students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
             if year is not None:
-                students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+                students = [s for s in students if _extract_user_academic_info(s, cohort_map=cohort_map)[2] == year]
             
             row_dict = {
                 "Academic Year": y_badge,
@@ -1500,9 +1512,9 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             "email": {"$ne": "ishaen.vihaan@gmail.com"}
         }))
         if year is not None:
-            students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+            students = [s for s in students if _extract_user_academic_info(s, cohort_map=cohort_map)[2] == year]
         else:
-            students = sorted(students, key=lambda s: _extract_user_academic_info(s)[2])
+            students = sorted(students, key=lambda s: _extract_user_academic_info(s, cohort_map=cohort_map)[2])
         data = []
         for s in students:
             student_id = s.get("id")
@@ -1510,7 +1522,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             name = s.get("full_name") or "N/A"
             branch = s.get("branch") or "N/A"
             section = s.get("section") or "N/A"
-            _, _, y_study = _extract_user_academic_info(s)
+            _, _, y_study = _extract_user_academic_info(s, cohort_map=cohort_map)
             y_badge = year_labels.get(y_study, f"Year {y_study}")
             if y_study == 1:
                 semester = "1st Sem"
@@ -1594,31 +1606,38 @@ def preview_admin_report(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    active_year = year if year is not None else 1
-    df, report_title, col_widths = fetch_report_dataframe(dataset, db, year=active_year)
-    preview_df = df.head(10)
-    preview_df = preview_df.astype(object).where(pd.notnull(preview_df), None)
-    records = preview_df.to_dict(orient="records")
-    
-    safe_records = []
-    for r in records:
-        safe_row = {}
-        for k, v in r.items():
-            if v is None:
-                safe_row[k] = ""
-            elif isinstance(v, datetime):
-                safe_row[k] = v.isoformat()
-            else:
-                safe_row[k] = str(v)
-        safe_records.append(safe_row)
+    try:
+        active_year = year if year is not None else 1
+        df, report_title, col_widths = fetch_report_dataframe(dataset, db, year=active_year)
+        preview_df = df.head(10)
+        preview_df = preview_df.astype(object).where(pd.notnull(preview_df), None)
+        records = preview_df.to_dict(orient="records")
         
-    return {
-        "title": report_title,
-        "columns": list(df.columns),
-        "preview": safe_records,
-        "total_rows": len(df),
-        "year": active_year
-    }
+        safe_records = []
+        for r in records:
+            safe_row = {}
+            for k, v in r.items():
+                if v is None:
+                    safe_row[k] = ""
+                elif isinstance(v, datetime):
+                    safe_row[k] = v.isoformat()
+                else:
+                    safe_row[k] = str(v)
+            safe_records.append(safe_row)
+            
+        return {
+            "title": report_title,
+            "columns": list(df.columns),
+            "preview": safe_records,
+            "total_rows": len(df),
+            "year": active_year
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate preview for '{dataset}': {str(e)}")
 
 @router.get("/reports/download")
 def download_admin_report(
