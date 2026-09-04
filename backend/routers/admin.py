@@ -1883,6 +1883,8 @@ def update_admin_academic_settings(
         cleaned_cohort = {}
         for k, v in payload.cohort_mappings.items():
             k_str = str(k).strip()
+            if len(k_str) == 4 and k_str.startswith("20"):
+                k_str = k_str[-2:]
             try:
                 v_int = int(v)
                 if 1 <= v_int <= 4:
@@ -1890,6 +1892,11 @@ def update_admin_academic_settings(
             except (ValueError, TypeError):
                 continue
         update_data["cohort_mappings"] = cleaned_cohort
+        try:
+            from routers.chat import invalidate_cohort_map_cache
+            invalidate_cohort_map_cache(cleaned_cohort)
+        except Exception:
+            pass
         
     if update_data:
         db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
@@ -1919,6 +1926,8 @@ def update_cohort_mapping(
     
     if "batch" in payload and "year" in payload:
         b_key = str(payload["batch"]).strip()
+        if len(b_key) == 4 and b_key.startswith("20"):
+            b_key = b_key[-2:]
         y_val = int(payload["year"])
         if not (1 <= y_val <= 4):
             raise HTTPException(status_code=400, detail="Academic year must be between 1 and 4")
@@ -1926,6 +1935,8 @@ def update_cohort_mapping(
     elif "cohort_mappings" in payload and isinstance(payload["cohort_mappings"], dict):
         for k, v in payload["cohort_mappings"].items():
             k_str = str(k).strip()
+            if len(k_str) == 4 and k_str.startswith("20"):
+                k_str = k_str[-2:]
             try:
                 v_int = int(v)
                 if 1 <= v_int <= 4:
@@ -1935,6 +1946,8 @@ def update_cohort_mapping(
     else:
         for k, v in payload.items():
             k_str = str(k).strip()
+            if len(k_str) == 4 and k_str.startswith("20"):
+                k_str = k_str[-2:]
             try:
                 v_int = int(v)
                 if 1 <= v_int <= 4:
@@ -1943,6 +1956,11 @@ def update_cohort_mapping(
                 continue
 
     db.academic_settings.update_one({"_id": "global"}, {"$set": {"cohort_mappings": cohort_map}}, upsert=True)
+    try:
+        from routers.chat import invalidate_cohort_map_cache
+        invalidate_cohort_map_cache(cohort_map)
+    except Exception:
+        pass
     return {"status": "success", "cohort_mappings": cohort_map}
 
 @router.delete("/academic-settings/cohort-mappings/{batch}")

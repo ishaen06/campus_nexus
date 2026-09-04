@@ -32,7 +32,8 @@ import {
   Download,
   Sparkles,
   RefreshCw,
-  Plus
+  Save,
+  Loader2
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -417,8 +418,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   } | null>(null);
   const [academicLoading, setAcademicLoading] = useState(true);
   const [academicSaving, setAcademicSaving] = useState(false);
-  const [newCohortBatch, setNewCohortBatch] = useState('');
-  const [newCohortYear, setNewCohortYear] = useState<number>(1);
+  const [cohortYearInputs, setCohortYearInputs] = useState<{ [yr: number]: string }>({
+    1: '26',
+    2: '25',
+    3: '24'
+  });
   const [cohortSaving, setCohortSaving] = useState(false);
   const [newBranchCode, setNewBranchCode] = useState('');
   const [newBranchName, setNewBranchName] = useState('');
@@ -756,19 +760,54 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
-  const handleUpdateCohortMapping = async (batch: string, newYear: number) => {
+  // Synchronize 3-row cohort inputs with academicSettings.cohort_mappings
+  useEffect(() => {
+    const mappings = academicSettings?.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
+    const initial: { [yr: number]: string } = { 1: '', 2: '', 3: '' };
+    for (const [batch, yr] of Object.entries(mappings)) {
+      if (yr >= 1 && yr <= 3) {
+        initial[yr] = batch;
+      }
+    }
+    if (!initial[1]) initial[1] = '26';
+    if (!initial[2]) initial[2] = '25';
+    if (!initial[3]) initial[3] = '24';
+    setCohortYearInputs(initial);
+  }, [academicSettings?.cohort_mappings]);
+
+  const handleCohortYearChange = (yr: number, val: string) => {
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 4);
+    setCohortYearInputs(prev => ({ ...prev, [yr]: clean }));
+  };
+
+  const handleSaveCohortAllocation = async () => {
     if (!academicSettings) return;
-    const currentMappings = academicSettings.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
-    const previousYear = currentMappings[batch];
-    const updatedMappings = { ...currentMappings, [batch]: newYear };
 
-    // Optimistic UI update
-    setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: updatedMappings } : prev);
+    // Validate inputs
+    const newMappings: Record<string, number> = {};
+    const seenBatches = new Set<string>();
+
+    for (const yr of [1, 2, 3]) {
+      let raw = (cohortYearInputs[yr] || '').trim();
+      if (raw.length === 4 && raw.startsWith('20')) {
+        raw = raw.slice(-2);
+      }
+      if (!raw) {
+        alert(`Please enter a valid Year number for ${yr === 1 ? '1st' : yr === 2 ? '2nd' : '3rd'} Year.`);
+        return;
+      }
+      if (seenBatches.has(raw)) {
+        alert(`Year/Batch "${raw}" cannot be assigned to multiple academic years. Each year must have a unique value.`);
+        return;
+      }
+      seenBatches.add(raw);
+      newMappings[raw] = yr;
+    }
+
     setCohortSaving(true);
-
     try {
       const res = await api.put('/admin/academic-settings', {
-        cohort_mappings: updatedMappings,
+        cohort_mappings: newMappings,
         year: globalYear
       });
       if (res.data?.cohort_mappings) {
@@ -779,71 +818,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       fetchAllUsers(globalYear);
       fetchTeamsData(globalYear);
     } catch (err: any) {
-      console.error("Failed to update cohort mapping", err);
-      setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: { ...currentMappings, [batch]: previousYear } } : prev);
+      console.error("Failed to update academic year allocation", err);
       alert(err.response?.data?.detail || "Failed to update academic year allocation");
     } finally {
       setCohortSaving(false);
-    }
-  };
-
-  const handleAddCohortMapping = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const batchTrimmed = newCohortBatch.trim();
-    if (!batchTrimmed) return;
-
-    if (!academicSettings) return;
-    const currentMappings = academicSettings.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
-    const updatedMappings = { ...currentMappings, [batchTrimmed]: newCohortYear };
-
-    setCohortSaving(true);
-    setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: updatedMappings } : prev);
-
-    try {
-      const res = await api.post('/admin/academic-settings/cohort-mappings', {
-        batch: batchTrimmed,
-        year: newCohortYear
-      });
-      if (res.data?.cohort_mappings) {
-        setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: res.data.cohort_mappings } : prev);
-      }
-      setNewCohortBatch('');
-      fetchAnalytics(globalYear);
-      fetchAcademicSettings(globalYear);
-      fetchAllUsers(globalYear);
-      fetchTeamsData(globalYear);
-    } catch (err: any) {
-      console.error("Failed to add cohort mapping", err);
-      setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: currentMappings } : prev);
-      alert(err.response?.data?.detail || "Failed to add batch allocation");
-    } finally {
-      setCohortSaving(false);
-    }
-  };
-
-  const handleDeleteCohortMapping = async (batchToDelete: string) => {
-    if (!window.confirm(`Are you sure you want to remove Batch ${batchToDelete} from year allocation?`)) return;
-
-    if (!academicSettings) return;
-    const currentMappings = academicSettings.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
-    const updatedMappings = { ...currentMappings };
-    delete updatedMappings[batchToDelete];
-
-    setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: updatedMappings } : prev);
-
-    try {
-      const res = await api.delete(`/admin/academic-settings/cohort-mappings/${batchToDelete}`);
-      if (res.data?.cohort_mappings) {
-        setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: res.data.cohort_mappings } : prev);
-      }
-      fetchAnalytics(globalYear);
-      fetchAcademicSettings(globalYear);
-      fetchAllUsers(globalYear);
-      fetchTeamsData(globalYear);
-    } catch (err: any) {
-      console.error("Failed to delete cohort mapping", err);
-      setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: currentMappings } : prev);
-      alert(err.response?.data?.detail || "Failed to remove batch allocation");
     }
   };
 
@@ -3707,88 +3685,91 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     Assign email ID batch numbers (e.g. email with <span className="font-mono text-indigo-500 font-bold">25</span> → <span className="font-bold text-slate-700 dark:text-slate-300">2nd Year</span>, <span className="font-mono text-indigo-500 font-bold">26</span> → <span className="font-bold text-slate-700 dark:text-slate-300">1st Year</span>) to their academic year of study. Changes reflect live across all student profiles, team creation rules, and filters.
                   </p>
 
-                  {/* Active Batch Mappings List */}
-                  <div className="space-y-2.5">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
-                      <span>Configured Batches</span>
-                      <span>Allocated Year of Study</span>
-                    </div>
+                  {/* Year Allocation Table: exactly 3 rows with Year column (editable) and Academic Year column (read-only) */}
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                          <th className="py-3 px-4 text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider w-1/2">
+                            Year
+                          </th>
+                          <th className="py-3 px-4 text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider w-1/2">
+                            Academic Year
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                        {[
+                          { yr: 1, label: '1st Year', sem: '1st & 2nd Sem', badgeClass: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40' },
+                          { yr: 2, label: '2nd Year', sem: '3rd & 4th Sem', badgeClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' },
+                          { yr: 3, label: '3rd Year', sem: '5th & 6th Sem', badgeClass: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40' },
+                        ].map(({ yr, label, sem, badgeClass }) => (
+                          <tr key={yr} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                            {/* Column 1: Year (Editable) */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={cohortYearInputs[yr] ?? ''}
+                                  disabled={cohortSaving}
+                                  onChange={(e) => handleCohortYearChange(yr, e.target.value)}
+                                  onBlur={handleSaveCohortAllocation}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  placeholder="e.g. 25"
+                                  maxLength={4}
+                                  className="w-20 px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl text-xs font-black font-mono text-indigo-600 dark:text-indigo-400 outline-none transition-all focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                                  (...{cohortYearInputs[yr] || 'YY'}@rvce.edu.in)
+                                </span>
+                              </div>
+                            </td>
 
-                    {Object.entries(academicSettings?.cohort_mappings || DEFAULT_COHORT_MAPPINGS)
-                      .sort(([a], [b]) => Number(b) - Number(a))
-                      .map(([batch, yr]) => (
-                        <div
-                          key={batch}
-                          className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl gap-2 transition-all hover:border-indigo-500/30 flex-wrap sm:flex-nowrap"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 shrink-0">
-                            <span className="font-mono text-xs font-black px-2 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 shrink-0">
-                              Batch {batch}
-                            </span>
-                            <span className="text-[11px] text-slate-400 truncate hidden sm:inline">
-                              (e.g. ...{batch}@rvce.edu.in)
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <select
-                              value={yr}
-                              disabled={cohortSaving}
-                              onChange={(e) => handleUpdateCohortMapping(batch, Number(e.target.value))}
-                              className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/20"
-                            >
-                              <option value={1}>1st Year (1st & 2nd Sem)</option>
-                              <option value={2}>2nd Year (3rd & 4th Sem)</option>
-                              <option value={3}>3rd Year (5th & 6th Sem)</option>
-                              <option value={4}>4th Year (7th & 8th Sem)</option>
-                            </select>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCohortMapping(batch)}
-                              title={`Remove Batch ${batch}`}
-                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer shrink-0"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                            {/* Column 2: Academic Year (Static / Non-editable) */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${badgeClass}`}>
+                                  {label}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  ({sem})
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
-                  {/* Add / Map New Batch Form */}
-                  <form onSubmit={handleAddCohortMapping} className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Add / Reassign Batch
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newCohortBatch}
-                        onChange={(e) => setNewCohortBatch(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                        placeholder="Batch (e.g. 27)"
-                        maxLength={2}
-                        className="w-32 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                      <select
-                        value={newCohortYear}
-                        onChange={(e) => setNewCohortYear(Number(e.target.value))}
-                        className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/20"
-                      >
-                        <option value={1}>Assign to 1st Year</option>
-                        <option value={2}>Assign to 2nd Year</option>
-                        <option value={3}>Assign to 3rd Year</option>
-                        <option value={4}>Assign to 4th Year</option>
-                      </select>
-                      <button
-                        type="submit"
-                        disabled={cohortSaving || !newCohortBatch.trim()}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                      >
-                        <Plus size={14} /> Map
-                      </button>
-                    </div>
-                  </form>
+                  {/* Action Bar: Save Allocation */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-slate-400">
+                      Edit the Year column. Press Enter or click Save Allocation.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSaveCohortAllocation}
+                      disabled={cohortSaving}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {cohortSaving ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save size={13} />
+                          <span>Save Allocation</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Cluster-Wise Project Theme Manager & Live Adder */}

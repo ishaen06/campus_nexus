@@ -227,10 +227,6 @@ def get_academic_settings(db):
                     cl_themes[k] = list(v)
         if not cohort_map:
             cohort_map = dict(DEFAULT_COHORT_MAPPINGS)
-        else:
-            for k, v in DEFAULT_COHORT_MAPPINGS.items():
-                if k not in cohort_map:
-                    cohort_map[k] = v
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
         settings["cluster_mappings"] = cl_map
