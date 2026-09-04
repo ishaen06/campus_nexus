@@ -31,6 +31,7 @@ interface NotificationItem {
   title: string;
   content: string;
   target_department?: string;
+  target_year?: number | null;
   files: Attachment[];
   sender_email: string;
   sender_name: string;
@@ -43,6 +44,7 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [activeFolder, setActiveFolder] = useState<'inbox' | 'starred' | 'important' | 'sent'>('inbox');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCohort, setSelectedCohort] = useState<number | null>(null);
   
   // Starred and Important state locally saved per user in localStorage
   const [starredIds, setStarredIds] = useState<number[]>(() => {
@@ -61,6 +63,7 @@ export default function Notifications() {
   // Compose Box Modal/Floating Box State
   const [isComposing, setIsComposing] = useState(false);
   const [targetDept, setTargetDept] = useState('ALL');
+  const [targetCohort, setTargetCohort] = useState<string>('ALL');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -156,10 +159,12 @@ export default function Notifications() {
     }
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (cohortOverride?: number | null) => {
     try {
       setLoading(true);
-      const res = await api.get(`/notifications?t=${Date.now()}`);
+      const cohortVal = cohortOverride !== undefined ? cohortOverride : selectedCohort;
+      const cohortParam = cohortVal !== null ? `&year=${cohortVal}` : '';
+      const res = await api.get(`/notifications?t=${Date.now()}${cohortParam}`);
       const data = res.data;
       setNotifications(data);
 
@@ -219,6 +224,31 @@ export default function Notifications() {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const recipientSelectValue = 
+    targetDept === 'ALL' && targetCohort === '1' ? 'COHORT_1' :
+    targetDept === 'ALL' && targetCohort === '2' ? 'COHORT_2' :
+    targetDept === 'ALL' && targetCohort === '3' ? 'COHORT_3' :
+    targetDept !== 'ALL' ? targetDept : 'ALL';
+
+  const handleRecipientChange = (val: string) => {
+    if (val === 'ALL') {
+      setTargetDept('ALL');
+      setTargetCohort('ALL');
+    } else if (val === 'COHORT_1') {
+      setTargetDept('ALL');
+      setTargetCohort('1');
+    } else if (val === 'COHORT_2') {
+      setTargetDept('ALL');
+      setTargetCohort('2');
+    } else if (val === 'COHORT_3') {
+      setTargetDept('ALL');
+      setTargetCohort('3');
+    } else {
+      setTargetDept(val);
+      setTargetCohort('ALL');
+    }
+  };
+
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !body.trim()) return;
@@ -230,6 +260,9 @@ export default function Notifications() {
     formData.append("title", subject);
     formData.append("content", body);
     formData.append("target_department", targetDept);
+    if (targetCohort && targetCohort !== 'ALL') {
+      formData.append("target_year", targetCohort);
+    }
     selectedFiles.forEach(file => {
       formData.append("files", file);
     });
@@ -245,6 +278,7 @@ export default function Notifications() {
       setSubject('');
       setBody('');
       setTargetDept('ALL');
+      setTargetCohort('ALL');
       setSelectedFiles([]);
       setIsComposing(false);
       
@@ -281,6 +315,13 @@ export default function Notifications() {
       notif.sender_name.toLowerCase().includes(searchQuery.toLowerCase());
       
     if (!matchesSearch) return false;
+
+    // Cohort filter
+    if (selectedCohort !== null) {
+      if (notif.target_year !== null && notif.target_year !== undefined && notif.target_year !== selectedCohort) {
+        return false;
+      }
+    }
 
     if (activeFolder === 'starred') {
       return starredIds.includes(notif.id);
@@ -350,8 +391,8 @@ export default function Notifications() {
       {/* Main Container Area */}
       <div className="flex-1 flex flex-col min-w-0">
         
-        {/* Top Search bar */}
-        <div className="border-b border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-950/20 backdrop-blur-md flex items-center justify-between gap-4">
+        {/* Top Search bar & Cohort Filter */}
+        <div className="border-b border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-950/20 backdrop-blur-md flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex-1 max-w-xl relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
             <input
@@ -363,8 +404,32 @@ export default function Notifications() {
             />
           </div>
           
-          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest hidden sm:block">
-            College Official Feed
+          {/* Cohort Selector Filter */}
+          <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 shrink-0 self-start sm:self-auto overflow-x-auto">
+            {[
+              { id: null, label: 'All Cohorts' },
+              { id: 1, label: '1st Year' },
+              { id: 2, label: '2nd Year' },
+              { id: 3, label: '3rd Year' },
+            ].map(c => {
+              const isActive = selectedCohort === c.id;
+              return (
+                <button
+                  key={c.id ?? 'all'}
+                  onClick={() => {
+                    setSelectedCohort(c.id);
+                    fetchNotifications(c.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -421,10 +486,29 @@ export default function Notifications() {
                       {/* Content: Title, snippet, attachment indicator */}
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex justify-between items-center gap-2">
-                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
-                            {notif.sender_name}
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold whitespace-nowrap">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
+                              {notif.sender_name}
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                              notif.target_year === 1
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40'
+                                : notif.target_year === 2
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40'
+                                : notif.target_year === 3
+                                ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                            }`}>
+                              {notif.target_year === 1
+                                ? '1st Year'
+                                : notif.target_year === 2
+                                ? '2nd Year'
+                                : notif.target_year === 3
+                                ? '3rd Year'
+                                : 'All Cohorts'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold whitespace-nowrap shrink-0">
                             {new Date(notif.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
@@ -508,8 +592,25 @@ export default function Notifications() {
                         <span>•</span>
                         <span className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full text-[9px] font-extrabold border border-indigo-200 dark:border-indigo-800/60">
                           {selectedNotif.target_department && selectedNotif.target_department !== 'ALL' 
-                            ? `To: ${selectedNotif.target_department} Dept` 
-                            : 'To: All Members'}
+                            ? `Dept: ${selectedNotif.target_department}` 
+                            : 'Dept: All'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
+                          selectedNotif.target_year === 1
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60'
+                            : selectedNotif.target_year === 2
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
+                            : selectedNotif.target_year === 3
+                            ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}>
+                          {selectedNotif.target_year === 1
+                            ? 'Cohort: 1st Year (2026 Batch)'
+                            : selectedNotif.target_year === 2
+                            ? 'Cohort: 2nd Year (2025 Batch)'
+                            : selectedNotif.target_year === 3
+                            ? 'Cohort: 3rd Year (2024 Batch)'
+                            : 'Cohort: All Years'}
                         </span>
                       </div>
                     </div>
@@ -629,31 +730,70 @@ export default function Notifications() {
             {/* Compose form */}
             <form onSubmit={handleSendNotification} className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 space-y-4">
               
-              {/* To field (Department-wise selection) */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold shrink-0">To:</span>
-                <div className="flex-1 min-w-0">
-                  <select
-                    value={targetDept}
-                    onChange={e => setTargetDept(e.target.value)}
-                    className="w-full text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-extrabold px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm truncate"
-                  >
-                    <option value="ALL">All Students & Mentors &lt;everyone@campusnexus.edu&gt;</option>
-                    <option value="CS">Computer Science Engineering (CS) &lt;cs@campusnexus.edu&gt;</option>
-                    <option value="AI">Artificial Intelligence & Machine Learning (AI/AIML) &lt;ai@campusnexus.edu&gt;</option>
-                    <option value="CY">Cyber Security (CY) &lt;cy@campusnexus.edu&gt;</option>
-                    <option value="DS">Data Science (DS) &lt;ds@campusnexus.edu&gt;</option>
-                    <option value="EC">Electronics & Communication (EC/ECE) &lt;ec@campusnexus.edu&gt;</option>
-                    <option value="EE">Electrical & Electronics (EE/EEE) &lt;ee@campusnexus.edu&gt;</option>
-                    <option value="ME">Mechanical Engineering (ME) &lt;me@campusnexus.edu&gt;</option>
-                    <option value="CV">Civil Engineering (CV) &lt;cv@campusnexus.edu&gt;</option>
-                    <option value="BT">Biotechnology (BT) &lt;bt@campusnexus.edu&gt;</option>
-                    <option value="CH">Chemical Engineering (CH) &lt;ch@campusnexus.edu&gt;</option>
-                    <option value="ETE">Electronics & Telecommunication (ETE) &lt;ete@campusnexus.edu&gt;</option>
-                    <option value="IEM">Industrial Engineering & Management (IEM) &lt;iem@campusnexus.edu&gt;</option>
-                    <option value="AS">Aerospace Engineering (AS/ASE) &lt;as@campusnexus.edu&gt;</option>
-                  </select>
+              {/* To field (Audience & Year-wise Cohort selection) */}
+              <div className="flex flex-col gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-xs text-slate-400 dark:text-slate-500 font-bold shrink-0">To:</span>
+                  <div className="flex-1 min-w-0">
+                    <select
+                      value={recipientSelectValue}
+                      onChange={e => handleRecipientChange(e.target.value)}
+                      className="w-full text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-extrabold px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm truncate"
+                    >
+                      <option value="ALL">All Students & Mentors &lt;everyone@campusnexus.edu&gt;</option>
+
+                      <optgroup label="── Academic Cohorts (Year-Wise) ──">
+                        <option value="COHORT_1">1st Year Students (Batch 2026) &lt;cohort.1styear@campusnexus.edu&gt;</option>
+                        <option value="COHORT_2">2nd Year Students (Batch 2025) &lt;cohort.2ndyear@campusnexus.edu&gt;</option>
+                        <option value="COHORT_3">3rd Year Students (Batch 2024) &lt;cohort.3rdyear@campusnexus.edu&gt;</option>
+                      </optgroup>
+
+                      <optgroup label="── Departments (All Years) ──">
+                        <option value="CS">Computer Science Engineering (CS) &lt;cs@campusnexus.edu&gt;</option>
+                        <option value="AI">Artificial Intelligence & Machine Learning (AI/AIML) &lt;ai@campusnexus.edu&gt;</option>
+                        <option value="CY">Cyber Security (CY) &lt;cy@campusnexus.edu&gt;</option>
+                        <option value="DS">Data Science (DS) &lt;ds@campusnexus.edu&gt;</option>
+                        <option value="EC">Electronics & Communication (EC/ECE) &lt;ec@campusnexus.edu&gt;</option>
+                        <option value="EE">Electrical & Electronics (EE/EEE) &lt;ee@campusnexus.edu&gt;</option>
+                        <option value="ME">Mechanical Engineering (ME) &lt;me@campusnexus.edu&gt;</option>
+                        <option value="CV">Civil Engineering (CV) &lt;cv@campusnexus.edu&gt;</option>
+                        <option value="BT">Biotechnology (BT) &lt;bt@campusnexus.edu&gt;</option>
+                        <option value="CH">Chemical Engineering (CH) &lt;ch@campusnexus.edu&gt;</option>
+                        <option value="ETE">Electronics & Telecommunication (ETE) &lt;ete@campusnexus.edu&gt;</option>
+                        <option value="IEM">Industrial Engineering & Management (IEM) &lt;iem@campusnexus.edu&gt;</option>
+                        <option value="AS">Aerospace Engineering (AS/ASE) &lt;as@campusnexus.edu&gt;</option>
+                      </optgroup>
+                    </select>
+                  </div>
                 </div>
+
+                {/* Optional Year Cohort refinement when a specific department is chosen */}
+                {targetDept !== 'ALL' && (
+                  <div className="flex items-center gap-2 pl-6 sm:pl-7">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Cohort:</span>
+                    <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/70">
+                      {[
+                        { id: 'ALL', label: 'All Years' },
+                        { id: '1', label: '1st Year' },
+                        { id: '2', label: '2nd Year' },
+                        { id: '3', label: '3rd Year' },
+                      ].map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setTargetCohort(c.id)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                            targetCohort === c.id
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Subject Title field */}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, BackgroundTasks, Query
 from typing import List, Optional
 from datetime import datetime
 import os
@@ -16,12 +16,12 @@ router = APIRouter()
 # Max file limit: 25MB
 MAX_FILE_SIZE = 25 * 1024 * 1024
 
-def send_notification_emails(title: str, content: str, attachments: List[dict], db, target_department: str = "ALL"):
-    """Background task to send email notifications to all or department-specific registered users."""
-    print(f"[Background task] Commencing email notification dispatch (Target: {target_department})...")
+def send_notification_emails(title: str, content: str, attachments: List[dict], db, target_department: str = "ALL", target_year: Optional[int] = None):
+    """Background task to send email notifications to all or department/cohort-specific registered users."""
+    print(f"[Background task] Commencing email notification dispatch (Target Dept: {target_department}, Target Cohort: {target_year})...")
     
     target_clean = (target_department or "ALL").strip().upper()
-    users = list(db.users.find({}, {"email": 1, "full_name": 1, "branch": 1, "branch_code": 1, "department": 1}))
+    users = list(db.users.find({}, {"email": 1, "full_name": 1, "branch": 1, "branch_code": 1, "department": 1, "usn": 1}))
     
     if target_clean != "ALL":
         filtered_users = []
@@ -29,6 +29,18 @@ def send_notification_emails(title: str, content: str, attachments: List[dict], 
             u_dept = (u.get("branch_code") or u.get("branch") or u.get("department") or "").strip().upper()
             if u_dept == target_clean or target_clean in u_dept or u_dept in target_clean:
                 filtered_users.append(u)
+        users = filtered_users
+
+    if target_year is not None:
+        from routers.chat import _extract_user_academic_info
+        filtered_users = []
+        for u in users:
+            try:
+                _, _, u_year = _extract_user_academic_info(u)
+                if u_year == target_year:
+                    filtered_users.append(u)
+            except Exception:
+                pass
         users = filtered_users
 
     emails = [u["email"] for u in users if u.get("email") and u["email"] != "token"]
@@ -40,13 +52,16 @@ def send_notification_emails(title: str, content: str, attachments: List[dict], 
         for att in attachments:
             attachment_sec += f"- {att['name']} (Download Link: http://localhost:8000{att['url']})\n"
             
+    cohort_str = f"{target_year}{'st' if target_year == 1 else 'nd' if target_year == 2 else 'rd'} Year" if target_year else "All Cohorts"
+    dept_str = target_department if target_clean != 'ALL' else 'All Students & Mentors'
+
     email_body = f"""Hello,
 
 College has posted a new notification:
 
 --------------------------------------------------
 Subject: {title}
-Audience: {target_department if target_clean != 'ALL' else 'All Students & Mentors'}
+Audience: {dept_str} • {cohort_str}
 Date: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC
 --------------------------------------------------
 
@@ -80,6 +95,7 @@ def create_notification(
     title: str = Form(...),
     content: str = Form(...),
     target_department: Optional[str] = Form("ALL"),
+    target_year: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None),
     admin = Depends(get_admin_user),
     db = Depends(get_mongo_db)
@@ -118,6 +134,16 @@ def create_notification(
                 "size": size
             })
             
+    # Parse target_year
+    target_year_int = None
+    if target_year and str(target_year).strip() and str(target_year).strip().upper() != "ALL":
+        try:
+            val = int(str(target_year).strip())
+            if 1 <= val <= 4:
+                target_year_int = val
+        except (ValueError, TypeError):
+            target_year_int = None
+
     # Save notification record in database
     notif_id = get_next_sequence_value("notifications")
     dept_target = (target_department or "ALL").strip().upper()
@@ -126,6 +152,7 @@ def create_notification(
         "title": title,
         "content": content,
         "target_department": dept_target,
+        "target_year": target_year_int,
         "files": saved_attachments,
         "sender_email": admin["email"],
         "sender_name": admin["full_name"],
@@ -141,7 +168,8 @@ def create_notification(
         content, 
         saved_attachments, 
         db,
-        dept_target
+        dept_target,
+        target_year_int
     )
     
     notif_doc.pop("_id", None)
@@ -153,12 +181,28 @@ def has_unread_notifications(current_user = Depends(get_current_user), db = Depe
     query = {}
     if not is_admin:
         u_dept = (current_user.get("branch_code") or current_user.get("branch") or current_user.get("department") or "").strip().upper()
-        query = {
+        dept_cond = {
             "$or": [
                 {"target_department": {"$in": ["ALL", None, ""]}},
                 {"target_department": {"$regex": f"^{u_dept}$", "$options": "i"}}
             ]
         }
+        from routers.chat import _extract_user_academic_info
+        try:
+            _, _, u_year = _extract_user_academic_info(current_user)
+        except Exception:
+            u_year = None
+        if u_year:
+            year_cond = {
+                "$or": [
+                    {"target_year": None},
+                    {"target_year": {"$exists": False}},
+                    {"target_year": u_year}
+                ]
+            }
+            query = {"$and": [dept_cond, year_cond]}
+        else:
+            query = dept_cond
         
     latest = db.notifications.find_one(query, sort=[("id", -1)])
     if not latest:
@@ -183,17 +227,46 @@ def mark_notifications_seen(current_user = Depends(get_current_user), db = Depen
 
 
 @router.get("", response_model=List[dict])
-def get_notifications(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+def get_notifications(
+    year: Optional[int] = Query(None),
+    current_user = Depends(get_current_user), 
+    db = Depends(get_mongo_db)
+):
     is_admin = current_user.get("is_admin", False) or (current_user.get("email") == "ishaen.vihaan@gmail.com")
     query = {}
     if not is_admin:
         u_dept = (current_user.get("branch_code") or current_user.get("branch") or current_user.get("department") or "").strip().upper()
-        query = {
+        dept_cond = {
             "$or": [
                 {"target_department": {"$in": ["ALL", None, ""]}},
                 {"target_department": {"$regex": f"^{u_dept}$", "$options": "i"}}
             ]
         }
+        from routers.chat import _extract_user_academic_info
+        try:
+            _, _, u_year = _extract_user_academic_info(current_user)
+        except Exception:
+            u_year = None
+        if u_year:
+            year_cond = {
+                "$or": [
+                    {"target_year": None},
+                    {"target_year": {"$exists": False}},
+                    {"target_year": u_year}
+                ]
+            }
+            query = {"$and": [dept_cond, year_cond]}
+        else:
+            query = dept_cond
+    else:
+        if year is not None:
+            query = {
+                "$or": [
+                    {"target_year": year},
+                    {"target_year": None},
+                    {"target_year": {"$exists": False}}
+                ]
+            }
         
     notifs = list(db.notifications.find(query).sort("id", -1))
     for n in notifs:
