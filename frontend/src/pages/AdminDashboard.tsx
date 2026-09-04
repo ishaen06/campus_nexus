@@ -3719,10 +3719,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       .map(([batch, yr]) => (
                         <div
                           key={batch}
-                          className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl gap-2 transition-all hover:border-indigo-500/30"
+                          className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl gap-2 transition-all hover:border-indigo-500/30 flex-wrap sm:flex-nowrap"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-mono text-xs font-black px-2 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50">
+                          <div className="flex items-center gap-2 min-w-0 shrink-0">
+                            <span className="font-mono text-xs font-black px-2 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 shrink-0">
                               Batch {batch}
                             </span>
                             <span className="text-[11px] text-slate-400 truncate hidden sm:inline">
@@ -3730,7 +3730,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             <select
                               value={yr}
                               disabled={cohortSaving}
@@ -3747,7 +3747,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                               type="button"
                               onClick={() => handleDeleteCohortMapping(batch)}
                               title={`Remove Batch ${batch}`}
-                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer shrink-0"
                             >
                               <Trash2 size={13} />
                             </button>
@@ -4473,66 +4473,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
               </div>
 
-              {/* Status Indicator showing connection to top Cohort selector */}
+              {/* Enrolled students count for active cohort */}
               <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-                  <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
-                  <span>Controlled by Top Cohort Selector</span>
+                <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <Users size={16} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>
+                    {globalYear !== null 
+                      ? `${cohortStudentCounts[globalYear] ?? 0} Students Enrolled` 
+                      : `${(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)} Total Students`}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-5">
-              {/* Active Cohort Information Banner */}
-              <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${
-                globalYear === 1
-                  ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-900 dark:text-blue-200'
-                  : globalYear === 2
-                  ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200'
-                  : globalYear === 3
-                  ? 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 text-purple-900 dark:text-purple-200'
-                  : 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900/50 text-indigo-900 dark:text-indigo-200'
-              }`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <GraduationCap size={20} className="shrink-0" />
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-wider block">
-                        Active Cohort Scope: {
-                          globalYear === 1 
-                            ? '1st Year (2026 Batch - 1st & 2nd Semester)' 
-                            : globalYear === 2 
-                            ? '2nd Year (2025 Batch - 3rd & 4th Semester)' 
-                            : globalYear === 3 
-                            ? '3rd Year (2024 Batch - 5th & 6th Semester)' 
-                            : 'All Years (Combined Cohort Export)'
-                        }
-                      </span>
-                      <p className="text-[11px] font-medium opacity-80 mt-0.5">
-                        {globalYear !== null
-                          ? `All 7 reports below contain records strictly isolated to ${globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'} students and teams (${cohortStudentCounts[globalYear] ?? 0} students enrolled). Zero data overlap with other cohorts.`
-                          : `Reports below contain aggregated data across all cohorts (${(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)} total students) with individual cohort classification.`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/60 dark:bg-slate-900/60 border border-current/20">
-                      {globalYear !== null 
-                        ? `${cohortStudentCounts[globalYear] ?? 0} Students Enrolled` 
-                        : `${(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)} Total Students`}
-                    </span>
+              {globalYear !== null && (cohortStudentCounts[globalYear] ?? 0) === 0 && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
+                  <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div>
+                    <span className="font-bold">Notice: No students enrolled in this cohort yet.</span> All exports and previews for this cohort will show 0 student records.
                   </div>
                 </div>
-                {globalYear !== null && (cohortStudentCounts[globalYear] ?? 0) === 0 && (
-                  <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
-                    <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">Notice: No students enrolled in this cohort yet.</span> All exports and previews for this cohort will show 0 student records (headers only). Older batch data (2025/2024) is strictly isolated and will never bleed into this report.
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Grid of 7 Report Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
