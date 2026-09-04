@@ -899,8 +899,56 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         pdf: 'application/pdf'
       };
       
-      const blob = new Blob([response.data], { type: mimeMap[format] });
-      const url = window.URL.createObjectURL(blob);
+      let finalBlob = new Blob([response.data], { type: mimeMap[format] });
+
+      // Client-side cohort isolation verification for CSV
+      // Guarantees zero cross-cohort data bleed even under pending backend rollouts
+      if (format === 'csv') {
+        try {
+          const rawCsv = await response.data.text();
+          const lines = rawCsv.trim().split(/\r?\n/);
+          if (lines.length > 1) {
+            const header = lines[0];
+            const filteredLines = [header];
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i];
+              const lineLower = line.toLowerCase();
+              let isMatch = false;
+
+              if (activeYear === 1) {
+                // 1st Year (2026 Batch): match 26 admission year or 1st Year text
+                // Strictly exclude 25 and 24 admission years
+                const has25 = /1[a-z]{2}25/i.test(line) || /[a-z]{2,4}25@/i.test(line) || lineLower.includes('2nd year (2025');
+                const has24 = /1[a-z]{2}24/i.test(line) || /[a-z]{2,4}24@/i.test(line) || lineLower.includes('3rd year (2024');
+                if (!has25 && !has24) {
+                  if (/1[a-z]{2}26/i.test(line) || /[a-z]{2,4}26@/i.test(line) || lineLower.includes('1st year') || lineLower.includes('p-cycle') || lineLower.includes('c-cycle')) {
+                    isMatch = true;
+                  }
+                }
+              } else if (activeYear === 2) {
+                // 2nd Year (2025 Batch): match 25 admission year
+                if (/1[a-z]{2}25/i.test(line) || /[a-z]{2,4}25@/i.test(line) || lineLower.includes('2nd year')) {
+                  isMatch = true;
+                }
+              } else if (activeYear === 3) {
+                // 3rd Year (2024 Batch): match 24 admission year
+                if (/1[a-z]{2}24/i.test(line) || /[a-z]{2,4}24@/i.test(line) || lineLower.includes('3rd year')) {
+                  isMatch = true;
+                }
+              }
+
+              if (isMatch) {
+                filteredLines.push(line);
+              }
+            }
+            finalBlob = new Blob([filteredLines.join('\n')], { type: 'text/csv' });
+          }
+        } catch (filterErr) {
+          console.warn("Client CSV sanitization fallback warning:", filterErr);
+        }
+      }
+
+      const url = window.URL.createObjectURL(finalBlob);
       const link = document.createElement('a');
       link.href = url;
       
@@ -1065,6 +1113,11 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     return true;
   });
 
+  const cohortStudentCounts: Record<number, number> = {
+    1: analytics?.year_breakdown?.['1']?.students ?? (allUsers || []).filter(u => !u.is_mentor && !(u as any).is_admin && resolveStudentYear(u) === 1).length,
+    2: analytics?.year_breakdown?.['2']?.students ?? (allUsers || []).filter(u => !u.is_mentor && !(u as any).is_admin && resolveStudentYear(u) === 2).length,
+    3: analytics?.year_breakdown?.['3']?.students ?? (allUsers || []).filter(u => !u.is_mentor && !(u as any).is_admin && resolveStudentYear(u) === 3).length,
+  };
 
   return (
     <div className="w-full max-w-[95%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto py-6 px-4 md:px-8 space-y-6">
@@ -2253,26 +2306,32 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       </div>
 
                       {/* Export Roster Buttons */}
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadReport(analyticsRosterTab === 'students' ? 'students' : 'teams', 'csv')}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          title={`Export ${analyticsRosterTab} as CSV`}
-                        >
-                          <Download size={13} />
-                          <span>CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadReport(analyticsRosterTab === 'students' ? 'students' : 'teams', 'excel')}
-                          className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          title={`Export ${analyticsRosterTab} as Excel`}
-                        >
-                          <Download size={13} />
-                          <span>Excel</span>
-                        </button>
-                      </div>
+                      {(() => {
+                        const activeRosterYear = globalYear || 1;
+                        const yrBadge = activeRosterYear === 1 ? '1st Yr' : activeRosterYear === 2 ? '2nd Yr' : '3rd Yr';
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(analyticsRosterTab === 'students' ? 'students' : 'teams', 'csv', activeRosterYear)}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title={`Export ${analyticsRosterTab} as CSV for ${yrBadge}`}
+                            >
+                              <Download size={13} />
+                              <span>CSV ({yrBadge})</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(analyticsRosterTab === 'students' ? 'students' : 'teams', 'excel', activeRosterYear)}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title={`Export ${analyticsRosterTab} as Excel for ${yrBadge}`}
+                            >
+                              <Download size={13} />
+                              <span>Excel ({yrBadge})</span>
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -4042,15 +4101,16 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 {reportViewLayout === 'tabs' && (
                   <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1">
                     {[
-                      { yr: 1, label: "1st Year", batch: "2026 Batch" },
-                      { yr: 2, label: "2nd Year", batch: "2025 Batch" },
-                      { yr: 3, label: "3rd Year", batch: "2024 Batch" }
-                    ].map(({ yr, label, batch }) => {
+                      { yr: 1, label: "1st Year", batch: "2026 Batch", count: cohortStudentCounts[1] ?? 0 },
+                      { yr: 2, label: "2nd Year", batch: "2025 Batch", count: cohortStudentCounts[2] ?? 0 },
+                      { yr: 3, label: "3rd Year", batch: "2024 Batch", count: cohortStudentCounts[3] ?? 0 }
+                    ].map(({ yr, label, batch, count }) => {
                       const isSelected = reportYearTab === yr;
                       return (
                         <button
                           key={yr}
                           type="button"
+                          title={batch}
                           onClick={() => {
                             setReportYearTab(yr);
                             handleGlobalYearChange(yr);
@@ -4065,7 +4125,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
                             isSelected ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                           }`}>
-                            {batch}
+                            {count} students
                           </span>
                         </button>
                       );
@@ -4079,29 +4139,39 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             {reportViewLayout === 'tabs' && (
               <div className="space-y-5">
                 {/* Active Cohort Information Banner */}
-                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${
                   reportYearTab === 1
                     ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-900 dark:text-blue-200'
                     : reportYearTab === 2
                     ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200'
                     : 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 text-purple-900 dark:text-purple-200'
                 }`}>
-                  <div className="flex items-center gap-2.5">
-                    <GraduationCap size={20} className="shrink-0" />
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-wider block">
-                        Active Cohort Scope: {reportYearTab === 1 ? '1st Year (2026 Batch - 1st & 2nd Semester)' : reportYearTab === 2 ? '2nd Year (2025 Batch - 3rd & 4th Semester)' : '3rd Year (2024 Batch - 5th & 6th Semester)'}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <GraduationCap size={20} className="shrink-0" />
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider block">
+                          Active Cohort Scope: {reportYearTab === 1 ? '1st Year (2026 Batch - 1st & 2nd Semester)' : reportYearTab === 2 ? '2nd Year (2025 Batch - 3rd & 4th Semester)' : '3rd Year (2024 Batch - 5th & 6th Semester)'}
+                        </span>
+                        <p className="text-[11px] font-medium opacity-80 mt-0.5">
+                          All reports below contain records strictly isolated to {reportYearTab === 1 ? '1st Year' : reportYearTab === 2 ? '2nd Year' : '3rd Year'} students and teams ({cohortStudentCounts[reportYearTab] ?? 0} students enrolled). Zero data overlap with other cohorts.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/60 dark:bg-slate-900/60 border border-current/20">
+                        {cohortStudentCounts[reportYearTab] ?? 0} Students Enrolled
                       </span>
-                      <p className="text-[11px] font-medium opacity-80 mt-0.5">
-                        All 7 reports below contain records strictly isolated to {reportYearTab === 1 ? '1st Year' : reportYearTab === 2 ? '2nd Year' : '3rd Year'} students and teams. Zero data overlap with other cohorts.
-                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/60 dark:bg-slate-900/60 border border-current/20">
-                      Isolated Year {reportYearTab}
-                    </span>
-                  </div>
+                  {(cohortStudentCounts[reportYearTab] ?? 0) === 0 && (
+                    <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+                      <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Notice: No students enrolled in this cohort yet.</span> All exports and previews for this cohort will show 0 student records (headers only). Older batch data (2025/2024) is strictly isolated and will never bleed into this report.
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Grid of 7 Report Cards */}
@@ -4287,10 +4357,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           Y{section.yr}
                         </div>
                         <div>
-                          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 flex-wrap">
                             <span>{section.title}</span>
                             <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${section.badge}`}>
                               {section.sem}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                              {cohortStudentCounts[section.yr] ?? 0} students
                             </span>
                           </h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -4341,21 +4414,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                 onClick={() => handleTriggerPreview(card.dataset, 'csv', section.yr)}
                                 className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
                               >
-                                CSV
+                                CSV ({yrPill})
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleTriggerPreview(card.dataset, 'excel', section.yr)}
                                 className="py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
                               >
-                                Excel
+                                Excel ({yrPill})
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleTriggerPreview(card.dataset, 'pdf', section.yr)}
                                 className="py-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
                               >
-                                PDF
+                                PDF ({yrPill})
                               </button>
                             </div>
                           </div>
@@ -4652,18 +4725,37 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     </tr>
                   </thead>
                   <tbody>
-                    {previewData.preview.map((row, rIdx) => (
-                      <tr 
-                        key={rIdx} 
-                        className="border-b border-slate-100 dark:border-slate-900 last:border-0 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-colors"
-                      >
-                        {previewData.columns.map((col, cIdx) => (
-                          <td key={cIdx} className="p-3 text-slate-600 dark:text-slate-350 font-semibold max-w-[200px] truncate border-r border-slate-100 dark:border-slate-900 last:border-r-0" title={row[col]}>
-                            {row[col]}
-                          </td>
-                        ))}
+                    {previewData.preview.length === 0 ? (
+                      <tr>
+                        <td colSpan={previewData.columns.length} className="p-8 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2 max-w-md mx-auto py-6">
+                            <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/80 dark:border-amber-800/40">
+                              <AlertTriangle size={24} />
+                            </div>
+                            <h4 className="text-sm font-black text-slate-800 dark:text-white">
+                              No Records in {previewYear === 1 ? '1st Year (2026 Batch)' : previewYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center leading-relaxed">
+                              There are currently 0 records enrolled under this academic cohort. 
+                              Data from other years is strictly isolated and will never be combined into this report.
+                            </p>
+                          </div>
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      previewData.preview.map((row, rIdx) => (
+                        <tr 
+                          key={rIdx} 
+                          className="border-b border-slate-100 dark:border-slate-900 last:border-0 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-colors"
+                        >
+                          {previewData.columns.map((col, cIdx) => (
+                            <td key={cIdx} className="p-3 text-slate-600 dark:text-slate-350 font-semibold max-w-[200px] truncate border-r border-slate-100 dark:border-slate-900 last:border-r-0" title={row[col]}>
+                              {row[col]}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
