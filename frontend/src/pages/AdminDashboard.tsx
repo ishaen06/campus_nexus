@@ -31,7 +31,8 @@ import {
   Star,
   Download,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -397,17 +398,28 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     ],
   };
 
+  const DEFAULT_COHORT_MAPPINGS: Record<string, number> = {
+    "26": 1,
+    "25": 2,
+    "24": 3,
+    "23": 4,
+  };
+
   const [academicSettings, setAcademicSettings] = useState<{
     session_start_month: number;
     branch_mappings: Record<string, string>;
     cycle_mappings: Record<string, string>;
     cluster_mappings?: Record<string, string>;
     cluster_themes?: Record<string, string[]>;
+    cohort_mappings?: Record<string, number>;
     branch_counts: Record<string, number>;
     total_students: number;
   } | null>(null);
   const [academicLoading, setAcademicLoading] = useState(true);
   const [academicSaving, setAcademicSaving] = useState(false);
+  const [newCohortBatch, setNewCohortBatch] = useState('');
+  const [newCohortYear, setNewCohortYear] = useState<number>(1);
+  const [cohortSaving, setCohortSaving] = useState(false);
   const [newBranchCode, setNewBranchCode] = useState('');
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchCycle, setNewBranchCycle] = useState<'C' | 'P'>('C');
@@ -658,6 +670,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         branch_mappings: academicSettings.branch_mappings,
         cluster_mappings: academicSettings.cluster_mappings,
         cluster_themes: academicSettings.cluster_themes,
+        cohort_mappings: academicSettings.cohort_mappings,
       };
       if (globalYear !== 2 && globalYear !== 3) {
         payload.cycle_mappings = academicSettings.cycle_mappings;
@@ -740,6 +753,97 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       // Revert
       setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
       alert(err.response?.data?.detail || "Failed to remove theme");
+    }
+  };
+
+  const handleUpdateCohortMapping = async (batch: string, newYear: number) => {
+    if (!academicSettings) return;
+    const currentMappings = academicSettings.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
+    const previousYear = currentMappings[batch];
+    const updatedMappings = { ...currentMappings, [batch]: newYear };
+
+    // Optimistic UI update
+    setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: updatedMappings } : prev);
+    setCohortSaving(true);
+
+    try {
+      const res = await api.put('/admin/academic-settings', {
+        cohort_mappings: updatedMappings,
+        year: globalYear
+      });
+      if (res.data?.cohort_mappings) {
+        setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: res.data.cohort_mappings } : prev);
+      }
+      fetchAnalytics(globalYear);
+      fetchAcademicSettings(globalYear);
+      fetchAllUsers(globalYear);
+      fetchTeamsData(globalYear);
+    } catch (err: any) {
+      console.error("Failed to update cohort mapping", err);
+      setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: { ...currentMappings, [batch]: previousYear } } : prev);
+      alert(err.response?.data?.detail || "Failed to update academic year allocation");
+    } finally {
+      setCohortSaving(false);
+    }
+  };
+
+  const handleAddCohortMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const batchTrimmed = newCohortBatch.trim();
+    if (!batchTrimmed) return;
+
+    if (!academicSettings) return;
+    const currentMappings = academicSettings.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
+    const updatedMappings = { ...currentMappings, [batchTrimmed]: newCohortYear };
+
+    setCohortSaving(true);
+    setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: updatedMappings } : prev);
+
+    try {
+      const res = await api.post('/admin/academic-settings/cohort-mappings', {
+        batch: batchTrimmed,
+        year: newCohortYear
+      });
+      if (res.data?.cohort_mappings) {
+        setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: res.data.cohort_mappings } : prev);
+      }
+      setNewCohortBatch('');
+      fetchAnalytics(globalYear);
+      fetchAcademicSettings(globalYear);
+      fetchAllUsers(globalYear);
+      fetchTeamsData(globalYear);
+    } catch (err: any) {
+      console.error("Failed to add cohort mapping", err);
+      setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: currentMappings } : prev);
+      alert(err.response?.data?.detail || "Failed to add batch allocation");
+    } finally {
+      setCohortSaving(false);
+    }
+  };
+
+  const handleDeleteCohortMapping = async (batchToDelete: string) => {
+    if (!window.confirm(`Are you sure you want to remove Batch ${batchToDelete} from year allocation?`)) return;
+
+    if (!academicSettings) return;
+    const currentMappings = academicSettings.cohort_mappings || DEFAULT_COHORT_MAPPINGS;
+    const updatedMappings = { ...currentMappings };
+    delete updatedMappings[batchToDelete];
+
+    setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: updatedMappings } : prev);
+
+    try {
+      const res = await api.delete(`/admin/academic-settings/cohort-mappings/${batchToDelete}`);
+      if (res.data?.cohort_mappings) {
+        setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: res.data.cohort_mappings } : prev);
+      }
+      fetchAnalytics(globalYear);
+      fetchAcademicSettings(globalYear);
+      fetchAllUsers(globalYear);
+      fetchTeamsData(globalYear);
+    } catch (err: any) {
+      console.error("Failed to delete cohort mapping", err);
+      setAcademicSettings(prev => prev ? { ...prev, cohort_mappings: currentMappings } : prev);
+      alert(err.response?.data?.detail || "Failed to remove batch allocation");
     }
   };
 
@@ -3587,36 +3691,103 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
               {/* Right Side: Session Config & Live Email Parser Preview */}
               <div className="space-y-6">
-                {/* Academic Session Calendar Config */}
-                <div className="glass-panel p-6 space-y-4">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-                    <Calendar size={16} className="text-indigo-500" /> Academic Session Calendar
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                    Select the month when the new academic session begins. Student academic promotion (1st Year → 2nd Year) is computed dynamically relative to this month.
-                  </p>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Session Start Month</label>
-                    <select
-                      value={academicSettings?.session_start_month || 8}
-                      onChange={async (e) => {
-                        const newMonth = Number(e.target.value);
-                        if (!academicSettings) return;
-                        setAcademicSettings({ ...academicSettings, session_start_month: newMonth });
-                        try {
-                          await api.put('/admin/academic-settings', { session_start_month: newMonth });
-                        } catch (err: any) {
-                          alert(err.response?.data?.detail || "Failed to update session start month");
-                          fetchAcademicSettings();
-                        }
-                      }}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
-                    >
-                      <option value={7}>July (Semester Start)</option>
-                      <option value={8}>August (Standard Academic Session)</option>
-                      <option value={9}>September (Late Session)</option>
-                    </select>
+                {/* Year-Wise Academic Year Allocation (Batch/Cohort Mapping) */}
+                <div className="glass-panel p-6 space-y-5">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <GraduationCap size={16} className="text-indigo-500" /> Academic Year Allocation
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span> Dynamic Cohort Sync
+                    </span>
                   </div>
+
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                    Assign email ID batch numbers (e.g. email with <span className="font-mono text-indigo-500 font-bold">25</span> → <span className="font-bold text-slate-700 dark:text-slate-300">2nd Year</span>, <span className="font-mono text-indigo-500 font-bold">26</span> → <span className="font-bold text-slate-700 dark:text-slate-300">1st Year</span>) to their academic year of study. Changes reflect live across all student profiles, team creation rules, and filters.
+                  </p>
+
+                  {/* Active Batch Mappings List */}
+                  <div className="space-y-2.5">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                      <span>Configured Batches</span>
+                      <span>Allocated Year of Study</span>
+                    </div>
+
+                    {Object.entries(academicSettings?.cohort_mappings || DEFAULT_COHORT_MAPPINGS)
+                      .sort(([a], [b]) => Number(b) - Number(a))
+                      .map(([batch, yr]) => (
+                        <div
+                          key={batch}
+                          className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl gap-2 transition-all hover:border-indigo-500/30"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-mono text-xs font-black px-2 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50">
+                              Batch {batch}
+                            </span>
+                            <span className="text-[11px] text-slate-400 truncate hidden sm:inline">
+                              (e.g. ...{batch}@rvce.edu.in)
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={yr}
+                              disabled={cohortSaving}
+                              onChange={(e) => handleUpdateCohortMapping(batch, Number(e.target.value))}
+                              className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/20"
+                            >
+                              <option value={1}>1st Year (1st & 2nd Sem)</option>
+                              <option value={2}>2nd Year (3rd & 4th Sem)</option>
+                              <option value={3}>3rd Year (5th & 6th Sem)</option>
+                              <option value={4}>4th Year (7th & 8th Sem)</option>
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCohortMapping(batch)}
+                              title={`Remove Batch ${batch}`}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Add / Map New Batch Form */}
+                  <form onSubmit={handleAddCohortMapping} className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Add / Reassign Batch
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newCohortBatch}
+                        onChange={(e) => setNewCohortBatch(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                        placeholder="Batch (e.g. 27)"
+                        maxLength={2}
+                        className="w-32 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <select
+                        value={newCohortYear}
+                        onChange={(e) => setNewCohortYear(Number(e.target.value))}
+                        className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value={1}>Assign to 1st Year</option>
+                        <option value={2}>Assign to 2nd Year</option>
+                        <option value={3}>Assign to 3rd Year</option>
+                        <option value={4}>Assign to 4th Year</option>
+                      </select>
+                      <button
+                        type="submit"
+                        disabled={cohortSaving || !newCohortBatch.trim()}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      >
+                        <Plus size={14} /> Map
+                      </button>
+                    </div>
+                  </form>
                 </div>
 
                 {/* Cluster-Wise Project Theme Manager & Live Adder */}

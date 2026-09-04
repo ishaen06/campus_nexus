@@ -364,7 +364,7 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
         m_usn = re.search(r"1[A-Z]{2}(\d{2})[A-Z]{2,4}\d+", usn)
         if m_usn:
             yy = int(m_usn.group(1))
-            if yy in [23, 24, 25, 26]:
+            if 10 <= yy <= 99:
                 usn_year = yy
 
     # 2. Parse RVCE Email admission year (e.g. prekshar.cs25@rvce.edu.in -> cohort year is 25)
@@ -372,17 +372,31 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     if email:
         m_email = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", email)
         if m_email:
-            yy = int(m_email.group(1))
-            if yy in [23, 24, 25, 26]:
-                email_year = yy
+            email_year = int(m_email.group(1))
         else:
-            m_loose = re.search(r"(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)", email)
+            m_loose = re.search(r"(?:^|\.)[a-z]{2,4}(\d{2})(?:@|$)", email)
             if m_loose:
                 email_year = int(m_loose.group(1))
 
     # Authoritative cohort resolution (USN or Email):
     detected_yy = usn_year or email_year
-    if detected_yy == 26:
+    detected_yy_str = str(detected_yy) if detected_yy is not None else None
+
+    # Retrieve live cohort mappings from academic settings if available
+    cohort_map = {"26": 1, "25": 2, "24": 3, "23": 4}
+    try:
+        from database_mongo import get_mongo_db
+        db_conn = get_mongo_db()
+        doc = db_conn.academic_settings.find_one({"_id": "global"}, {"cohort_mappings": 1})
+        if doc and "cohort_mappings" in doc and doc["cohort_mappings"]:
+            cohort_map = doc["cohort_mappings"]
+    except Exception:
+        pass
+
+    if detected_yy_str and detected_yy_str in cohort_map:
+        joining_year = 2000 + int(detected_yy)
+        year_of_study = int(cohort_map[detected_yy_str])
+    elif detected_yy == 26:
         joining_year = 2026
         year_of_study = 1
     elif detected_yy == 25:
@@ -405,7 +419,10 @@ def _extract_user_academic_info(u: dict) -> tuple[str, int, int]:
     elif joining_year:
         try:
             jy = int(joining_year)
-            if jy == 2026:
+            jy_str = str(jy)[-2:]
+            if jy_str in cohort_map:
+                year_of_study = int(cohort_map[jy_str])
+            elif jy == 2026:
                 year_of_study = 1
             elif jy == 2025:
                 year_of_study = 2

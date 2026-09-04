@@ -97,7 +97,12 @@ DEFAULT_CLUSTER_THEMES = {
     ],
 }
 
-
+DEFAULT_COHORT_MAPPINGS = {
+    "26": 1,  # 1st Year (2026 Batch)
+    "25": 2,  # 2nd Year (2025 Batch)
+    "24": 3,  # 3rd Year (2024 Batch)
+    "23": 4,  # 4th Year (2023 Batch)
+}
 
 ALLOWED_GMAIL_ACCOUNTS = {
     "ishaen06@gmail.com",
@@ -191,7 +196,8 @@ def get_academic_settings(db):
             "branch_mappings": DEFAULT_BRANCH_NAMES,
             "cycle_mappings": DEFAULT_CYCLE_MAPPINGS,
             "cluster_mappings": DEFAULT_CLUSTER_MAPPINGS,
-            "cluster_themes": {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()}
+            "cluster_themes": {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()},
+            "cohort_mappings": dict(DEFAULT_COHORT_MAPPINGS)
         }
         try:
             db.academic_settings.insert_one(settings)
@@ -203,6 +209,7 @@ def get_academic_settings(db):
         c_map = settings.get("cycle_mappings", {})
         cl_map = settings.get("cluster_mappings", {})
         cl_themes = settings.get("cluster_themes", {})
+        cohort_map = settings.get("cohort_mappings", {})
         for k, v in DEFAULT_BRANCH_NAMES.items():
             if k not in b_map:
                 b_map[k] = v
@@ -218,78 +225,92 @@ def get_academic_settings(db):
             for k, v in DEFAULT_CLUSTER_THEMES.items():
                 if k not in cl_themes:
                     cl_themes[k] = list(v)
+        if not cohort_map:
+            cohort_map = dict(DEFAULT_COHORT_MAPPINGS)
+        else:
+            for k, v in DEFAULT_COHORT_MAPPINGS.items():
+                if k not in cohort_map:
+                    cohort_map[k] = v
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
         settings["cluster_mappings"] = cl_map
         settings["cluster_themes"] = cl_themes
+        settings["cohort_mappings"] = cohort_map
         try:
             db.academic_settings.update_one({"_id": "global"}, {"$set": settings})
         except Exception:
             pass
     return settings
 
-def calculate_academic_year(joining_year: int, session_start_month: int = 8, email: str = "") -> int:
+def calculate_academic_year(joining_year: int = None, session_start_month: int = 8, email: str = "", cohort_mappings: dict = None, db = None) -> int:
     """
     Dynamically calculates Academic Year (1, 2, 3, or 4).
-    Rules:
-      - 26 in email or joining_year == 2026: 1st year (1)
-      - 25 in email or joining_year == 2025: 2nd year (2)
-      - 24 in email or joining_year == 2024: 3rd year (3)
-      - 23 in email or joining_year == 2023: 4th year (4)
+    Uses configurable cohort_mappings (e.g. {"26": 1, "25": 2, "24": 3, "23": 4})
     """
-    clean_email = (email or "").lower().strip()
-    em_match = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", clean_email) or re.search(r"(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)", clean_email)
-    em_yy = int(em_match.group(1)) if em_match else None
+    if cohort_mappings is None:
+        if db is not None:
+            try:
+                settings = get_academic_settings(db)
+                cohort_mappings = settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS)
+            except Exception:
+                cohort_mappings = DEFAULT_COHORT_MAPPINGS
+        else:
+            cohort_mappings = DEFAULT_COHORT_MAPPINGS
 
-    if em_yy == 26 or joining_year == 2026:
+    clean_email = (email or "").lower().strip()
+    em_match = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", clean_email) or re.search(r"(?:^|\.)[a-z]{2,4}(\d{2})(?:@|$)", clean_email)
+    em_yy = em_match.group(1) if em_match else None
+
+    # 1. Match email batch ID against configured cohort mappings
+    if em_yy and str(em_yy) in cohort_mappings:
+        return int(cohort_mappings[str(em_yy)])
+
+    # 2. Match joining_year (e.g. 2025 -> "25")
+    if joining_year:
+        jy_str = str(joining_year).strip()
+        jy_suffix = jy_str[-2:]
+        if jy_suffix in cohort_mappings:
+            return int(cohort_mappings[jy_suffix])
+        if jy_str in cohort_mappings:
+            return int(cohort_mappings[jy_str])
+
+    # Fallback to default heuristic if unmapped
+    if em_yy == "26" or joining_year == 2026:
         return 1
-    if em_yy == 25 or joining_year == 2025:
+    if em_yy == "25" or joining_year == 2025:
         return 2
-    if em_yy == 24 or joining_year == 2024:
+    if em_yy == "24" or joining_year == 2024:
         return 3
-    if em_yy == 23 or joining_year == 2023:
+    if em_yy == "23" or joining_year == 2023:
         return 4
 
     if not joining_year:
         return 2
         
     now = datetime.now()
-    years_passed = now.year - joining_year
+    try:
+        years_passed = now.year - int(joining_year)
+    except Exception:
+        years_passed = 1
     if now.month < session_start_month:
         years_passed -= 1
         
     year_of_study = years_passed + 1
     return max(1, min(4, year_of_study))
 
-def calculate_academic_semester(joining_year: int, session_start_month: int = 8, email: str = "", year_of_study: int = None) -> int:
+def calculate_academic_semester(joining_year: int = None, session_start_month: int = 8, email: str = "", year_of_study: int = None, cohort_mappings: dict = None, db = None) -> int:
     """
-    Dynamically calculates Current Academic Semester (1 to 8).
-    Rule: all emails with 25 (or joining_year == 2025) are 3rd sem students.
+    Dynamically calculates Current Academic Semester (1 to 8) aligned with year_of_study.
     """
-    clean_email = (email or "").lower().strip()
-    em_match = re.search(r"[a-z]{2,4}(\d{2})@rvce\.edu\.in", clean_email) or re.search(r"(?:^|\.)[a-z]{2,4}(23|24|25|26)(?:@|$)", clean_email)
-    em_yy = int(em_match.group(1)) if em_match else None
+    if year_of_study is None:
+        year_of_study = calculate_academic_year(joining_year, session_start_month, email, cohort_mappings, db)
 
-    if em_yy == 25 or joining_year == 2025:
-        return 3
-    if em_yy == 26 or joining_year == 2026:
-        return 1
-    if em_yy == 24 or joining_year == 2024:
-        return 5
-    if em_yy == 23 or joining_year == 2023:
-        return 7
-
-        
-    if year_of_study == 2:
-        return 3
-    elif year_of_study == 1:
-        return 1
-    elif year_of_study == 3:
-        return 5
-    elif year_of_study == 4:
-        return 7
-        
-    return 3
+    now = datetime.now()
+    # In August-December (odd sem): 1, 3, 5, 7
+    # In January-July (even sem): 2, 4, 6, 8
+    is_even_sem = (1 <= now.month <= 6)
+    base_sem = (year_of_study * 2) - 1
+    return base_sem + (1 if is_even_sem else 0)
 
 def get_subject_cycle(branch_code: str, db) -> str:
 
@@ -342,10 +363,11 @@ def enrich_user_academic_profile(user_dict: dict, db) -> dict:
             
         settings = get_academic_settings(db)
         session_start_month = settings.get("session_start_month", 8)
+        cohort_mappings = settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS)
         
         # Calculate dynamic year of study & semester
-        res["year_of_study"] = calculate_academic_year(joining_year, session_start_month, email=user_email)
-        res["semester"] = calculate_academic_semester(joining_year, session_start_month, email=user_email, year_of_study=res.get("year_of_study"))
+        res["year_of_study"] = calculate_academic_year(joining_year, session_start_month, email=user_email, cohort_mappings=cohort_mappings)
+        res["semester"] = calculate_academic_semester(joining_year, session_start_month, email=user_email, year_of_study=res.get("year_of_study"), cohort_mappings=cohort_mappings)
 
 
         

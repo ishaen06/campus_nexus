@@ -143,20 +143,48 @@ export const BRANCH_CLUSTER_MAP: Record<string, string> = {
   CV: "CV", BT: "CV", CH: "CV",
 };
 
-export function getYearOfStudy(joiningYear?: number | null, email?: string | null, usn?: string | null): number {
-  const checkStr = `${email || ''} ${usn || ''}`;
-  // All emails (or USNs) with 25 are considered second year students
-  if (checkStr.includes('25') || Number(joiningYear) === 2025) {
-    return 2;
+export function getYearOfStudy(
+  joiningYear?: number | null, 
+  email?: string | null, 
+  usn?: string | null,
+  directYear?: number | null,
+  cohortMappings?: Record<string, number>
+): number {
+  if (directYear && directYear >= 1 && directYear <= 4) {
+    return directYear;
   }
-  if (checkStr.includes('26') || Number(joiningYear) === 2026) {
-    return 1;
+  const mappings = cohortMappings || { "26": 1, "25": 2, "24": 3, "23": 4 };
+  const checkStr = `${email || ''} ${usn || ''}`.toLowerCase();
+
+  // 1. Match configured cohort batch numbers
+  for (const [batch, yr] of Object.entries(mappings)) {
+    if (checkStr.includes(batch.toLowerCase())) {
+      return Number(yr);
+    }
   }
+
+  // 2. Match joining year
+  if (joiningYear) {
+    const jyStr = String(joiningYear);
+    const suffix = jyStr.slice(-2);
+    if (mappings[suffix]) {
+      return Number(mappings[suffix]);
+    }
+    if (mappings[jyStr]) {
+      return Number(mappings[jyStr]);
+    }
+  }
+
+  // Fallback defaults
+  if (checkStr.includes('26') || Number(joiningYear) === 2026) return 1;
+  if (checkStr.includes('25') || Number(joiningYear) === 2025) return 2;
+  if (checkStr.includes('24') || Number(joiningYear) === 2024) return 3;
+  if (checkStr.includes('23') || Number(joiningYear) === 2023) return 4;
   if (!joiningYear) return 2;
 
   const now = new Date();
   let yearsElapsed = now.getFullYear() - Number(joiningYear);
-  if (now.getMonth() + 1 < 8) yearsElapsed -= 1; // Before August = still prev academic year
+  if (now.getMonth() + 1 < 8) yearsElapsed -= 1;
   return Math.max(1, Math.min(4, yearsElapsed + 1));
 }
 
@@ -197,6 +225,7 @@ export default function MyTeam() {
   const [projectSubTopic, setProjectSubTopic] = useState('');
   const [projectTheme, setProjectTheme] = useState('');
   const [dynamicClusterThemes, setDynamicClusterThemes] = useState<Record<string, string[]> | null>(null);
+  const [dynamicCohortMappings, setDynamicCohortMappings] = useState<Record<string, number>>({ "26": 1, "25": 2, "24": 3, "23": 4 });
 
   // Profile modal states
   const [previewUser, setPreviewUser] = useState<any>(null);
@@ -284,16 +313,19 @@ export default function MyTeam() {
   const fetchData = async (isInitial = false) => {
     if (isInitial) setLoading(true);
     try {
-      const [connRes, groupRes, meRes, themesRes] = await Promise.all([
+      const [connRes, groupRes, meRes, themesRes, cohortRes] = await Promise.all([
         api.get('/connections/'),
         api.get('/chat/groups'),
         api.get('/users/me').catch(() => null),
-        api.get('/users/cluster-themes').catch(() => null)
+        api.get('/users/cluster-themes').catch(() => null),
+        api.get('/users/cohort-settings').catch(() => null)
       ]);
       setConnections(connRes.data);
       setGroups(groupRes.data);
       if (meRes?.data) setCurrentUser(meRes.data);
       if (themesRes?.data) setDynamicClusterThemes(themesRes.data);
+      if (cohortRes?.data?.cohort_mappings) setDynamicCohortMappings(cohortRes.data.cohort_mappings);
+      if (cohortRes?.data?.cluster_themes) setDynamicClusterThemes(cohortRes.data.cluster_themes);
     } catch (err) {
       console.error("Error fetching data on MyTeam page:", err);
     } finally {
@@ -330,7 +362,7 @@ export default function MyTeam() {
 
     // Determine year of study
     const years = studentMembers.map(m => {
-      return getYearOfStudy(m.joining_year || m.joiningYear, m.email, m.usn);
+      return getYearOfStudy(m.joining_year || m.joiningYear, m.email, m.usn, m.year_of_study, dynamicCohortMappings);
     });
 
 
@@ -711,7 +743,7 @@ export default function MyTeam() {
                                       </span>
                                     )}
                                     {(() => {
-                                      const yr = getYearOfStudy(member.joining_year, member.email, member.usn);
+                                      const yr = getYearOfStudy(member.joining_year, member.email, member.usn, member.year_of_study, dynamicCohortMappings);
 
                                       if (yr >= 2) {
                                         const cl = getClusterForBranch(member.branch_code || member.branch || '');
@@ -868,7 +900,7 @@ export default function MyTeam() {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                     Project Theme
-                    {currentUser && getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn) >= 2 && (
+                    {currentUser && getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn, currentUser.year_of_study, dynamicCohortMappings) >= 2 && (
                       <span className="ml-2 text-indigo-500 normal-case font-semibold">
                         ({getClusterForBranch(currentUser.branch_code || '') || ''} Cluster themes)
                       </span>
@@ -886,7 +918,7 @@ export default function MyTeam() {
                     <option value="">-- Select a Theme --</option>
                     {(() => {
                       if (currentUser) {
-                        const yr = getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn);
+                        const yr = getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn, currentUser.year_of_study, dynamicCohortMappings);
                         if (yr >= 2) {
                           const cluster = getClusterForBranch(currentUser.branch_code || '');
                           const themes = cluster 

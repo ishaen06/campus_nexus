@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Body
 from typing import List, Optional, Dict, Any
 from io import BytesIO
 import pandas as pd
@@ -1758,6 +1758,7 @@ class AcademicSettingsUpdateRequest(BaseModel):
     cycle_mappings: Optional[dict] = None
     cluster_mappings: Optional[dict] = None
     cluster_themes: Optional[dict] = None
+    cohort_mappings: Optional[dict] = None
     year: Optional[int] = None
 
 class ThemeRequest(BaseModel):
@@ -1781,7 +1782,8 @@ def get_admin_academic_settings(
         DEFAULT_BRANCH_NAMES, 
         DEFAULT_CYCLE_MAPPINGS, 
         DEFAULT_CLUSTER_MAPPINGS,
-        DEFAULT_CLUSTER_THEMES
+        DEFAULT_CLUSTER_THEMES,
+        DEFAULT_COHORT_MAPPINGS
     )
     settings = get_academic_settings(db)
     
@@ -1810,6 +1812,7 @@ def get_admin_academic_settings(
         "cycle_mappings": settings.get("cycle_mappings", DEFAULT_CYCLE_MAPPINGS),
         "cluster_mappings": settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
+        "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
         "branch_counts": branch_counts,
         "total_students": len(students),
         "year": year,
@@ -1824,7 +1827,12 @@ def update_admin_academic_settings(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_MAPPINGS, DEFAULT_CLUSTER_THEMES
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_CLUSTER_MAPPINGS, 
+        DEFAULT_CLUSTER_THEMES, 
+        DEFAULT_COHORT_MAPPINGS
+    )
     settings = get_academic_settings(db)
     
     target_year = payload.year if payload.year is not None else year
@@ -1851,6 +1859,18 @@ def update_admin_academic_settings(
 
     if payload.cluster_themes is not None:
         update_data["cluster_themes"] = payload.cluster_themes
+
+    if payload.cohort_mappings is not None:
+        cleaned_cohort = {}
+        for k, v in payload.cohort_mappings.items():
+            k_str = str(k).strip()
+            try:
+                v_int = int(v)
+                if 1 <= v_int <= 4:
+                    cleaned_cohort[k_str] = v_int
+            except (ValueError, TypeError):
+                continue
+        update_data["cohort_mappings"] = cleaned_cohort
         
     if update_data:
         db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
@@ -1864,8 +1884,62 @@ def update_admin_academic_settings(
         "cycle_mappings": updated_settings.get("cycle_mappings", {}),
         "cluster_mappings": updated_settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "cluster_themes": updated_settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
+        "cohort_mappings": updated_settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
         "can_edit_cycles": (target_year == 1 or target_year is None)
     }
+
+@router.post("/academic-settings/cohort-mappings")
+def update_cohort_mapping(
+    payload: dict = Body(...),
+    admin = Depends(get_admin_user),
+    db = Depends(get_mongo_db)
+):
+    from services.academic_service import get_academic_settings, DEFAULT_COHORT_MAPPINGS
+    settings = get_academic_settings(db)
+    cohort_map = dict(settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS))
+    
+    if "batch" in payload and "year" in payload:
+        b_key = str(payload["batch"]).strip()
+        y_val = int(payload["year"])
+        if not (1 <= y_val <= 4):
+            raise HTTPException(status_code=400, detail="Academic year must be between 1 and 4")
+        cohort_map[b_key] = y_val
+    elif "cohort_mappings" in payload and isinstance(payload["cohort_mappings"], dict):
+        for k, v in payload["cohort_mappings"].items():
+            k_str = str(k).strip()
+            try:
+                v_int = int(v)
+                if 1 <= v_int <= 4:
+                    cohort_map[k_str] = v_int
+            except (ValueError, TypeError):
+                continue
+    else:
+        for k, v in payload.items():
+            k_str = str(k).strip()
+            try:
+                v_int = int(v)
+                if 1 <= v_int <= 4:
+                    cohort_map[k_str] = v_int
+            except (ValueError, TypeError):
+                continue
+
+    db.academic_settings.update_one({"_id": "global"}, {"$set": {"cohort_mappings": cohort_map}}, upsert=True)
+    return {"status": "success", "cohort_mappings": cohort_map}
+
+@router.delete("/academic-settings/cohort-mappings/{batch}")
+def delete_cohort_mapping(
+    batch: str,
+    admin = Depends(get_admin_user),
+    db = Depends(get_mongo_db)
+):
+    from services.academic_service import get_academic_settings, DEFAULT_COHORT_MAPPINGS
+    settings = get_academic_settings(db)
+    cohort_map = dict(settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS))
+    batch_key = str(batch).strip()
+    if batch_key in cohort_map:
+        del cohort_map[batch_key]
+        db.academic_settings.update_one({"_id": "global"}, {"$set": {"cohort_mappings": cohort_map}}, upsert=True)
+    return {"status": "success", "cohort_mappings": cohort_map}
 
 @router.post("/academic-settings/themes")
 def add_cluster_theme(

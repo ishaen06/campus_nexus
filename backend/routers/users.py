@@ -375,6 +375,18 @@ def get_cluster_themes(db = Depends(get_mongo_db)):
     return settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
 
 
+@router.get("/cohort-settings")
+def get_cohort_settings(db = Depends(get_mongo_db)):
+    """Returns the current cohort-to-academic-year mappings and cluster themes."""
+    from services.academic_service import get_academic_settings, DEFAULT_COHORT_MAPPINGS, DEFAULT_CLUSTER_THEMES
+    settings = get_academic_settings(db)
+    return {
+        "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
+        "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
+    }
+
+
+
 @router.get("/{user_id}/public-profile")
 def get_user_public_profile(user_id: int, current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     """Returns a user's full public profile, including USN, email, branch, and academic year."""
