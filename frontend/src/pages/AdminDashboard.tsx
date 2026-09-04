@@ -361,17 +361,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [previewData, setPreviewData] = useState<{ title: string; columns: string[]; preview: any[]; total_rows: number } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  // Year-wise Report Center states
-  const [reportYearTab, setReportYearTab] = useState<number>(() => {
-    const saved = localStorage.getItem('admin_selected_year');
-    if (saved && saved !== 'null') {
-      const num = parseInt(saved, 10);
-      if ([1, 2, 3].includes(num)) return num;
-    }
-    return 1;
-  });
-  const [reportViewLayout, setReportViewLayout] = useState<'tabs' | 'sections'>('tabs');
-  const [cardYearMap, setCardYearMap] = useState<Record<string, number>>({});
 
 
   // Ratings tab states
@@ -467,9 +456,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
   const handleGlobalYearChange = (yr: number | null) => {
     setGlobalYear(yr);
-    if (yr !== null) {
-      setReportYearTab(yr);
-    }
     try {
       localStorage.setItem('admin_selected_year', yr === null ? 'null' : String(yr));
     } catch (_) {}
@@ -896,10 +882,10 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   // Report Center trigger download
   const handleDownloadReport = async (dataset: string, format: string, yearOverride?: number | null) => {
     try {
-      const activeYear = yearOverride !== undefined && yearOverride !== null 
+      const activeYear = yearOverride !== undefined 
         ? yearOverride 
-        : (globalYear !== null ? globalYear : reportYearTab);
-      const yearParam = `&year=${activeYear}`;
+        : globalYear;
+      const yearParam = activeYear !== null && activeYear !== undefined ? `&year=${activeYear}` : '';
       const response = await api.get(`/admin/reports/download?dataset=${dataset}&format=${format}${yearParam}`, {
         responseType: 'blob'
       });
@@ -982,15 +968,16 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   };
 
   const handleTriggerPreview = async (dataset: string, format: string, yearOverride?: number | null) => {
-    const activeYear = yearOverride !== undefined && yearOverride !== null 
+    const activeYear = yearOverride !== undefined 
       ? yearOverride 
-      : (globalYear !== null ? globalYear : reportYearTab);
+      : globalYear;
     setPreviewDataset(dataset);
     setPreviewFormat(format);
-    setPreviewYear(activeYear);
+    setPreviewYear(activeYear || 1);
     setPreviewLoading(true);
     try {
-      const res = await api.get(`/admin/reports/preview?dataset=${dataset}&year=${activeYear}`);
+      const yearParam = activeYear !== null && activeYear !== undefined ? `?dataset=${dataset}&year=${activeYear}` : `?dataset=${dataset}`;
+      const res = await api.get(`/admin/reports/preview${yearParam}`);
       setPreviewData(res.data);
     } catch (err) {
       console.error("Failed to load report preview", err);
@@ -1006,6 +993,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const handleSwitchPreviewYear = async (newYear: number) => {
     if (!previewDataset) return;
     setPreviewYear(newYear);
+    handleGlobalYearChange(newYear);
     setPreviewLoading(true);
     try {
       const res = await api.get(`/admin/reports/preview?dataset=${previewDataset}&year=${newYear}`);
@@ -1184,13 +1172,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             }`}
           >
             <span>All Years</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
+              globalYear === null ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+            }`}>
+              {(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)}
+            </span>
           </button>
 
           {[
-            { yr: 1, label: "1st Year", batch: "2026" },
-            { yr: 2, label: "2nd Year", batch: "2025" },
-            { yr: 3, label: "3rd Year", batch: "2024" }
-          ].map(({ yr, label, batch }) => {
+            { yr: 1, label: "1st Year", batch: "2026", count: cohortStudentCounts[1] ?? 0 },
+            { yr: 2, label: "2nd Year", batch: "2025", count: cohortStudentCounts[2] ?? 0 },
+            { yr: 3, label: "3rd Year", batch: "2024", count: cohortStudentCounts[3] ?? 0 }
+          ].map(({ yr, label, batch, count }) => {
             const isSelected = globalYear === yr;
             return (
               <button
@@ -1202,13 +1195,18 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
-                title={`${label} (${batch} Batch)`}
+                title={`${label} (${batch} Batch) - ${count} Enrolled Students`}
               >
                 <span>{label}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
                   isSelected ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                 }`}>
                   {batch}
+                </span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
+                  isSelected ? "bg-white/20 text-white" : "bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                }`}>
+                  {count} students
                 </span>
               </button>
             );
@@ -1678,9 +1676,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 {/* Cohort-Scoped Quick Reports Bar */}
                 <div className="p-5 rounded-3xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md space-y-4">
                   {(() => {
-                    const activeQuickYear = globalYear !== null ? globalYear : reportYearTab;
-                    const quickYearLabel = activeQuickYear === 1 ? '1st Year (2026 Batch)' : activeQuickYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)';
-                    const quickYearBadge = activeQuickYear === 1 ? '1st Yr' : activeQuickYear === 2 ? '2nd Yr' : '3rd Yr';
+                    const activeQuickYear = globalYear;
+                    const quickYearLabel = activeQuickYear === 1 
+                      ? '1st Year (2026 Batch)' 
+                      : activeQuickYear === 2 
+                      ? '2nd Year (2025 Batch)' 
+                      : activeQuickYear === 3 
+                      ? '3rd Year (2024 Batch)' 
+                      : 'All Cohorts';
+                    const quickYearBadge = activeQuickYear === 1 
+                      ? '1st Yr' 
+                      : activeQuickYear === 2 
+                      ? '2nd Yr' 
+                      : activeQuickYear === 3 
+                      ? '3rd Yr' 
+                      : 'All Years';
 
                     return (
                       <>
@@ -1703,29 +1713,6 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                           </div>
                           
                           <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
-                            {globalYear === null && (
-                              <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-200/60 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700">
-                                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">Cohort:</span>
-                                {[
-                                  { yr: 1, label: "1st Yr (2026)" },
-                                  { yr: 2, label: "2nd Yr (2025)" },
-                                  { yr: 3, label: "3rd Yr (2024)" }
-                                ].map(({ yr, label }) => (
-                                  <button
-                                    key={yr}
-                                    type="button"
-                                    onClick={() => setReportYearTab(yr)}
-                                    className={`px-2 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                                      activeQuickYear === yr
-                                        ? "bg-indigo-600 text-white shadow-xs"
-                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/50 dark:hover:bg-slate-700/50"
-                                    }`}
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
                             <button
                               type="button"
                               onClick={() => navigate('/admin/reports')}
@@ -3331,66 +3318,27 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
               </div>
 
               {/* Cohort Tabs */}
-              <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => handleGlobalYearChange(1)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                    globalYear === 1
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 scale-[1.02]"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                  }`}
-                >
-                  <CheckCircle2 size={13} />
-                  <span>1st Year (2026)</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-white/20 text-white">
-                    Cycles Active
+              {/* Active Cohort Scope Indicator */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Scope:</span>
+                <span className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 ${
+                  globalYear === 1
+                    ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                    : globalYear === 2 || globalYear === 3
+                    ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                    : "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800"
+                }`}>
+                  <GraduationCap size={14} />
+                  <span>
+                    {globalYear === 1 
+                      ? "1st Year (2026) • Cycles Active" 
+                      : globalYear === 2 
+                      ? "2nd Year (2025) • Cycles Restricted" 
+                      : globalYear === 3 
+                      ? "3rd Year (2024) • Cycles Restricted" 
+                      : "All Years"}
                   </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleGlobalYearChange(2)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                    globalYear === 2
-                      ? "bg-amber-600 text-white shadow-md shadow-amber-600/30 scale-[1.02]"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                  }`}
-                >
-                  <Lock size={12} />
-                  <span>2nd Year (2025)</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    Restricted
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleGlobalYearChange(3)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                    globalYear === 3
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 scale-[1.02]"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                  }`}
-                >
-                  <Lock size={12} />
-                  <span>3rd Year (2024)</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    Restricted
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleGlobalYearChange(null)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                    globalYear === null
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                  }`}
-                >
-                  All Years
-                </button>
+                </span>
               </div>
             </div>
 
@@ -4170,7 +4118,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             className="space-y-6"
           >
             {/* Year-Wise Report Center Cohort Header & View Switcher */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            {/* Year-Wise Report Center Cohort Header */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-5">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shadow-sm shrink-0">
                   <Download size={24} />
@@ -4181,13 +4130,21 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       Academic Year-Wise Report Center
                     </h2>
                     <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                      reportYearTab === 1 
+                      globalYear === 1 
                         ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40' 
-                        : reportYearTab === 2 
+                        : globalYear === 2 
                         ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' 
-                        : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40'
+                        : globalYear === 3 
+                        ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40' 
+                        : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/40'
                     }`}>
-                      {reportYearTab === 1 ? '1st Year (2026 Batch)' : reportYearTab === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
+                      {globalYear === 1 
+                        ? '1st Year (2026 Batch)' 
+                        : globalYear === 2 
+                        ? '2nd Year (2025 Batch)' 
+                        : globalYear === 3 
+                        ? '3rd Year (2024 Batch)' 
+                        : 'All Years (Combined)'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
@@ -4196,376 +4153,192 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 </div>
               </div>
 
-              {/* Controls: Year Selector & View Mode Switcher */}
-              <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
-                {/* View Layout Switcher */}
-                <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setReportViewLayout('tabs')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                      reportViewLayout === 'tabs'
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    Cohort Filter Mode
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReportViewLayout('sections')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                      reportViewLayout === 'sections'
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    Year-Wise Sections
-                  </button>
+              {/* Status Indicator showing connection to top Cohort selector */}
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>Controlled by Top Cohort Selector</span>
                 </div>
-
-                {/* Cohort Year Selector Tabs (in tabs mode) */}
-                {reportViewLayout === 'tabs' && (
-                  <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1">
-                    {[
-                      { yr: 1, label: "1st Year", batch: "2026 Batch", count: cohortStudentCounts[1] ?? 0 },
-                      { yr: 2, label: "2nd Year", batch: "2025 Batch", count: cohortStudentCounts[2] ?? 0 },
-                      { yr: 3, label: "3rd Year", batch: "2024 Batch", count: cohortStudentCounts[3] ?? 0 }
-                    ].map(({ yr, label, batch, count }) => {
-                      const isSelected = reportYearTab === yr;
-                      return (
-                        <button
-                          key={yr}
-                          type="button"
-                          title={batch}
-                          onClick={() => {
-                            setReportYearTab(yr);
-                            handleGlobalYearChange(yr);
-                          }}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                            isSelected
-                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                          }`}
-                        >
-                          <span>{label}</span>
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
-                            isSelected ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                          }`}>
-                            {count} students
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Layout Mode 1: Tabs View (Focused on one Cohort at a time) */}
-            {reportViewLayout === 'tabs' && (
-              <div className="space-y-5">
-                {/* Active Cohort Information Banner */}
-                <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${
-                  reportYearTab === 1
-                    ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-900 dark:text-blue-200'
-                    : reportYearTab === 2
-                    ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200'
-                    : 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 text-purple-900 dark:text-purple-200'
-                }`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <GraduationCap size={20} className="shrink-0" />
-                      <div>
-                        <span className="text-xs font-black uppercase tracking-wider block">
-                          Active Cohort Scope: {reportYearTab === 1 ? '1st Year (2026 Batch - 1st & 2nd Semester)' : reportYearTab === 2 ? '2nd Year (2025 Batch - 3rd & 4th Semester)' : '3rd Year (2024 Batch - 5th & 6th Semester)'}
-                        </span>
-                        <p className="text-[11px] font-medium opacity-80 mt-0.5">
-                          All reports below contain records strictly isolated to {reportYearTab === 1 ? '1st Year' : reportYearTab === 2 ? '2nd Year' : '3rd Year'} students and teams ({cohortStudentCounts[reportYearTab] ?? 0} students enrolled). Zero data overlap with other cohorts.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                      <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/60 dark:bg-slate-900/60 border border-current/20">
-                        {cohortStudentCounts[reportYearTab] ?? 0} Students Enrolled
+            <div className="space-y-5">
+              {/* Active Cohort Information Banner */}
+              <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${
+                globalYear === 1
+                  ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-900 dark:text-blue-200'
+                  : globalYear === 2
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200'
+                  : globalYear === 3
+                  ? 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 text-purple-900 dark:text-purple-200'
+                  : 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900/50 text-indigo-900 dark:text-indigo-200'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <GraduationCap size={20} className="shrink-0" />
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-wider block">
+                        Active Cohort Scope: {
+                          globalYear === 1 
+                            ? '1st Year (2026 Batch - 1st & 2nd Semester)' 
+                            : globalYear === 2 
+                            ? '2nd Year (2025 Batch - 3rd & 4th Semester)' 
+                            : globalYear === 3 
+                            ? '3rd Year (2024 Batch - 5th & 6th Semester)' 
+                            : 'All Years (Combined Cohort Export)'
+                        }
                       </span>
+                      <p className="text-[11px] font-medium opacity-80 mt-0.5">
+                        {globalYear !== null
+                          ? `All 7 reports below contain records strictly isolated to ${globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'} students and teams (${cohortStudentCounts[globalYear] ?? 0} students enrolled). Zero data overlap with other cohorts.`
+                          : `Reports below contain aggregated data across all cohorts (${(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)} total students) with individual cohort classification.`
+                        }
+                      </p>
                     </div>
                   </div>
-                  {(cohortStudentCounts[reportYearTab] ?? 0) === 0 && (
-                    <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
-                      <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold">Notice: No students enrolled in this cohort yet.</span> All exports and previews for this cohort will show 0 student records (headers only). Older batch data (2025/2024) is strictly isolated and will never bleed into this report.
-                      </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/60 dark:bg-slate-900/60 border border-current/20">
+                      {globalYear !== null 
+                        ? `${cohortStudentCounts[globalYear] ?? 0} Students Enrolled` 
+                        : `${(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)} Total Students`}
+                    </span>
+                  </div>
+                </div>
+                {globalYear !== null && (cohortStudentCounts[globalYear] ?? 0) === 0 && (
+                  <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+                    <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Notice: No students enrolled in this cohort yet.</span> All exports and previews for this cohort will show 0 student records (headers only). Older batch data (2025/2024) is strictly isolated and will never bleed into this report.
                     </div>
-                  )}
-                </div>
-
-                {/* Grid of 7 Report Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[
-                    {
-                      dataset: "students",
-                      title: "Students Master Directory",
-                      desc: "Complete roster of enrolled students with USN, email, branch, cycle allocation, and team membership status.",
-                      icon: Users
-                    },
-                    {
-                      dataset: "approved_teams",
-                      title: "Approved Teams Master",
-                      desc: "Full institutional spreadsheet of approved project groups, project topics, faculty mentors, and student members.",
-                      icon: CheckCircle2
-                    },
-                    {
-                      dataset: "student_marks",
-                      title: "Student Marks & Observations",
-                      desc: "Complete breakdown of Phase 1, Phase 2, and Phase 3 marks, total scores, sections, and mentor observations.",
-                      icon: Award
-                    },
-                    {
-                      dataset: "mentors",
-                      title: "Mentor Workload Directory",
-                      desc: "Directory of faculty mentors, departments, designations, and active approved team allocations for this cohort.",
-                      icon: UserCheck
-                    },
-                    {
-                      dataset: "teams",
-                      title: "Team Roster Mapping",
-                      desc: "Cross-referenced matrix linking each team group to its student members, USNs, and department branches.",
-                      icon: Layers
-                    },
-                    {
-                      dataset: "marks",
-                      title: "Evaluation Marks Summary",
-                      desc: "Granular criteria grading breakdown for Problem Definition, Methodology, Execution, Prototype, and Presentation.",
-                      icon: Activity
-                    },
-                    {
-                      dataset: "projects",
-                      title: "Project Themes & Allocations",
-                      desc: "Catalog of active team project titles, themes, sub-topics, assigned faculty mentors, and approval statuses.",
-                      icon: GitMerge
-                    }
-                  ].map((rep) => {
-                    const activeCardYear = cardYearMap[rep.dataset] || reportYearTab;
-                    const yrPill = activeCardYear === 1 ? '1st Yr' : activeCardYear === 2 ? '2nd Yr' : '3rd Yr';
-                    const yrBadge = activeCardYear === 1 ? '1st Yr (2026)' : activeCardYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)';
-                    const Icon = rep.icon;
-
-                    return (
-                      <div 
-                        key={rep.dataset}
-                        className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300 rounded-3xl group shadow-sm hover:shadow-md"
-                      >
-                        <div className="space-y-3">
-                          {/* Top row */}
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl group-hover:scale-105 transition-transform">
-                                <Icon size={18} />
-                              </div>
-                              <div>
-                                <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100">
-                                  {rep.title}
-                                </h3>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                  {rep.dataset}
-                                </span>
-                              </div>
-                            </div>
-                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
-                              activeCardYear === 1 
-                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40' 
-                                : activeCardYear === 2 
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' 
-                                : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40'
-                            }`}>
-                              {yrBadge}
-                            </span>
-                          </div>
-
-                          <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                            {rep.desc}
-                          </p>
-
-                          {/* Quick Year Selector Pills for this card */}
-                          <div className="flex items-center justify-between pt-1 text-[10px]">
-                            <span className="font-bold text-slate-400 uppercase tracking-wider">Cohort Scope:</span>
-                            <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 gap-1">
-                              {[1, 2, 3].map((y) => (
-                                <button
-                                  key={y}
-                                  type="button"
-                                  onClick={() => setCardYearMap(prev => ({ ...prev, [rep.dataset]: y }))}
-                                  className={`px-2 py-0.5 rounded-md font-extrabold transition-all cursor-pointer ${
-                                    activeCardYear === y
-                                      ? "bg-indigo-600 text-white shadow-xs"
-                                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
-                                  }`}
-                                >
-                                  {y === 1 ? '1st Yr' : y === 2 ? '2nd Yr' : '3rd Yr'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                          <button 
-                            type="button"
-                            onClick={() => handleTriggerPreview(rep.dataset, 'csv', activeCardYear)} 
-                            className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1 transition-all"
-                            title={`Preview or Download ${rep.title} as CSV for ${yrPill}`}
-                          >
-                            <Download size={11} />
-                            <span>CSV ({yrPill})</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => handleTriggerPreview(rep.dataset, 'excel', activeCardYear)} 
-                            className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1 transition-all"
-                            title={`Preview or Download ${rep.title} as Excel for ${yrPill}`}
-                          >
-                            <Download size={11} />
-                            <span>Excel ({yrPill})</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => handleTriggerPreview(rep.dataset, 'pdf', activeCardYear)} 
-                            className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 flex items-center justify-center gap-1 transition-all"
-                            title={`Preview or Download ${rep.title} as PDF for ${yrPill}`}
-                          >
-                            <Download size={11} />
-                            <span>PDF ({yrPill})</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Layout Mode 2: Sections View (All 3 Academic Years separated into visual sections) */}
-            {reportViewLayout === 'sections' && (
-              <div className="space-y-10">
+              {/* Grid of 7 Report Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   {
-                    yr: 1,
-                    title: "1st Year (2026 Batch) Reports & Spreadsheets",
-                    sem: "1st & 2nd Semester",
-                    cycle: "Foundation & Physics/Chemistry Cycle Projects",
-                    headerBg: "from-blue-600 to-indigo-700",
-                    badge: "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200"
+                    dataset: "students",
+                    title: "Students Master Directory",
+                    desc: "Complete roster of enrolled students with USN, email, branch, cycle allocation, and team membership status.",
+                    icon: Users
                   },
                   {
-                    yr: 2,
-                    title: "2nd Year (2025 Batch) Reports & Spreadsheets",
-                    sem: "3rd & 4th Semester",
-                    cycle: "Core Experiential Learning Projects",
-                    headerBg: "from-emerald-600 to-teal-700",
-                    badge: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200"
+                    dataset: "approved_teams",
+                    title: "Approved Teams Master",
+                    desc: "Full institutional spreadsheet of approved project groups, project topics, faculty mentors, and student members.",
+                    icon: CheckCircle2
                   },
                   {
-                    yr: 3,
-                    title: "3rd Year (2024 Batch) Reports & Spreadsheets",
-                    sem: "5th & 6th Semester",
-                    cycle: "Advanced Capstone & Industry Problem Statements",
-                    headerBg: "from-purple-600 to-pink-700",
-                    badge: "bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200"
+                    dataset: "student_marks",
+                    title: "Student Marks & Observations",
+                    desc: "Complete breakdown of Phase 1, Phase 2, and Phase 3 marks, total scores, sections, and mentor observations.",
+                    icon: Award
+                  },
+                  {
+                    dataset: "mentors",
+                    title: "Mentor Workload Directory",
+                    desc: "Directory of faculty mentors, departments, designations, and active approved team allocations for this cohort.",
+                    icon: UserCheck
+                  },
+                  {
+                    dataset: "teams",
+                    title: "Team Roster Mapping",
+                    desc: "Cross-referenced matrix linking each team group to its student members, USNs, and department branches.",
+                    icon: Layers
+                  },
+                  {
+                    dataset: "marks",
+                    title: "Evaluation Marks Summary",
+                    desc: "Granular criteria grading breakdown for Problem Definition, Methodology, Execution, Prototype, and Presentation.",
+                    icon: Activity
+                  },
+                  {
+                    dataset: "projects",
+                    title: "Project Themes & Allocations",
+                    desc: "Catalog of active team project titles, themes, sub-topics, assigned faculty mentors, and approval statuses.",
+                    icon: GitMerge
                   }
-                ].map((section) => (
-                  <div key={section.yr} className="space-y-4">
-                    {/* Section Header */}
-                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${section.headerBg} text-white flex items-center justify-center font-black text-sm shadow-md`}>
-                          Y{section.yr}
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 flex-wrap">
-                            <span>{section.title}</span>
-                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${section.badge}`}>
-                              {section.sem}
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                              {cohortStudentCounts[section.yr] ?? 0} students
-                            </span>
-                          </h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                            {section.cycle} • Data strictly isolated to {section.yr === 1 ? '1st Year' : section.yr === 2 ? '2nd Year' : '3rd Year'}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg self-start sm:self-auto">
-                        Year {section.yr} Isolated Section
-                      </span>
-                    </div>
+                ].map((rep) => {
+                  const activeCardYear = globalYear;
+                  const yrPill = activeCardYear === 1 ? '1st Yr' : activeCardYear === 2 ? '2nd Yr' : activeCardYear === 3 ? '3rd Yr' : 'All';
+                  const yrBadge = activeCardYear === 1 ? '1st Yr (2026)' : activeCardYear === 2 ? '2nd Yr (2025)' : activeCardYear === 3 ? '3rd Yr (2024)' : 'All Years';
+                  const Icon = rep.icon;
 
-                    {/* Section Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {[
-                        { dataset: "students", title: "Students Master List", icon: Users },
-                        { dataset: "approved_teams", title: "Approved Teams Master", icon: CheckCircle2 },
-                        { dataset: "student_marks", title: "Marks & Observations", icon: Award },
-                        { dataset: "mentors", title: "Mentor Workloads", icon: UserCheck },
-                        { dataset: "teams", title: "Team Roster Mapping", icon: Layers },
-                        { dataset: "marks", title: "Evaluation Marks Summary", icon: Activity },
-                        { dataset: "projects", title: "Project Themes & Allocations", icon: GitMerge }
-                      ].map((card) => {
-                        const Icon = card.icon;
-                        const yrPill = section.yr === 1 ? '1st Yr' : section.yr === 2 ? '2nd Yr' : '3rd Yr';
-                        return (
-                          <div 
-                            key={`${card.dataset}-${section.yr}`}
-                            className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-all"
-                          >
-                            <div className="flex items-start gap-2.5">
-                              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0">
-                                <Icon size={16} />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
-                                  {card.title}
-                                </h4>
-                                <p className="text-[10px] text-slate-400 font-medium truncate">
-                                  Filtered strictly to {yrPill}
-                                </p>
-                              </div>
+                  return (
+                    <div 
+                      key={rep.dataset}
+                      className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300 rounded-3xl group shadow-sm hover:shadow-md"
+                    >
+                      <div className="space-y-3">
+                        {/* Top row */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl group-hover:scale-105 transition-transform">
+                              <Icon size={18} />
                             </div>
-
-                            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60">
-                              <button
-                                type="button"
-                                onClick={() => handleTriggerPreview(card.dataset, 'csv', section.yr)}
-                                className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
-                              >
-                                CSV ({yrPill})
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleTriggerPreview(card.dataset, 'excel', section.yr)}
-                                className="py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
-                              >
-                                Excel ({yrPill})
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleTriggerPreview(card.dataset, 'pdf', section.yr)}
-                                className="py-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
-                              >
-                                PDF ({yrPill})
-                              </button>
+                            <div>
+                              <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100">
+                                {rep.title}
+                              </h3>
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                {rep.dataset}
+                              </span>
                             </div>
                           </div>
-                        );
-                      })}
+                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
+                            activeCardYear === 1 
+                              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40' 
+                              : activeCardYear === 2 
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' 
+                              : activeCardYear === 3 
+                              ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40' 
+                              : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/40'
+                          }`}>
+                            {yrBadge}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                          {rep.desc}
+                        </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                        <button 
+                          type="button"
+                          onClick={() => handleTriggerPreview(rep.dataset, 'csv', activeCardYear)} 
+                          className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1 transition-all"
+                          title={`Preview or Download ${rep.title} as CSV for ${yrBadge}`}
+                        >
+                          <Download size={11} />
+                          <span>CSV ({yrPill})</span>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleTriggerPreview(rep.dataset, 'excel', activeCardYear)} 
+                          className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1 transition-all"
+                          title={`Preview or Download ${rep.title} as Excel for ${yrBadge}`}
+                        >
+                          <Download size={11} />
+                          <span>Excel ({yrPill})</span>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleTriggerPreview(rep.dataset, 'pdf', activeCardYear)} 
+                          className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 flex items-center justify-center gap-1 transition-all"
+                          title={`Preview or Download ${rep.title} as PDF for ${yrBadge}`}
+                        >
+                          <Download size={11} />
+                          <span>PDF ({yrPill})</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
