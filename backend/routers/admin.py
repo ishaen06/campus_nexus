@@ -136,7 +136,7 @@ def download_student_marks(
     db = Depends(get_mongo_db)
 ):
     regenerate_mentor_marks_csv(db, year=year)
-    file_path = "teachers_excel/student_phase_marks.csv"
+    file_path = f"teachers_excel/student_phase_marks_year{year}.csv" if year else "teachers_excel/student_phase_marks.csv"
     filename = f"student_phase_marks_year{year}.csv" if year else "student_phase_marks.csv"
     return FileResponse(path=file_path, filename=filename, media_type="text/csv")
 
@@ -1128,7 +1128,6 @@ def _group_belongs_to_year(group, year: int, db) -> bool:
     
     if g and g.get("created_by") is not None:
         m_uids.append(g["created_by"])
-
     stus = list(db.users.find({"id": {"$in": m_uids}, "is_mentor": {"$ne": True}, "is_admin": {"$ne": True}}))
     for s in stus:
         if _extract_user_academic_info(s)[2] == year:
@@ -1136,7 +1135,13 @@ def _group_belongs_to_year(group, year: int, db) -> bool:
     return False
 
 def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tuple:
-    year_suffix = f" (Year {year} Cohort)" if year else ""
+    year_labels = {
+        1: "1st Year (2026 Batch)",
+        2: "2nd Year (2025 Batch)",
+        3: "3rd Year (2024 Batch)",
+        4: "4th Year (2023 Batch)"
+    }
+    year_suffix = f" - {year_labels.get(year, f'Year {year} Cohort')}" if year else " - All Years (Separated)"
 
     if dataset == "students":
         students = list(db.users.find({
@@ -1146,8 +1151,12 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         }))
         if year is not None:
             students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+        else:
+            students = sorted(students, key=lambda s: _extract_user_academic_info(s)[2])
         data = []
         for s in students:
+            _, _, s_yr = _extract_user_academic_info(s)
+            y_badge = year_labels.get(s_yr, f"Year {s_yr}")
             group_id = "N/A"
             group_name = "N/A"
             membership = db.group_members.find_one({"user_id": s["id"]})
@@ -1157,6 +1166,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                     group_id = str(g["id"])
                     group_name = g.get("name") or "N/A"
             data.append({
+                "Academic Year": y_badge,
                 "Student ID": s["id"],
                 "Student Name": s.get("full_name") or "N/A",
                 "Email": s.get("email") or "N/A",
@@ -1168,8 +1178,8 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Student ID", "Student Name", "Email", "USN", "Branch", "Cycle", "Team ID", "Team Name"])
-        return df, f"Student List Report{year_suffix}", (15, 45, 60, 25, 20, 15, 20, 77)
+            df = pd.DataFrame(columns=["Academic Year", "Student ID", "Student Name", "Email", "USN", "Branch", "Cycle", "Team ID", "Team Name"])
+        return df, f"Student List Report{year_suffix}", (30, 15, 40, 55, 25, 20, 15, 20, 60)
 
     elif dataset == "mentors":
         mentors = list(db.users.find({"is_mentor": True, "is_admin": {"$ne": True}, "email": {"$ne": "ishaen.vihaan@gmail.com"}}))
@@ -1183,10 +1193,13 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                 count = len([c for c in approved_chats if _group_belongs_to_year(c, year, db)])
                 if count == 0:
                     continue
+                y_badge = year_labels.get(year, f"Year {year}")
             else:
                 count = len(approved_chats)
+                y_badge = "All Assigned Cohorts"
 
             data.append({
+                "Academic Year": y_badge,
                 "Mentor ID": m["id"],
                 "Mentor Name": m.get("full_name") or "N/A",
                 "Email": m.get("email") or "N/A",
@@ -1197,12 +1210,13 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Mentor ID", "Mentor Name", "Email", "Department", "Designation", "Active Teams", "Max Capacity"])
-        return df, f"Mentor Directory Report{year_suffix}", (15, 45, 65, 45, 57, 30, 20)
-
+            df = pd.DataFrame(columns=["Academic Year", "Mentor ID", "Mentor Name", "Email", "Department", "Designation", "Active Teams", "Max Capacity"])
+        return df, f"Mentor Directory Report{year_suffix}", (30, 15, 40, 55, 40, 45, 25, 20)
 
     elif dataset == "teams":
         teams = list(db.group_chats.find())
+        if year is not None:
+            teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
         data = []
         for t in teams:
             member_recs = list(db.group_members.find({"group_id": t["id"]}))
@@ -1222,7 +1236,10 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                     continue
             
             for s in students:
+                _, _, s_yr = _extract_user_academic_info(s)
+                y_badge = year_labels.get(s_yr, f"Year {s_yr}")
                 data.append({
+                    "Academic Year": y_badge,
                     "Team ID": t["id"],
                     "Team Name": t.get("name") or "N/A",
                     "Student ID": s["id"],
@@ -1233,8 +1250,8 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                 })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Team ID", "Team Name", "Student ID", "Student Name", "Student USN", "Student Branch", "Student Email"])
-        return df, f"Team Roster Assignment Report{year_suffix}", (20, 50, 25, 55, 30, 25, 72)
+            df = pd.DataFrame(columns=["Academic Year", "Team ID", "Team Name", "Student ID", "Student Name", "Student USN", "Student Branch", "Student Email"])
+        return df, f"Team Roster Assignment Report{year_suffix}", (30, 20, 45, 20, 45, 25, 20, 60)
 
     elif dataset == "marks":
         students = list(db.users.find({
@@ -1244,12 +1261,16 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         }))
         if year is not None:
             students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+        else:
+            students = sorted(students, key=lambda s: _extract_user_academic_info(s)[2])
         data = []
         for s in students:
             student_id = s.get("id")
             usn = s.get("usn") or "N/A"
             name = s.get("full_name") or "N/A"
             branch = s.get("branch") or "N/A"
+            _, _, s_yr = _extract_user_academic_info(s)
+            y_badge = year_labels.get(s_yr, f"Year {s_yr}")
             
             group_id = "N/A"
             group_name = "N/A"
@@ -1301,6 +1322,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             grand_total = p1_total + p2_total + p3_total
 
             data.append({
+                "Academic Year": y_badge,
                 "USN": usn,
                 "Student Name": name,
                 "Branch": branch,
@@ -1328,13 +1350,13 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         df = pd.DataFrame(data)
         if df.empty:
             df = pd.DataFrame(columns=[
-                "USN", "Student Name", "Branch", "Team ID", "Team Name",
+                "Academic Year", "USN", "Student Name", "Branch", "Team ID", "Team Name",
                 "P1 - Problem Definition", "P1 - Objectives", "P1 - Methodology", "Phase 1 Total",
                 "P2 - Project Execution", "P2 - Tools & Techniques", "P2 - Partial Results", "Phase 2 Total",
                 "P3 - Prototype Demo", "P3 - Results & Discussion", "P3 - Report/Poster/PPT", "P3 - Outcome/Work", "Phase 3 Total",
                 "Total Marks"
             ])
-        return df, f"Student Performance Marks Report{year_suffix}", (25, 45, 20, 15, 45, 28, 22, 25, 22, 28, 28, 25, 22, 28, 30, 28, 22, 22, 22, 22)
+        return df, f"Student Performance Marks Report{year_suffix}", (28, 20, 35, 18, 15, 35, 22, 18, 20, 18, 22, 22, 20, 18, 22, 22, 22, 18, 18, 18)
 
     elif dataset == "projects":
         teams = list(db.group_chats.find())
@@ -1342,7 +1364,15 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
         data = []
         for t in teams:
+            t_yr = year
+            if t_yr is None:
+                for y_check in [1, 2, 3]:
+                    if _group_belongs_to_year(t, y_check, db):
+                        t_yr = y_check
+                        break
+            y_badge = year_labels.get(t_yr, f"Year {t_yr}") if t_yr else "N/A"
             data.append({
+                "Academic Year": y_badge,
                 "Team ID": t["id"],
                 "Team Name": t.get("name") or "N/A",
                 "Project Theme": t.get("project_theme") or "N/A",
@@ -1354,8 +1384,8 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Team ID", "Team Name", "Project Theme", "Project Sub-Topic", "Project Topic", "Assigned Mentor", "Mentor Email", "Approval Status"])
-        return df, f"Project Themes & Topic Allocation Report{year_suffix}", (20, 50, 40, 45, 55, 45, 55, 30)
+            df = pd.DataFrame(columns=["Academic Year", "Team ID", "Team Name", "Project Theme", "Project Sub-Topic", "Project Topic", "Assigned Mentor", "Mentor Email", "Approval Status"])
+        return df, f"Project Themes & Topic Allocation Report{year_suffix}", (28, 15, 40, 35, 40, 45, 35, 50, 25)
 
     elif dataset == "approvals":
         teams = list(db.group_chats.find())
@@ -1363,7 +1393,15 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             teams = [t for t in teams if _group_belongs_to_year(t, year, db)]
         data = []
         for t in teams:
+            t_yr = year
+            if t_yr is None:
+                for y_check in [1, 2, 3]:
+                    if _group_belongs_to_year(t, y_check, db):
+                        t_yr = y_check
+                        break
+            y_badge = year_labels.get(t_yr, f"Year {t_yr}") if t_yr else "N/A"
             data.append({
+                "Academic Year": y_badge,
                 "Team ID": t["id"],
                 "Team Name": t.get("name") or "N/A",
                 "Project Theme": t.get("project_topic") or "N/A",
@@ -1373,26 +1411,27 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Team ID", "Team Name", "Project Theme", "Mentor Name", "Approval Status", "Rejection Reason"])
-        return df, f"Project Approvals & Feedback Report{year_suffix}", (20, 50, 77, 45, 35, 50)
+            df = pd.DataFrame(columns=["Academic Year", "Team ID", "Team Name", "Project Theme", "Mentor Name", "Approval Status", "Rejection Reason"])
+        return df, f"Project Approvals & Feedback Report{year_suffix}", (28, 18, 40, 60, 40, 30, 45)
 
     elif dataset == "events":
         events = list(db.events.find())
         data = []
-        for e in events:
+        for ev in events:
             data.append({
-                "Event ID": e["id"],
-                "Event Title": e.get("title") or "N/A",
-                "Description": e.get("description") or "N/A",
-                "Date": e.get("date") or "N/A",
-                "Time": e.get("time") or "N/A",
-                "Venue": e.get("location") or "N/A",
-                "Total RSVPs": len(e.get("rsvps") or [])
+                "Event ID": ev.get("id") or str(ev.get("_id")),
+                "Title": ev.get("title") or "N/A",
+                "Phase": ev.get("phase") or "N/A",
+                "Category": ev.get("category") or "N/A",
+                "Date": ev.get("date") or "N/A",
+                "Time": ev.get("time") or "N/A",
+                "Venue": ev.get("venue") or "N/A",
+                "Audience": ev.get("audience") or "All Students"
             })
         df = pd.DataFrame(data)
         if df.empty:
-            df = pd.DataFrame(columns=["Event ID", "Event Title", "Description", "Date", "Time", "Venue", "Total RSVPs"])
-        return df, "Campus Events & Registration Report", (20, 50, 87, 25, 20, 55, 20)
+            df = pd.DataFrame(columns=["Event ID", "Title", "Phase", "Category", "Date", "Time", "Venue", "Audience"])
+        return df, f"Master Academic Schedule & Events Calendar{year_suffix}", (20, 50, 20, 25, 25, 25, 40, 40)
 
     elif dataset == "approved_teams":
         approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
@@ -1401,6 +1440,14 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
 
         data = []
         for group in approved_groups:
+            group_yr = year
+            if group_yr is None:
+                for y_check in [1, 2, 3]:
+                    if _group_belongs_to_year(group, y_check, db):
+                        group_yr = y_check
+                        break
+            y_badge = year_labels.get(group_yr, f"Year {group_yr}") if group_yr else "N/A"
+
             member_records = list(db.group_members.find({"group_id": group["id"]}))
             member_ids = [m["user_id"] for m in member_records]
             
@@ -1412,8 +1459,11 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             
             student_ids = [uid for uid in member_ids if uid != mentor_id]
             students = list(db.users.find({"id": {"$in": student_ids}})) if student_ids else []
+            if year is not None:
+                students = [s for s in students if _extract_user_academic_info(s)[2] == year]
             
             row_dict = {
+                "Academic Year": y_badge,
                 "Team ID": str(group["id"]),
                 "Team Name": group["name"],
                 "Project Topic": group.get("project_topic") or "N/A",
@@ -1436,12 +1486,12 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         df = pd.DataFrame(data)
         if df.empty:
             df = pd.DataFrame(columns=[
-                "Team ID", "Team Name", "Project Topic", "Mentor Name", "Mentor Email", "Approved At",
+                "Academic Year", "Team ID", "Team Name", "Project Topic", "Mentor Name", "Mentor Email", "Approved At",
                 "Member 1 Name", "Member 1 USN", "Member 2 Name", "Member 2 USN",
                 "Member 3 Name", "Member 3 USN", "Member 4 Name", "Member 4 USN",
                 "Member 5 Name", "Member 5 USN"
             ])
-        return df, f"Approved Project Teams Master Report{year_suffix}", (15, 25, 30, 20, 25, 20, 15, 13, 15, 13, 15, 13, 15, 13, 15, 13)
+        return df, f"Approved Project Teams Master Report{year_suffix}", (28, 15, 25, 30, 20, 25, 20, 15, 13, 15, 13, 15, 13, 15, 13, 15, 13)
 
     elif dataset == "student_marks":
         students = list(db.users.find({
@@ -1451,6 +1501,8 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         }))
         if year is not None:
             students = [s for s in students if _extract_user_academic_info(s)[2] == year]
+        else:
+            students = sorted(students, key=lambda s: _extract_user_academic_info(s)[2])
         data = []
         for s in students:
             student_id = s.get("id")
@@ -1459,6 +1511,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
             branch = s.get("branch") or "N/A"
             section = s.get("section") or "N/A"
             _, _, y_study = _extract_user_academic_info(s)
+            y_badge = year_labels.get(y_study, f"Year {y_study}")
             if y_study == 1:
                 semester = "1st Sem"
             elif y_study == 2:
@@ -1507,6 +1560,7 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
                     
             total_marks = p1_marks + p2_marks + p3_marks
             data.append({
+                "Academic Year": y_badge,
                 "USN": usn,
                 "Student Name": name,
                 "Branch": branch,
@@ -1525,10 +1579,10 @@ def fetch_report_dataframe(dataset: str, db, year: Optional[int] = None) -> tupl
         df = pd.DataFrame(data)
         if df.empty:
             df = pd.DataFrame(columns=[
-                "USN", "Student Name", "Branch", "Sec", "Semester", "Team Name", "Mentor",
+                "Academic Year", "USN", "Student Name", "Branch", "Sec", "Semester", "Team Name", "Mentor",
                 "P1 Marks", "P1 Observations", "P2 Marks", "P2 Observations", "P3 Marks", "P3 Observations", "Total Marks"
             ])
-        return df, f"Student Performance Marks & Detailed Observations Report{year_suffix}", (20, 30, 20, 10, 10, 25, 20, 15, 30, 15, 30, 15, 30, 15)
+        return df, f"Student Performance Marks & Detailed Observations Report{year_suffix}", (28, 18, 30, 18, 10, 10, 25, 20, 12, 28, 12, 28, 12, 28, 12)
 
     else:
         raise HTTPException(status_code=400, detail="Invalid dataset specified")
@@ -1540,7 +1594,8 @@ def preview_admin_report(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    df, report_title, col_widths = fetch_report_dataframe(dataset, db, year=year)
+    active_year = year if year is not None else 1
+    df, report_title, col_widths = fetch_report_dataframe(dataset, db, year=active_year)
     preview_df = df.head(10)
     preview_df = preview_df.astype(object).where(pd.notnull(preview_df), None)
     records = preview_df.to_dict(orient="records")
@@ -1562,7 +1617,7 @@ def preview_admin_report(
         "columns": list(df.columns),
         "preview": safe_records,
         "total_rows": len(df),
-        "year": year
+        "year": active_year
     }
 
 @router.get("/reports/download")
@@ -1573,13 +1628,19 @@ def download_admin_report(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    df, report_title, col_widths = fetch_report_dataframe(dataset, db, year=year)
+    year_labels = {
+        1: "1st Year (2026 Batch)",
+        2: "2nd Year (2025 Batch)",
+        3: "3rd Year (2024 Batch)",
+        4: "4th Year (2023 Batch)"
+    }
     date_str = datetime.now().strftime("%Y-%m-%d")
-    year_tag = f"_year{year}" if year else ""
     
     if format == "csv":
+        active_year = year if year is not None else 1
+        df, report_title, _ = fetch_report_dataframe(dataset, db, year=active_year)
         csv_data = df.to_csv(index=False)
-        filename = f"{dataset}_report{year_tag}_{date_str}.csv"
+        filename = f"{dataset}_report_year{active_year}_{date_str}.csv"
         return Response(
             content=csv_data,
             media_type="text/csv",
@@ -1589,10 +1650,7 @@ def download_admin_report(
     elif format == "excel":
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name="Report", index=False)
-            
             workbook  = writer.book
-            worksheet = writer.sheets["Report"]
             header_format = workbook.add_format({
                 'bold': True,
                 'text_wrap': True,
@@ -1601,8 +1659,6 @@ def download_admin_report(
                 'font_color': '#FFFFFF',
                 'border': 1
             })
-            
-            # Merged cell format for grouped cells (Team ID / Team Name)
             merge_format = workbook.add_format({
                 'valign': 'vcenter',
                 'align': 'center',
@@ -1610,52 +1666,44 @@ def download_admin_report(
                 'bold': True,
                 'bg_color': '#EEF2FF',
             })
-            
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-                max_len = max(
-                    df[value].astype(str).map(len).max() if not df.empty else len(value),
-                    len(value)
-                ) + 3
-                worksheet.set_column(col_num, col_num, min(max_len, 50))
-            
-            # For the teams dataset: merge Team ID (col 0) and Team Name (col 1)
-            # for consecutive rows that belong to the same team
-            if dataset == "teams" and not df.empty and "Team ID" in df.columns and "Team Name" in df.columns:
-                team_id_col = list(df.columns).index("Team ID")
-                team_name_col = list(df.columns).index("Team Name")
+
+            # Never combine data across years! If no year specified, generate 3 separate sheets.
+            years_to_export = [year] if year is not None else [1, 2, 3]
+            for y_val in years_to_export:
+                df_y, _, _ = fetch_report_dataframe(dataset, db, year=y_val)
+                # Excel sheet name max length 31 chars
+                sheet_title = f"{year_labels.get(y_val, f'Year {y_val}')[:31]}"
+                df_y.to_excel(writer, sheet_name=sheet_title, index=False)
+                worksheet = writer.sheets[sheet_title]
                 
-                rows = df.values.tolist()
-                i = 0
-                while i < len(rows):
-                    # Find the run of rows with the same Team ID
-                    current_team_id = rows[i][team_id_col]
-                    current_team_name = rows[i][team_name_col]
-                    j = i + 1
-                    while j < len(rows) and rows[j][team_id_col] == current_team_id:
-                        j += 1
-                    
-                    # Excel row index: +1 for header row, +1 because xlsxwriter is 0-indexed
-                    start_row = i + 1  # 0-indexed, row 0 is header
-                    end_row = j        # exclusive, so last row index is j-1
-                    
-                    if end_row - start_row > 1:
-                        # Merge Team ID cells
-                        worksheet.merge_range(
-                            start_row, team_id_col,
-                            end_row - 1, team_id_col,
-                            current_team_id, merge_format
-                        )
-                        # Merge Team Name cells
-                        worksheet.merge_range(
-                            start_row, team_name_col,
-                            end_row - 1, team_name_col,
-                            current_team_name, merge_format
-                        )
-                    i = j
+                for col_num, value in enumerate(df_y.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+                    max_len = max(
+                        df_y[value].astype(str).map(len).max() if not df_y.empty else len(value),
+                        len(value)
+                    ) + 3
+                    worksheet.set_column(col_num, col_num, min(max_len, 50))
+                
+                if dataset == "teams" and not df_y.empty and "Team ID" in df_y.columns and "Team Name" in df_y.columns:
+                    team_id_col = list(df_y.columns).index("Team ID")
+                    team_name_col = list(df_y.columns).index("Team Name")
+                    rows = df_y.values.tolist()
+                    i = 0
+                    while i < len(rows):
+                        current_team_id = rows[i][team_id_col]
+                        current_team_name = rows[i][team_name_col]
+                        j = i + 1
+                        while j < len(rows) and rows[j][team_id_col] == current_team_id:
+                            j += 1
+                        start_row = i + 1
+                        end_row = j
+                        if end_row - start_row > 1:
+                            worksheet.merge_range(start_row, team_id_col, end_row - 1, team_id_col, current_team_id, merge_format)
+                            worksheet.merge_range(start_row, team_name_col, end_row - 1, team_name_col, current_team_name, merge_format)
+                        i = j
                 
         output.seek(0)
-        filename = f"{dataset}_report{year_tag}_{date_str}.xlsx"
+        filename = f"{dataset}_report_year{year}_{date_str}.xlsx" if year else f"{dataset}_report_all_years_separated_{date_str}.xlsx"
         return Response(
             content=output.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1663,6 +1711,8 @@ def download_admin_report(
         )
         
     elif format == "pdf":
+        active_year = year if year is not None else 1
+        df, report_title, col_widths = fetch_report_dataframe(dataset, db, year=active_year)
         pdf = BeautifulReportPDF(report_title)
         pdf.add_page()
         pdf.set_font("helvetica", size=8)
@@ -1689,7 +1739,7 @@ def download_admin_report(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"PDF rendering error: {str(e)}")
             
-        filename = f"{dataset}_report{year_tag}_{date_str}.pdf"
+        filename = f"{dataset}_report_year{active_year}_{date_str}.pdf"
         return Response(
             content=bytes(pdf.output()),
             media_type="application/pdf",

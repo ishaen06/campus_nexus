@@ -1366,11 +1366,11 @@ def regenerate_mentor_marks_csv(db, year=None):
     import os
     
     file_dir = "teachers_excel"
-    file_path = os.path.join(file_dir, "student_phase_marks.csv")
+    file_path = os.path.join(file_dir, f"student_phase_marks_year{year}.csv" if year else "student_phase_marks.csv")
     os.makedirs(file_dir, exist_ok=True)
     
     headers = [
-        "USN", "Student Name", "Student Email", "Branch", "Section", "Year of Study",
+        "Academic Year", "USN", "Student Name", "Student Email", "Branch", "Section", "Year of Study",
         "Team ID", "Team Name", "Mentor Name",
         "Phase 1 Marks", "Phase 1 Observations",
         "Phase 2 Marks", "Phase 2 Observations",
@@ -1388,6 +1388,13 @@ def regenerate_mentor_marks_csv(db, year=None):
     
     rows = []
 
+    year_labels = {
+        1: "1st Year (2026 Batch)",
+        2: "2nd Year (2025 Batch)",
+        3: "3rd Year (2024 Batch)",
+        4: "4th Year (2023 Batch)"
+    }
+
     for s in students:
         student_id = s.get("id")
         usn = s.get("usn") or "N/A"
@@ -1395,7 +1402,9 @@ def regenerate_mentor_marks_csv(db, year=None):
         email = s.get("email") or "N/A"
         branch = s.get("branch") or "N/A"
         section = s.get("section") or "N/A"
-        year = s.get("year_of_study") or "N/A"
+        _, _, stu_y = _extract_user_academic_info(s)
+        stu_year_label = year_labels.get(stu_y, f"Year {stu_y}")
+        stu_y_num = s.get("year_of_study") or stu_y or "N/A"
         
         group_id = "N/A"
         group_name = "N/A"
@@ -1435,7 +1444,7 @@ def regenerate_mentor_marks_csv(db, year=None):
         total_marks = p1_marks + p2_marks + p3_marks
         
         row = [
-            usn, name, email, branch, section, year,
+            stu_year_label, usn, name, email, branch, section, stu_y_num,
             group_id, group_name, mentor_name,
             p1_marks, p1_obs,
             p2_marks, p2_obs,

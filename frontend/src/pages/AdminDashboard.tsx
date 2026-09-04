@@ -355,8 +355,22 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   // Report Preview states
   const [previewDataset, setPreviewDataset] = useState<string | null>(null);
   const [previewFormat, setPreviewFormat] = useState<string | null>(null);
+  const [previewYear, setPreviewYear] = useState<number>(1);
   const [previewData, setPreviewData] = useState<{ title: string; columns: string[]; preview: any[]; total_rows: number } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Year-wise Report Center states
+  const [reportYearTab, setReportYearTab] = useState<number>(() => {
+    const saved = localStorage.getItem('admin_selected_year');
+    if (saved && saved !== 'null') {
+      const num = parseInt(saved, 10);
+      if ([1, 2, 3].includes(num)) return num;
+    }
+    return 1;
+  });
+  const [reportViewLayout, setReportViewLayout] = useState<'tabs' | 'sections'>('tabs');
+  const [cardYearMap, setCardYearMap] = useState<Record<string, number>>({});
+
 
   // Ratings tab states
   const [ratingsData, setRatingsData] = useState<{
@@ -451,6 +465,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
   const handleGlobalYearChange = (yr: number | null) => {
     setGlobalYear(yr);
+    if (yr !== null) {
+      setReportYearTab(yr);
+    }
     try {
       localStorage.setItem('admin_selected_year', yr === null ? 'null' : String(yr));
     } catch (_) {}
@@ -860,9 +877,12 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   };
 
   // Report Center trigger download
-  const handleDownloadReport = async (dataset: string, format: string) => {
+  const handleDownloadReport = async (dataset: string, format: string, yearOverride?: number | null) => {
     try {
-      const yearParam = globalYear !== null ? `&year=${globalYear}` : '';
+      const activeYear = yearOverride !== undefined && yearOverride !== null 
+        ? yearOverride 
+        : (globalYear !== null ? globalYear : reportYearTab);
+      const yearParam = `&year=${activeYear}`;
       const response = await api.get(`/admin/reports/download?dataset=${dataset}&format=${format}${yearParam}`, {
         responseType: 'blob'
       });
@@ -885,7 +905,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       link.href = url;
       
       const dateStr = new Date().toISOString().split('T')[0];
-      const yearTag = globalYear !== null ? `_year${globalYear}` : '';
+      const yearTag = `_year${activeYear}`;
       link.setAttribute('download', `${dataset}_report${yearTag}_${dateStr}.${extensionMap[format]}`);
       document.body.appendChild(link);
       link.click();
@@ -896,24 +916,42 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     }
   };
 
-  const handleTriggerPreview = async (dataset: string, format: string) => {
+  const handleTriggerPreview = async (dataset: string, format: string, yearOverride?: number | null) => {
+    const activeYear = yearOverride !== undefined && yearOverride !== null 
+      ? yearOverride 
+      : (globalYear !== null ? globalYear : reportYearTab);
     setPreviewDataset(dataset);
     setPreviewFormat(format);
+    setPreviewYear(activeYear);
     setPreviewLoading(true);
     try {
-      const yearParam = globalYear !== null ? `&year=${globalYear}` : '';
-      const res = await api.get(`/admin/reports/preview?dataset=${dataset}${yearParam}`);
+      const res = await api.get(`/admin/reports/preview?dataset=${dataset}&year=${activeYear}`);
       setPreviewData(res.data);
     } catch (err) {
       console.error("Failed to load report preview", err);
       alert("Failed to load report preview. Opening direct download...");
-      handleDownloadReport(dataset, format);
+      handleDownloadReport(dataset, format, activeYear);
       setPreviewDataset(null);
       setPreviewFormat(null);
     } finally {
       setPreviewLoading(false);
     }
   };
+
+  const handleSwitchPreviewYear = async (newYear: number) => {
+    if (!previewDataset) return;
+    setPreviewYear(newYear);
+    setPreviewLoading(true);
+    try {
+      const res = await api.get(`/admin/reports/preview?dataset=${previewDataset}&year=${newYear}`);
+      setPreviewData(res.data);
+    } catch (err) {
+      console.error("Failed to switch preview year", err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
 
 
   if (error) {
@@ -1569,104 +1607,143 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
                 {/* Cohort-Scoped Quick Reports Bar */}
                 <div className="p-5 rounded-3xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/40">
-                        <Download size={18} />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                          <span>{globalYear ? `${globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}` : 'All Batches'} Reports & Data Export</span>
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
-                            Active Cohort Scoped
-                          </span>
-                        </h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                          Generate and download officially formatted institution spreadsheets filtered for this cohort.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/admin/reports')}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
-                    >
-                      <span>Open Full Report Center</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
+                  {(() => {
+                    const activeQuickYear = globalYear !== null ? globalYear : reportYearTab;
+                    const quickYearLabel = activeQuickYear === 1 ? '1st Year (2026 Batch)' : activeQuickYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)';
+                    const quickYearBadge = activeQuickYear === 1 ? '1st Yr' : activeQuickYear === 2 ? '2nd Yr' : '3rd Yr';
 
-                  {/* 4 Quick Export Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {[
-                      {
-                        title: "Students Master List",
-                        desc: `${analytics.counts.total_students} students enrolled`,
-                        dataset: "students",
-                        icon: Users
-                      },
-                      {
-                        title: "Approved Teams Master",
-                        desc: `${analytics.counts.approved_teams} approved teams`,
-                        dataset: "approved_teams",
-                        icon: CheckCircle2
-                      },
-                      {
-                        title: "Student Marks & Rubrics",
-                        desc: "Phase 1, 2, 3 marks & remarks",
-                        dataset: "student_marks",
-                        icon: Award
-                      },
-                      {
-                        title: "Mentor Workloads",
-                        desc: `${Object.keys(analytics.mentor_workload || {}).length} active mentors`,
-                        dataset: "mentors",
-                        icon: UserCheck
-                      }
-                    ].map((rep) => {
-                      const Icon = rep.icon;
-                      return (
-                        <div key={rep.dataset} className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3 shadow-xs">
-                          <div className="flex items-start gap-2.5">
-                            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0">
-                              <Icon size={16} />
+                    return (
+                      <>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/40">
+                              <Download size={18} />
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-                                {rep.title}
-                              </div>
-                              <div className="text-[10px] text-slate-400 font-medium truncate">
-                                {rep.desc}
-                              </div>
+                            <div>
+                              <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                <span>{quickYearLabel} Reports & Data Export</span>
+                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                                  {quickYearBadge} Scoped
+                                </span>
+                              </h3>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                Generate and download officially formatted institution spreadsheets strictly filtered for {quickYearLabel}.
+                              </p>
                             </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                          
+                          <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+                            {globalYear === null && (
+                              <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-200/60 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700">
+                                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">Cohort:</span>
+                                {[
+                                  { yr: 1, label: "1st Yr (2026)" },
+                                  { yr: 2, label: "2nd Yr (2025)" },
+                                  { yr: 3, label: "3rd Yr (2024)" }
+                                ].map(({ yr, label }) => (
+                                  <button
+                                    key={yr}
+                                    type="button"
+                                    onClick={() => setReportYearTab(yr)}
+                                    className={`px-2 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                                      activeQuickYear === yr
+                                        ? "bg-indigo-600 text-white shadow-xs"
+                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/50 dark:hover:bg-slate-700/50"
+                                    }`}
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             <button
                               type="button"
-                              onClick={() => handleDownloadReport(rep.dataset, 'csv')}
-                              className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                              onClick={() => navigate('/admin/reports')}
+                              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
                             >
-                              CSV
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadReport(rep.dataset, 'excel')}
-                              className="py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
-                            >
-                              Excel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleTriggerPreview(rep.dataset, 'pdf')}
-                              className="py-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
-                            >
-                              PDF
+                              <span>Open Full Report Center</span>
+                              <ChevronRight size={14} />
                             </button>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        {/* 4 Quick Export Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {[
+                            {
+                              title: "Students Master List",
+                              desc: `${analytics.counts.total_students} students enrolled`,
+                              dataset: "students",
+                              icon: Users
+                            },
+                            {
+                              title: "Approved Teams Master",
+                              desc: `${analytics.counts.approved_teams} approved teams`,
+                              dataset: "approved_teams",
+                              icon: CheckCircle2
+                            },
+                            {
+                              title: "Student Marks & Rubrics",
+                              desc: "Phase 1, 2, 3 marks & remarks",
+                              dataset: "student_marks",
+                              icon: Award
+                            },
+                            {
+                              title: "Mentor Workloads",
+                              desc: `${Object.keys(analytics.mentor_workload || {}).length} active mentors`,
+                              dataset: "mentors",
+                              icon: UserCheck
+                            }
+                          ].map((rep) => {
+                            const Icon = rep.icon;
+                            return (
+                              <div key={rep.dataset} className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3 shadow-xs">
+                                <div className="flex items-start gap-2.5">
+                                  <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0">
+                                    <Icon size={16} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                      {rep.title}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium truncate">
+                                      {rep.desc}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadReport(rep.dataset, 'csv', activeQuickYear)}
+                                    className="py-1 px-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer truncate"
+                                    title={`Download ${quickYearBadge} CSV`}
+                                  >
+                                    CSV ({quickYearBadge})
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadReport(rep.dataset, 'excel', activeQuickYear)}
+                                    className="py-1 px-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer truncate"
+                                    title={`Download ${quickYearBadge} Excel`}
+                                  >
+                                    Excel ({quickYearBadge})
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTriggerPreview(rep.dataset, 'pdf', activeQuickYear)}
+                                    className="py-1 px-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer truncate"
+                                    title={`Preview / Download ${quickYearBadge} PDF`}
+                                  >
+                                    PDF ({quickYearBadge})
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* 2. Charts Section */}
@@ -3906,254 +3983,389 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Year-Wise Report Center Cohort Selector */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Year-Wise Report Center Cohort Header & View Switcher */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col lg:flex-row lg:items-center justify-between gap-5">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shadow-sm">
-                  <Download size={22} />
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black shadow-sm shrink-0">
+                  <Download size={24} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                      Cohort-Wise Report Generator & Data Export
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Academic Year-Wise Report Center
                     </h2>
-                    {globalYear !== null ? (
-                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                        {globalYear === 1 ? '1st Year (2026 Batch)' : globalYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'} Active
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
-                        All Cohorts Active
-                      </span>
-                    )}
+                    <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                      reportYearTab === 1 
+                        ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40' 
+                        : reportYearTab === 2 
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' 
+                        : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40'
+                    }`}>
+                      {reportYearTab === 1 ? '1st Year (2026 Batch)' : reportYearTab === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                    Select a cohort below to generate, preview, and download reports scoped strictly to that specific academic year.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                    Reports are generated strictly and separately for each academic year. Cross-cohort data mixing is disabled.
                   </p>
                 </div>
               </div>
 
-              {/* Year Selector Tabs */}
-              <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1.5 self-start md:self-auto flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => handleGlobalYearChange(null)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                    globalYear === null
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                  }`}
-                >
-                  <span>All Years</span>
-                </button>
+              {/* Controls: Year Selector & View Mode Switcher */}
+              <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+                {/* View Layout Switcher */}
+                <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setReportViewLayout('tabs')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                      reportViewLayout === 'tabs'
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    Cohort Filter Mode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportViewLayout('sections')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                      reportViewLayout === 'sections'
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    Year-Wise Sections
+                  </button>
+                </div>
 
+                {/* Cohort Year Selector Tabs (in tabs mode) */}
+                {reportViewLayout === 'tabs' && (
+                  <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 gap-1">
+                    {[
+                      { yr: 1, label: "1st Year", batch: "2026 Batch" },
+                      { yr: 2, label: "2nd Year", batch: "2025 Batch" },
+                      { yr: 3, label: "3rd Year", batch: "2024 Batch" }
+                    ].map(({ yr, label, batch }) => {
+                      const isSelected = reportYearTab === yr;
+                      return (
+                        <button
+                          key={yr}
+                          type="button"
+                          onClick={() => {
+                            setReportYearTab(yr);
+                            handleGlobalYearChange(yr);
+                          }}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isSelected
+                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                          }`}
+                        >
+                          <span>{label}</span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
+                            isSelected ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                          }`}>
+                            {batch}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Layout Mode 1: Tabs View (Focused on one Cohort at a time) */}
+            {reportViewLayout === 'tabs' && (
+              <div className="space-y-5">
+                {/* Active Cohort Information Banner */}
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  reportYearTab === 1
+                    ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-900 dark:text-blue-200'
+                    : reportYearTab === 2
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200'
+                    : 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 text-purple-900 dark:text-purple-200'
+                }`}>
+                  <div className="flex items-center gap-2.5">
+                    <GraduationCap size={20} className="shrink-0" />
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-wider block">
+                        Active Cohort Scope: {reportYearTab === 1 ? '1st Year (2026 Batch - 1st & 2nd Semester)' : reportYearTab === 2 ? '2nd Year (2025 Batch - 3rd & 4th Semester)' : '3rd Year (2024 Batch - 5th & 6th Semester)'}
+                      </span>
+                      <p className="text-[11px] font-medium opacity-80 mt-0.5">
+                        All 7 reports below contain records strictly isolated to {reportYearTab === 1 ? '1st Year' : reportYearTab === 2 ? '2nd Year' : '3rd Year'} students and teams. Zero data overlap with other cohorts.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/60 dark:bg-slate-900/60 border border-current/20">
+                      Isolated Year {reportYearTab}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grid of 7 Report Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    {
+                      dataset: "students",
+                      title: "Students Master Directory",
+                      desc: "Complete roster of enrolled students with USN, email, branch, cycle allocation, and team membership status.",
+                      icon: Users
+                    },
+                    {
+                      dataset: "approved_teams",
+                      title: "Approved Teams Master",
+                      desc: "Full institutional spreadsheet of approved project groups, project topics, faculty mentors, and student members.",
+                      icon: CheckCircle2
+                    },
+                    {
+                      dataset: "student_marks",
+                      title: "Student Marks & Observations",
+                      desc: "Complete breakdown of Phase 1, Phase 2, and Phase 3 marks, total scores, sections, and mentor observations.",
+                      icon: Award
+                    },
+                    {
+                      dataset: "mentors",
+                      title: "Mentor Workload Directory",
+                      desc: "Directory of faculty mentors, departments, designations, and active approved team allocations for this cohort.",
+                      icon: UserCheck
+                    },
+                    {
+                      dataset: "teams",
+                      title: "Team Roster Mapping",
+                      desc: "Cross-referenced matrix linking each team group to its student members, USNs, and department branches.",
+                      icon: Layers
+                    },
+                    {
+                      dataset: "marks",
+                      title: "Evaluation Marks Summary",
+                      desc: "Granular criteria grading breakdown for Problem Definition, Methodology, Execution, Prototype, and Presentation.",
+                      icon: Activity
+                    },
+                    {
+                      dataset: "projects",
+                      title: "Project Themes & Allocations",
+                      desc: "Catalog of active team project titles, themes, sub-topics, assigned faculty mentors, and approval statuses.",
+                      icon: GitMerge
+                    }
+                  ].map((rep) => {
+                    const activeCardYear = cardYearMap[rep.dataset] || reportYearTab;
+                    const yrPill = activeCardYear === 1 ? '1st Yr' : activeCardYear === 2 ? '2nd Yr' : '3rd Yr';
+                    const yrBadge = activeCardYear === 1 ? '1st Yr (2026)' : activeCardYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)';
+                    const Icon = rep.icon;
+
+                    return (
+                      <div 
+                        key={rep.dataset}
+                        className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300 rounded-3xl group shadow-sm hover:shadow-md"
+                      >
+                        <div className="space-y-3">
+                          {/* Top row */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl group-hover:scale-105 transition-transform">
+                                <Icon size={18} />
+                              </div>
+                              <div>
+                                <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100">
+                                  {rep.title}
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                  {rep.dataset}
+                                </span>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
+                              activeCardYear === 1 
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40' 
+                                : activeCardYear === 2 
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' 
+                                : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40'
+                            }`}>
+                              {yrBadge}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                            {rep.desc}
+                          </p>
+
+                          {/* Quick Year Selector Pills for this card */}
+                          <div className="flex items-center justify-between pt-1 text-[10px]">
+                            <span className="font-bold text-slate-400 uppercase tracking-wider">Cohort Scope:</span>
+                            <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 gap-1">
+                              {[1, 2, 3].map((y) => (
+                                <button
+                                  key={y}
+                                  type="button"
+                                  onClick={() => setCardYearMap(prev => ({ ...prev, [rep.dataset]: y }))}
+                                  className={`px-2 py-0.5 rounded-md font-extrabold transition-all cursor-pointer ${
+                                    activeCardYear === y
+                                      ? "bg-indigo-600 text-white shadow-xs"
+                                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                                  }`}
+                                >
+                                  {y === 1 ? '1st Yr' : y === 2 ? '2nd Yr' : '3rd Yr'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
+                          <button 
+                            type="button"
+                            onClick={() => handleTriggerPreview(rep.dataset, 'csv', activeCardYear)} 
+                            className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1 transition-all"
+                            title={`Preview or Download ${rep.title} as CSV for ${yrPill}`}
+                          >
+                            <Download size={11} />
+                            <span>CSV ({yrPill})</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleTriggerPreview(rep.dataset, 'excel', activeCardYear)} 
+                            className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1 transition-all"
+                            title={`Preview or Download ${rep.title} as Excel for ${yrPill}`}
+                          >
+                            <Download size={11} />
+                            <span>Excel ({yrPill})</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleTriggerPreview(rep.dataset, 'pdf', activeCardYear)} 
+                            className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 flex items-center justify-center gap-1 transition-all"
+                            title={`Preview or Download ${rep.title} as PDF for ${yrPill}`}
+                          >
+                            <Download size={11} />
+                            <span>PDF ({yrPill})</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Layout Mode 2: Sections View (All 3 Academic Years separated into visual sections) */}
+            {reportViewLayout === 'sections' && (
+              <div className="space-y-10">
                 {[
-                  { yr: 1, label: "1st Year", batch: "2026 Batch" },
-                  { yr: 2, label: "2nd Year", batch: "2025 Batch" },
-                  { yr: 3, label: "3rd Year", batch: "2024 Batch" }
-                ].map(({ yr, label, batch }) => {
-                  const isSelected = globalYear === yr;
-                  return (
-                    <button
-                      key={yr}
-                      type="button"
-                      onClick={() => handleGlobalYearChange(yr)}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                        isSelected
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                      }`}
-                    >
-                      <span>{label}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                        isSelected ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                      }`}>
-                        {batch}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Grid of Report Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-              {/* Card 1: Students Master Directory */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
-                        <Users size={18} />
+                  {
+                    yr: 1,
+                    title: "1st Year (2026 Batch) Reports & Spreadsheets",
+                    sem: "1st & 2nd Semester",
+                    cycle: "Foundation & Physics/Chemistry Cycle Projects",
+                    headerBg: "from-blue-600 to-indigo-700",
+                    badge: "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200"
+                  },
+                  {
+                    yr: 2,
+                    title: "2nd Year (2025 Batch) Reports & Spreadsheets",
+                    sem: "3rd & 4th Semester",
+                    cycle: "Core Experiential Learning Projects",
+                    headerBg: "from-emerald-600 to-teal-700",
+                    badge: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200"
+                  },
+                  {
+                    yr: 3,
+                    title: "3rd Year (2024 Batch) Reports & Spreadsheets",
+                    sem: "5th & 6th Semester",
+                    cycle: "Advanced Capstone & Industry Problem Statements",
+                    headerBg: "from-purple-600 to-pink-700",
+                    badge: "bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200"
+                  }
+                ].map((section) => (
+                  <div key={section.yr} className="space-y-4">
+                    {/* Section Header */}
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${section.headerBg} text-white flex items-center justify-center font-black text-sm shadow-md`}>
+                          Y{section.yr}
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <span>{section.title}</span>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${section.badge}`}>
+                              {section.sem}
+                            </span>
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            {section.cycle} • Data strictly isolated to {section.yr === 1 ? '1st Year' : section.yr === 2 ? '2nd Year' : '3rd Year'}
+                          </p>
+                        </div>
                       </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Students Master Directory</h3>
-                    </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg self-start sm:self-auto">
+                        Year {section.yr} Isolated Section
                       </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Complete roster of enrolled undergraduate students with USN, branch, cycle allocation, and team membership status.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('students', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('students', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('students', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
+                    </div>
 
-              {/* Card 6: Approved Teams Detailed CSV */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-[#1e3a8a] dark:text-blue-400 border border-blue-100 dark:border-blue-900 rounded-xl">
-                        <Users size={18} />
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Approved Teams Export</h3>
-                    </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Full master spreadsheet of approved teams, project topics, mentors, and all individual student member details.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('approved_teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('approved_teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('approved_teams', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
+                    {/* Section Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[
+                        { dataset: "students", title: "Students Master List", icon: Users },
+                        { dataset: "approved_teams", title: "Approved Teams Master", icon: CheckCircle2 },
+                        { dataset: "student_marks", title: "Marks & Observations", icon: Award },
+                        { dataset: "mentors", title: "Mentor Workloads", icon: UserCheck },
+                        { dataset: "teams", title: "Team Roster Mapping", icon: Layers },
+                        { dataset: "marks", title: "Evaluation Marks Summary", icon: Activity },
+                        { dataset: "projects", title: "Project Themes & Allocations", icon: GitMerge }
+                      ].map((card) => {
+                        const Icon = card.icon;
+                        const yrPill = section.yr === 1 ? '1st Yr' : section.yr === 2 ? '2nd Yr' : '3rd Yr';
+                        return (
+                          <div 
+                            key={`${card.dataset}-${section.yr}`}
+                            className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-all"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0">
+                                <Icon size={16} />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                  {card.title}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 font-medium truncate">
+                                  Filtered strictly to {yrPill}
+                                </p>
+                              </div>
+                            </div>
 
-              {/* Card 7: Student Phase Marks CSV */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
-                        <CheckCircle2 size={18} />
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Student Marks & Observations</h3>
+                            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                              <button
+                                type="button"
+                                onClick={() => handleTriggerPreview(card.dataset, 'csv', section.yr)}
+                                className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                              >
+                                CSV
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleTriggerPreview(card.dataset, 'excel', section.yr)}
+                                className="py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                              >
+                                Excel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleTriggerPreview(card.dataset, 'pdf', section.yr)}
+                                className="py-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                              >
+                                PDF
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
-                      </span>
-                    )}
                   </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Complete breakdown of Phase 1, 2, and 3 marks, total scores, sections, year of study, and specific mentor observations.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('student_marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('student_marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('student_marks', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
+                ))}
               </div>
-
-              {/* Card 2: Mentors */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border border-purple-100 dark:border-purple-900 rounded-xl">
-                        <User size={18} />
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Mentor Workload</h3>
-                    </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Directory of mentors, their departments, designations, and active approved team allocations.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('mentors', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('mentors', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('mentors', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
-
-              {/* Card 3: Team Members */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-655 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl">
-                        <Layers size={18} />
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Team Roster Mapping</h3>
-                    </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Cross-referenced sheet linking each group name to its student members and their branches.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('teams', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('teams', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('teams', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
-
-              {/* Card 4: Marks */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 text-amber-655 dark:text-amber-400 border border-amber-100 dark:border-amber-900 rounded-xl">
-                        <Activity size={18} />
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Evaluation Marks Summary</h3>
-                    </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Comprehensive Phase 1, Phase 2, Phase 3 grading and total marks allocated to students.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('marks', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('marks', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('marks', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
-
-              {/* Card 5: Projects */}
-              <div className="glass-panel p-6 flex flex-col justify-between gap-5 hover:border-slate-350 dark:hover:border-slate-750 transition-all duration-300">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 rounded-xl">
-                        <GitMerge size={18} />
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Project Allocation</h3>
-                    </div>
-                    {globalYear !== null && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                        {globalYear === 1 ? '1st Yr (2026)' : globalYear === 2 ? '2nd Yr (2025)' : '3rd Yr (2024)'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">List of active team project titles, themes/topics, and their assigned mentors.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-850 pt-4">
-                  <button onClick={() => handleTriggerPreview('projects', 'csv')} className="bg-transparent border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-slate-655 dark:text-slate-400">CSV</button>
-                  <button onClick={() => handleTriggerPreview('projects', 'excel')} className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-emerald-700 dark:text-emerald-400 transition">Excel</button>
-                  <button onClick={() => handleTriggerPreview('projects', 'pdf')} className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 hover:bg-rose-600 hover:text-white font-extrabold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer text-rose-700 dark:text-rose-400 transition">PDF</button>
-                </div>
-              </div>
-            </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -4386,12 +4598,45 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                 <X size={20} />
               </button>
 
-              {/* Title & Total Rows */}
-              <div className="mb-4 pr-8">
-                <h3 className="text-lg font-black text-slate-805 dark:text-white uppercase tracking-wider">{previewData.title}</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-1">
-                  Preview showing the first 10 rows of {previewData.total_rows} total rows inside this dataset.
-                </p>
+              {/* Title, Year Selector & Total Rows */}
+              <div className="mb-4 pr-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-lg font-black text-slate-805 dark:text-white uppercase tracking-wider">{previewData.title}</h3>
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/50">
+                      {previewYear === 1 ? '1st Year (2026 Batch)' : previewYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-semibold mt-1">
+                    Previewing 10 sample records of {previewData.total_rows} total rows strictly scoped to this academic year.
+                  </p>
+                </div>
+
+                {/* Switch Preview Year */}
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 self-start sm:self-auto shrink-0">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2">Cohort:</span>
+                  {[
+                    { yr: 1, label: "1st Yr (2026)" },
+                    { yr: 2, label: "2nd Yr (2025)" },
+                    { yr: 3, label: "3rd Yr (2024)" }
+                  ].map(({ yr, label }) => {
+                    const isSelected = previewYear === yr;
+                    return (
+                      <button
+                        key={yr}
+                        type="button"
+                        onClick={() => handleSwitchPreviewYear(yr)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Table Container */}
@@ -4425,8 +4670,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
 
               {/* Footer Actions */}
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-150 dark:border-slate-800">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
-                  <span>Target Format:</span>
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                  <span>Format:</span>
                   <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider ${
                     previewFormat === 'csv' ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350" :
                     previewFormat === 'excel' ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400" :
@@ -4434,11 +4679,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   }`}>
                     {previewFormat}
                   </span>
-                  {globalYear !== null && (
-                    <span className="px-2 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
-                      {globalYear === 1 ? '1st Year' : globalYear === 2 ? '2nd Year' : '3rd Year'}
-                    </span>
-                  )}
+                  <span className="px-2 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
+                    {previewYear === 1 ? '1st Year (2026 Batch)' : previewYear === 2 ? '2nd Year (2025 Batch)' : '3rd Year (2024 Batch)'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
@@ -4454,7 +4697,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   <button
                     onClick={() => {
                       if (previewDataset && previewFormat) {
-                        handleDownloadReport(previewDataset, previewFormat);
+                        handleDownloadReport(previewDataset, previewFormat, previewYear);
                       }
                       setPreviewData(null);
                       setPreviewDataset(null);
@@ -4466,7 +4709,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
                     }`}
                   >
-                    Confirm & Download {globalYear !== null ? `(${globalYear === 1 ? '1st Yr' : globalYear === 2 ? '2nd Yr' : '3rd Yr'})` : ''}
+                    Confirm & Download ({previewYear === 1 ? '1st Yr' : previewYear === 2 ? '2nd Yr' : '3rd Yr'} {previewFormat?.toUpperCase()})
                   </button>
                 </div>
               </div>
