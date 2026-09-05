@@ -167,6 +167,21 @@ export default function Layout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount only — prevents glitch/flicker on every navigation
 
+  // Strictly enforce USN and profile completion for all students across every route navigation
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
+    const userIsAdmin = currentUser.is_admin || currentUser.email === 'ishaen.vihaan@gmail.com';
+    if (userIsAdmin) return;
+
+    const studentMissingUsn = currentUser.is_mentor === false && (!currentUser.usn || !String(currentUser.usn).trim());
+    const mentorMissingDetails = currentUser.is_mentor === true && (!currentUser.department || !currentUser.post);
+    const roleNotSelected = currentUser.is_mentor === null || currentUser.is_mentor === undefined;
+
+    if ((studentMissingUsn || mentorMissingDetails || roleNotSelected) && location.pathname !== '/profile-setup') {
+      navigate('/profile-setup', { replace: true });
+    }
+  }, [location.pathname, currentUser, authLoading, navigate]);
+
   useEffect(() => {
     const handleOpenRating = () => setShowRatingModal(true);
     window.addEventListener('open-rating-modal', handleOpenRating);

@@ -418,14 +418,23 @@ export default function ProfileSetup() {
           ) : (
             <div className="space-y-4 text-left">
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-left">USN (University Seat Number)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-left flex items-center justify-between">
+                  <span>USN (University Seat Number)</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-black border border-rose-500/20">
+                    * Compulsory
+                  </span>
+                </label>
                 <input
                   type="text"
+                  required
                   placeholder="e.g. 1RV25CS088"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-bold uppercase tracking-wider text-xs text-slate-900 dark:text-slate-100 shadow-inner"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-black uppercase tracking-wider text-xs text-slate-900 dark:text-slate-100 shadow-inner font-mono"
                   value={usn}
-                  onChange={e => setUsn(e.target.value)}
+                  onChange={e => setUsn(e.target.value.toUpperCase())}
                 />
+                <p className="text-[11px] text-slate-400 font-medium mt-1.5 text-left">
+                  Entering your verified RVCE USN is mandatory to activate team matchmaking, peer requests, and academic grading.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

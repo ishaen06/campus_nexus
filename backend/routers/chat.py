@@ -671,6 +671,12 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
             raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is an administrator and cannot be added to a student team.")
         if u.get("is_mentor"):
             raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is a mentor and cannot be added as a student team member.")
+        if not (u.get("usn") or "").strip():
+            name_str = "You have" if u["id"] == current_user["id"] else f"Student '{u.get('full_name')}' has"
+            raise HTTPException(
+                status_code=400,
+                detail=f"{name_str} not entered a USN. USN is compulsory for all student team members."
+            )
 
         
     # Enforce that a user can only be in one team at a time
@@ -1002,6 +1008,9 @@ def get_invite_preview(invite_code: str, current_user = Depends(get_current_user
         elif is_locked:
             can_join = False
             reason = "This team has already been approved by a mentor and its roster is finalized."
+        elif not current_user.get("is_mentor") and not current_user.get("is_admin") and not (current_user.get("usn") or "").strip():
+            can_join = False
+            reason = "USN is compulsory. You must complete your profile with your USN before joining a team."
         else:
             u_b_code, u_j_yr, u_y_study = _extract_user_academic_info(current_user)
             student_members = [m for m in member_users if not m.get("is_mentor")]
@@ -1045,6 +1054,8 @@ def join_group_via_invite(invite_code: str, current_user = Depends(get_current_u
         raise HTTPException(status_code=400, detail="Administrators cannot join student project teams.")
     if current_user.get("is_mentor"):
         raise HTTPException(status_code=400, detail="Mentors cannot join student project teams as members.")
+    if not (current_user.get("usn") or "").strip():
+        raise HTTPException(status_code=400, detail="USN is compulsory. You must complete your profile with your USN before joining a team.")
 
     # Check mentor approved
 

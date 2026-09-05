@@ -251,7 +251,12 @@ export default function ProfileEdit() {
         setSaving(false);
         return;
       }
-    } else if (usn.trim()) {
+    } else {
+      if (!usn.trim()) {
+        alert('USN is compulsory for students. Please enter your valid USN.');
+        setSaving(false);
+        return;
+      }
       const cleanUsn = usn.trim().toLowerCase();
       const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
       if (!pattern.test(cleanUsn)) {
@@ -292,7 +297,8 @@ export default function ProfileEdit() {
     try {
       await api.put('/users/me/profile', {
         full_name: fullName,
-        usn: isMentor ? null : (usn.trim() ? usn.trim().toUpperCase() : null),
+        is_mentor: isMentor,
+        usn: isMentor ? null : usn.trim().toUpperCase(),
         department: isMentor ? department : null,
         post: isMentor ? post : null,
         bio,
@@ -458,13 +464,19 @@ export default function ProfileEdit() {
                   {!isMentor && (
                     <div className="col-span-2 space-y-4 text-left">
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">USN (University Seat Number)</label>
+                        <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                          <span>USN (University Seat Number)</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-black border border-rose-500/20">
+                            * Compulsory
+                          </span>
+                        </label>
                         <input
                           type="text"
+                          required
                           placeholder="e.g. 1RV25CS088"
-                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-bold shadow-sm uppercase tracking-wider text-slate-800 dark:text-slate-100"
+                          className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-bold shadow-sm uppercase tracking-wider text-slate-800 dark:text-slate-100 font-mono"
                           value={usn}
-                          onChange={e => setUsn(e.target.value)}
+                          onChange={e => setUsn(e.target.value.toUpperCase())}
                         />
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

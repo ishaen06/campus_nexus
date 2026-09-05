@@ -21,6 +21,14 @@ def send_connection_request(conn_data: ConnectionBase, current_user = Depends(ge
     if receiver.get("is_mentor", False):
         raise HTTPException(status_code=400, detail="Cannot send connection request to a mentor")
 
+    if not current_user.get("is_mentor") and not current_user.get("is_admin"):
+        if not (current_user.get("usn") or "").strip():
+            raise HTTPException(status_code=400, detail="USN is compulsory. You must complete your profile with your USN before sending connection requests.")
+            
+    if not receiver.get("is_mentor") and not receiver.get("is_admin"):
+        if not (receiver.get("usn") or "").strip():
+            raise HTTPException(status_code=400, detail="This student has not yet entered their USN and cannot receive connection requests.")
+
     # Check if a connection already exists
     existing_conn = db.connections.find_one({
         "$or": [
