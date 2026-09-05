@@ -13,6 +13,11 @@
  * ==============================================================================
  */
 
+// Both myFunction and createCampusNexusFeedbackForm work so whatever is selected in the Run dropdown works:
+function myFunction() {
+  return createCampusNexusFeedbackForm();
+}
+
 function createCampusNexusFeedbackForm() {
   // 1. Create the Form in your Google Drive
   var form = FormApp.create('Campus Nexus — Full App & Student Experience Survey');
