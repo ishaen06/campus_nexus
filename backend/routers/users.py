@@ -104,7 +104,9 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
             if email_clean.endswith("@rvce.edu.in"):
                 email_prefix = email_clean.split("@")[0].strip()
                 if email_prefix.startswith(("1rv", "1rz")):
-                    if usn_clean != email_prefix:
+                    norm_prefix = re.sub(r"^(1rv|1rz)(\d{2})(ai|ci)", r"\g<1>\g<2>ci", email_prefix)
+                    norm_usn = re.sub(r"^(1rv|1rz)(\d{2})(ai|ci)", r"\g<1>\g<2>ci", usn_clean)
+                    if usn_clean != email_prefix and norm_usn != norm_prefix:
                         raise HTTPException(
                             status_code=400,
                             detail=f"USN '{usn_clean.upper()}' does not match your college email ID '{email_clean}'. Expected USN: {email_prefix.upper()}"
@@ -117,8 +119,11 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
                         yy_str = str(parsed.get("joining_year", 2025))[-2:]
                         usn_match = re.match(r"^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$", usn_clean)
                         if usn_match:
-                            u_yy, u_branch = usn_match.group(2), usn_match.group(3)
-                            if u_branch.lower() != b_code.lower() or u_yy != yy_str:
+                            u_yy, u_branch = usn_match.group(2), usn_match.group(3).lower()
+                            # CI and AI are the exact same branch (Artificial Intelligence and Machine Learning)
+                            norm_u_branch = "ci" if u_branch in ("ai", "ci") else u_branch
+                            norm_b_code = "ci" if b_code in ("ai", "ci") else b_code
+                            if norm_u_branch != norm_b_code or u_yy != yy_str:
                                 raise HTTPException(
                                     status_code=400,
                                     detail=f"USN branch/year ({u_branch.upper()}/{u_yy}) does not match your college email details ({b_code.upper()}/{yy_str})."

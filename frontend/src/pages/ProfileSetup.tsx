@@ -126,7 +126,9 @@ export default function ProfileSetup() {
       if (cleanEmail.endsWith('@rvce.edu.in')) {
         const emailPrefix = cleanEmail.split('@')[0].trim();
         if (emailPrefix.startsWith('1rv') || emailPrefix.startsWith('1rz')) {
-          if (cleanUsn !== emailPrefix) {
+          const normPrefix = emailPrefix.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
+          const normUsn = cleanUsn.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
+          if (cleanUsn !== emailPrefix && normUsn !== normPrefix) {
             alert(`USN validation error: Your USN (${cleanUsn.toUpperCase()}) does not match your college email ID (${cleanEmail}). Expected USN: ${emailPrefix.toUpperCase()}`);
             return;
           }
@@ -139,7 +141,10 @@ export default function ProfileSetup() {
             if (usnMatch) {
               const usnYear = usnMatch[2];
               const usnBranch = usnMatch[3].toLowerCase();
-              if (usnBranch !== emailBranch || usnYear !== emailYear) {
+              // Normalization: In RVCE, AI and CI are the same branch (AI/ML)
+              const normEmailBranch = (emailBranch === 'ai' || emailBranch === 'ci') ? 'ci' : emailBranch;
+              const normUsnBranch = (usnBranch === 'ai' || usnBranch === 'ci') ? 'ci' : usnBranch;
+              if (normUsnBranch !== normEmailBranch || usnYear !== emailYear) {
                 alert(`USN validation error: USN branch/year (${usnBranch.toUpperCase()}/${usnYear}) does not match your college email details (${emailBranch.toUpperCase()}/${emailYear}).`);
                 return;
               }

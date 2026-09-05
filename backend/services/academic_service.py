@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 DEFAULT_BRANCH_NAMES = {
     "CS": "Computer Science and Engineering",
     "CI": "Artificial Intelligence and Machine Learning",
+    "AI": "Artificial Intelligence and Machine Learning",
     "CD": "Computer Science (Data Science)",
     "CY": "Computer Science and Engineering (Cyber Security)",
     "EC": "Electronics and Communication Engineering",
@@ -22,6 +23,7 @@ DEFAULT_CYCLE_MAPPINGS = {
     # C-Cycle (CS cluster)
     "CS": "C",
     "CI": "C",
+    "AI": "C",
     "CD": "C",
     "CY": "C",
     # P-Cycle (EC cluster)
@@ -39,7 +41,7 @@ DEFAULT_CYCLE_MAPPINGS = {
 }
 
 DEFAULT_CLUSTER_MAPPINGS = {
-    "CS": "CS", "CI": "CS", "CD": "CS", "CY": "CS",
+    "CS": "CS", "CI": "CS", "AI": "CS", "CD": "CS", "CY": "CS",
     "EC": "EC", "EE": "EC", "ET": "EC",
     "AS": "ME", "IM": "ME", "ME": "ME",
     "CV": "CV", "BT": "CV", "CH": "CV",
@@ -139,6 +141,9 @@ def parse_rvce_email(email: str) -> dict:
     if match:
         username, branch_code, yy_str = match.groups()
         branch_code_upper = branch_code.upper()
+        # Normalization: In RVCE, AI and CI are the same branch (AI/ML)
+        if branch_code_upper == "AI":
+            branch_code_upper = "CI"
         joining_year = 2000 + int(yy_str)
         return {
             "username": username,
@@ -151,6 +156,8 @@ def parse_rvce_email(email: str) -> dict:
     bm = re.search(r"([a-z]{2,5})(\d{2})$", user_part)
     if bm:
         b_code = bm.group(1).upper()
+        if b_code == "AI":
+            b_code = "CI"
         yy = int(bm.group(2))
         joining_year = 2000 + yy
         return {
@@ -176,8 +183,10 @@ def parse_rvce_email(email: str) -> dict:
     else:
         joining_year = 2025
 
-    b_match = re.search(r"\b(cs|ci|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)\b", user_part) or re.search(r"(cs|ci|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)", user_part)
+    b_match = re.search(r"\b(cs|ci|ai|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)\b", user_part) or re.search(r"(cs|ci|ai|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)", user_part)
     b_code = b_match.group(1).upper() if b_match else "CS"
+    if b_code == "AI":
+        b_code = "CI"
 
     return {
         "username": user_part,

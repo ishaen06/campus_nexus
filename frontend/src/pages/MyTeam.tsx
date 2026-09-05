@@ -137,7 +137,7 @@ export const CLUSTER_THEMES: Record<string, string[]> = {
 };
 
 export const BRANCH_CLUSTER_MAP: Record<string, string> = {
-  CS: "CS", CI: "CS", CD: "CS", CY: "CS",
+  CS: "CS", CI: "CS", AI: "CS", CD: "CS", CY: "CS",
   EC: "EC", EE: "EC", ET: "EC",
   AS: "ME", IM: "ME", ME: "ME",
   CV: "CV", BT: "CV", CH: "CV",

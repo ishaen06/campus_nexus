@@ -261,7 +261,7 @@ CLUSTER_THEMES: dict[str, list[str]] = {
 # ─── Cluster definitions ───────────────────────────────────────────────────
 BRANCH_CLUSTERS = {
     "EC": "EC", "EE": "EC", "ET": "EC",
-    "CS": "CS", "CI": "CS", "CD": "CS", "CY": "CS",
+    "CS": "CS", "CI": "CS", "AI": "CS", "CD": "CS", "CY": "CS",
     "ME": "ME", "AS": "ME", "IM": "ME",
     "CV": "CV", "CH": "CV", "BT": "CV",
 }
@@ -299,6 +299,7 @@ VALID_TEAM_COMBINATIONS: dict[str, list[dict]] = {
 BRANCH_FULL_NAMES = {
     "CS": "Computer Science and Engineering",
     "CI": "Artificial Intelligence and Machine Learning",
+    "AI": "Artificial Intelligence and Machine Learning",
     "CD": "Computer Science (Data Science)",
     "CY": "Computer Science and Engineering (Cyber Security)",
     "EC": "Electronics and Communication Engineering",
@@ -314,7 +315,7 @@ BRANCH_FULL_NAMES = {
 
 # P/C cycle mapping for 1st year branch codes
 BRANCH_CYCLE_MAP_1ST_YEAR = {
-    "CS": "C", "CI": "C", "CD": "C", "CY": "C",   # CS cluster → C-Cycle
+    "CS": "C", "CI": "C", "AI": "C", "CD": "C", "CY": "C",   # CS cluster → C-Cycle
     "EC": "P", "EE": "P", "ET": "P",               # EC cluster → P-Cycle
     "AS": "P", "IM": "P", "ME": "P",               # ME cluster → P-Cycle
     "CV": "P", "BT": "P", "CH": "P",               # CV cluster → P-Cycle
@@ -478,6 +479,9 @@ def _extract_user_academic_info(u: dict, cohort_map: dict = None) -> tuple[str, 
 
     if not branch_code:
         branch_code = "CS"
+
+    if branch_code == "AI":
+        branch_code = "CI"
 
     return branch_code, int(joining_year), int(year_of_study)
 
