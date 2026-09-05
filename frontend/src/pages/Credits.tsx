@@ -179,7 +179,6 @@ export default function Credits() {
               { title: "Styling System", tech: "Tailwind CSS v3", detail: "Custom dark/light mode engine" },
               { title: "Security & Auth", tech: "JWT Bearer Tokens", detail: "Session timeouts & Re-auth lock overlay" },
               { title: "Analytics & Reports", tech: "Pandas & Native CSV", detail: "Cross-cohort isolation & export" },
-              { title: "Email Dispatch", tech: "Resend / SMTP Relay", detail: "Targeted cohort notifications" },
             ].map((item, idx) => (
               <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{item.title}</span>
