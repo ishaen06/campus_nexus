@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Award, Code2, Cpu, Database, GraduationCap, Heart, Mail, ShieldCheck, Terminal, Users, ArrowLeft, ClipboardCheck, ExternalLink } from 'lucide-react';
+import { Sparkles, Award, Code2, Cpu, Database, GraduationCap, Heart, Mail, Phone, ShieldCheck, Terminal, Users, ArrowLeft, ClipboardCheck, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 
@@ -109,12 +109,22 @@ export default function Credits() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <a
-                href="mailto:ishaen.vihaan@gmail.com"
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 text-xs font-bold transition-colors border border-slate-200 dark:border-slate-700"
+                href="mailto:ishaen06@gmail.com"
+                title="Email Lead Developer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-300 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm"
               >
-                <Mail size={14} /> Contact Developer
+                <Mail size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>ishaen06@gmail.com</span>
+              </a>
+              <a
+                href="tel:9108390156"
+                title="Call Lead Developer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-300 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-sm"
+              >
+                <Phone size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>+91 9108390156</span>
               </a>
             </div>
           </div>
