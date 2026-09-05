@@ -104,7 +104,7 @@ DEFAULT_COHORT_MAPPINGS = {
     "23": 4,  # 4th Year (2023 Batch)
 }
 
-DEFAULT_FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScampusnexus-feedback/viewform"
+DEFAULT_FEEDBACK_FORM_URL = ""
 
 ALLOWED_GMAIL_ACCOUNTS = {
     "ishaen06@gmail.com",
@@ -213,7 +213,9 @@ def get_academic_settings(db):
         cl_map = settings.get("cluster_mappings", {})
         cl_themes = settings.get("cluster_themes", {})
         cohort_map = settings.get("cohort_mappings", {})
-        feedback_url = settings.get("google_form_feedback_url") or DEFAULT_FEEDBACK_FORM_URL
+        feedback_url = (settings.get("google_form_feedback_url") or "").strip()
+        if "campusnexus-feedback" in feedback_url:
+            feedback_url = ""
         for k, v in DEFAULT_BRANCH_NAMES.items():
             if k not in b_map:
                 b_map[k] = v

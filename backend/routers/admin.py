@@ -1834,7 +1834,7 @@ def get_admin_academic_settings(
         "cluster_mappings": settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
         "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
-        "google_form_feedback_url": settings.get("google_form_feedback_url", DEFAULT_FEEDBACK_FORM_URL),
+        "google_form_feedback_url": "" if "campusnexus-feedback" in (settings.get("google_form_feedback_url") or "") else (settings.get("google_form_feedback_url") or "").strip(),
         "branch_counts": branch_counts,
         "total_students": len(students),
         "year": year,

@@ -25,18 +25,27 @@ export default function Layout() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [dropdownTimeout, setDropdownTimeout] = useState<any>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [feedbackFormUrl, setFeedbackFormUrl] = useState<string>('https://docs.google.com/forms/d/e/1FAIpQLScampusnexus-feedback/viewform');
+  const [feedbackFormUrl, setFeedbackFormUrl] = useState<string>('');
 
   useEffect(() => {
     api.get('/users/feedback-link')
       .then(res => {
-        if (res.data?.url) setFeedbackFormUrl(res.data.url);
+        const url = (res.data?.url || '').trim();
+        if (url && !url.includes('campusnexus-feedback') && url.startsWith('http')) {
+          setFeedbackFormUrl(url);
+        } else {
+          setFeedbackFormUrl('');
+        }
       })
       .catch(() => {});
   }, []);
 
   const handleOpenFeedback = () => {
-    window.open(feedbackFormUrl, '_blank', 'noopener,noreferrer');
+    if (feedbackFormUrl && !feedbackFormUrl.includes('campusnexus-feedback') && feedbackFormUrl.startsWith('http')) {
+      window.open(feedbackFormUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate('/feedback');
+    }
   };
   
   // Admin lock states
