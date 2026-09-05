@@ -83,8 +83,10 @@ export const THEME_SUBTOPICS: Record<string, string[]> = {
   ]
 };
 
+export const FIRST_YEAR_THEMES: string[] = Object.keys(THEME_SUBTOPICS);
+
 // ─── 2nd Year: Cluster-wise themes ──────────────────────────────────────────
-export const CLUSTER_THEMES: Record<string, string[]> = {
+export const CLUSTER_THEMES_YEAR_2: Record<string, string[]> = {
   CS: [
     "Artificial Intelligence",
     "Internet of Things",
@@ -133,6 +135,49 @@ export const CLUSTER_THEMES: Record<string, string[]> = {
     "Technologies to Mitigate Climate Change Impacts",
     "Bioinformatics",
     "Biomaterials and Computational Biology",
+  ],
+};
+
+export const CLUSTER_THEMES = CLUSTER_THEMES_YEAR_2;
+
+// ─── 3rd Year: Cluster-wise Multidisciplinary themes ────────────────────────
+export const CLUSTER_THEMES_YEAR_3: Record<string, string[]> = {
+  CS: [
+    "Advanced Autonomous Systems & Edge AI",
+    "Generative AI & Large Language Models",
+    "Blockchain & Decentralized Architectures",
+    "Quantum Computing & Advanced Cryptography",
+    "Intelligent Cyber-Physical Systems",
+    "Cloud-Native Architectures & High-Performance Computing",
+    "Full-Stack Smart Applications & Systems Engineering",
+    "Big Data Analytics & Distributed Streaming Systems",
+    "AR/VR and Spatial Computing",
+  ],
+  EC: [
+    "VLSI Architecture & System-on-Chip (SoC) Design",
+    "Advanced Drone & Unmanned Aerial Systems",
+    "Next-Gen 5G/6G Wireless Networks & RF Engineering",
+    "Smart Embedded Robotics & Autonomous Systems",
+    "Precision Biomedical Systems & Neural Engineering",
+    "Smart Energy Harvesting & Green IoT",
+    "Edge Hardware Acceleration for Deep Learning",
+  ],
+  ME: [
+    "Advanced Autonomous Vehicles & Electric Powertrains",
+    "Industry 5.0, Smart Manufacturing & Industrial Robotics",
+    "Small Satellite Systems & Aerospace Propulsion",
+    "Clean Energy Systems & Advanced Fuel Cells",
+    "Additive Manufacturing & Advanced Metamaterials",
+    "Computational Fluid Dynamics & Thermal Management",
+    "Biomimetic & Soft Robotics",
+  ],
+  CV: [
+    "Smart Infrastructure, Structural Health Monitoring & BIM",
+    "Climate-Resilient Urban Systems & Carbon Capture",
+    "Advanced Wastewater Recycling & Membrane Technologies",
+    "Geo-Environmental & Disaster Mitigation Engineering",
+    "Sustainable Construction Materials & Geopolymer Concrete",
+    "Computational Systems Biology & Bio-Manufacturing",
   ],
 };
 
@@ -266,6 +311,8 @@ export default function MyTeam() {
   const [projectSubTopic, setProjectSubTopic] = useState('');
   const [projectTheme, setProjectTheme] = useState('');
   const [dynamicClusterThemes, setDynamicClusterThemes] = useState<Record<string, string[]> | null>(null);
+  const [dynamicFirstYearThemes, setDynamicFirstYearThemes] = useState<string[] | null>(null);
+  const [dynamicYear3ClusterThemes, setDynamicYear3ClusterThemes] = useState<Record<string, string[]> | null>(null);
   const [dynamicCohortMappings, setDynamicCohortMappings] = useState<Record<string, number>>({ "26": 1, "25": 2, "24": 3, "23": 4 });
 
   // Profile modal states
@@ -367,7 +414,9 @@ export default function MyTeam() {
       if (meRes?.data) setCurrentUser(meRes.data);
       if (themesRes?.data) setDynamicClusterThemes(themesRes.data);
       if (cohortRes?.data?.cohort_mappings) setDynamicCohortMappings(cohortRes.data.cohort_mappings);
+      if (cohortRes?.data?.first_year_themes) setDynamicFirstYearThemes(cohortRes.data.first_year_themes);
       if (cohortRes?.data?.cluster_themes) setDynamicClusterThemes(cohortRes.data.cluster_themes);
+      if (cohortRes?.data?.year3_cluster_themes) setDynamicYear3ClusterThemes(cohortRes.data.year3_cluster_themes);
     } catch (err) {
       console.error("Error fetching data on MyTeam page:", err);
     } finally {
@@ -951,11 +1000,19 @@ export default function MyTeam() {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                     Project Theme
-                    {currentUser && getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn, currentUser.year_of_study, dynamicCohortMappings) >= 2 && (
-                      <span className="ml-2 text-indigo-500 normal-case font-semibold">
-                        ({getClusterForBranch(currentUser.branch_code || '') || ''} Cluster themes)
-                      </span>
-                    )}
+                    {currentUser && (() => {
+                      const yr = getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn, currentUser.year_of_study, dynamicCohortMappings);
+                      if (yr === 1) {
+                        return <span className="ml-2 text-indigo-500 normal-case font-semibold">(1st Year Multidisciplinary)</span>;
+                      } else if (yr === 2) {
+                        const cl = getClusterForBranch(currentUser.branch_code || '');
+                        return <span className="ml-2 text-indigo-500 normal-case font-semibold">({cl || ''} Cluster themes)</span>;
+                      } else if (yr === 3) {
+                        const cl = getClusterForBranch(currentUser.branch_code || '');
+                        return <span className="ml-2 text-indigo-500 normal-case font-semibold">(Year 3 {cl || ''} Cluster themes)</span>;
+                      }
+                      return null;
+                    })()}
                   </label>
                   <select
                     required
@@ -970,20 +1027,59 @@ export default function MyTeam() {
                     {(() => {
                       if (currentUser) {
                         const yr = getYearOfStudy(currentUser.joining_year, currentUser.email, currentUser.usn, currentUser.year_of_study, dynamicCohortMappings);
-                        if (yr >= 2) {
+                        if (yr === 1) {
+                          // 1st year: generic themes (NOT cluster based)
+                          const themes = dynamicFirstYearThemes || FIRST_YEAR_THEMES;
+                          return themes.map(t => <option key={t} value={t}>{t}</option>);
+                        } else if (yr === 2) {
+                          // 2nd year: cluster-wise themes
                           const cluster = getClusterForBranch(currentUser.branch_code || '');
                           const themes = cluster 
-                            ? ((dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES[cluster] || []) 
+                            ? ((dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES_YEAR_2[cluster] || []) 
+                            : [];
+                          return themes.map(t => <option key={t} value={t}>{t}</option>);
+                        } else if (yr === 3) {
+                          // 3rd year: cluster-wise themes
+                          const cluster = getClusterForBranch(currentUser.branch_code || '');
+                          const themes = cluster 
+                            ? ((dynamicYear3ClusterThemes && dynamicYear3ClusterThemes[cluster]) || CLUSTER_THEMES_YEAR_3[cluster] || []) 
+                            : [];
+                          return themes.map(t => <option key={t} value={t}>{t}</option>);
+                        } else {
+                          // Year 4 / default
+                          const cluster = getClusterForBranch(currentUser.branch_code || '');
+                          const themes = cluster 
+                            ? ((dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES_YEAR_2[cluster] || []) 
                             : [];
                           return themes.map(t => <option key={t} value={t}>{t}</option>);
                         }
                       }
 
-                      // 1st year: generic themes
-                      return Object.keys(THEME_SUBTOPICS).map(t => <option key={t} value={t}>{t}</option>);
+                      // 1st year default: generic themes
+                      const fallback = dynamicFirstYearThemes || FIRST_YEAR_THEMES;
+                      return fallback.map(t => <option key={t} value={t}>{t}</option>);
                     })()}
                   </select>
                 </div>
+
+                {/* Sub-Topic Selection (if available for selected theme, e.g. 1st Year) */}
+                {THEME_SUBTOPICS[projectTheme] && THEME_SUBTOPICS[projectTheme].length > 0 && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                      Project Sub-Topic (Optional)
+                    </label>
+                    <select
+                      value={projectSubTopic}
+                      onChange={e => setProjectSubTopic(e.target.value)}
+                      className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-semibold bg-white dark:bg-slate-900"
+                    >
+                      <option value="">-- Select a Sub-Topic (Optional) --</option>
+                      {THEME_SUBTOPICS[projectTheme].map(st => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
 
 

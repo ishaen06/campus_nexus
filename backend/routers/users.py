@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 from datetime import datetime
 from jose import JWTError, jwt
@@ -380,24 +380,41 @@ def get_registered_mentors(current_user = Depends(get_current_user), db = Depend
 
 
 @router.get("/cluster-themes")
-def get_cluster_themes(db = Depends(get_mongo_db)):
-    """Returns the allowed project themes for each cluster (from DB or default)."""
-    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
+def get_cluster_themes(year: Optional[int] = Query(None), db = Depends(get_mongo_db)):
+    """Returns the allowed project themes (cluster-wise or 1st year generic) from DB or default."""
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_CLUSTER_THEMES,
+        DEFAULT_FIRST_YEAR_THEMES,
+        DEFAULT_CLUSTER_THEMES_YEAR_3
+    )
     settings = get_academic_settings(db)
+    if year == 1:
+        return {"themes": settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES)}
+    elif year == 3:
+        return settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3)
     return settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
 
 
 @router.get("/cohort-settings")
 def get_cohort_settings(db = Depends(get_mongo_db)):
-    """Returns the current cohort-to-academic-year mappings, cluster themes, and feedback form URL."""
-    from services.academic_service import get_academic_settings, DEFAULT_COHORT_MAPPINGS, DEFAULT_CLUSTER_THEMES
+    """Returns the current cohort-to-academic-year mappings, year-wise themes, and feedback form URL."""
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_COHORT_MAPPINGS, 
+        DEFAULT_CLUSTER_THEMES,
+        DEFAULT_FIRST_YEAR_THEMES,
+        DEFAULT_CLUSTER_THEMES_YEAR_3
+    )
     settings = get_academic_settings(db)
     raw_url = (settings.get("google_form_feedback_url") or "").strip()
     if "campusnexus-feedback" in raw_url:
         raw_url = ""
     return {
         "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
+        "first_year_themes": settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES),
         "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
+        "year3_cluster_themes": settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3),
         "google_form_feedback_url": raw_url,
         "is_configured": bool(raw_url and raw_url.startswith("http"))
     }

@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import Optional, List, Dict
 from fastapi import HTTPException, status
 
 DEFAULT_BRANCH_NAMES = {
@@ -51,6 +52,16 @@ DEFAULT_CLUSTER_MAPPINGS = {
     "CV": "CV", "BT": "CV", "CH": "CV",
 }
 
+DEFAULT_FIRST_YEAR_THEMES = [
+    "Agriculture, Livestock & Rural Development",
+    "Education, Skilling & Student-Centric Solutions",
+    "Health, Wellness & Traditional Medicine",
+    "Urban Development, Mobility & Smart Cities",
+    "Sustainability & Environment",
+    "Emerging Technology, Innovation & Industry 4.0",
+    "Ocean, Marine & Aerospace Technologies",
+]
+
 DEFAULT_CLUSTER_THEMES = {
     "CS": [
         "Artificial Intelligence",
@@ -100,6 +111,48 @@ DEFAULT_CLUSTER_THEMES = {
         "Technologies to Mitigate Climate Change Impacts",
         "Bioinformatics",
         "Biomaterials and Computational Biology",
+    ],
+}
+
+DEFAULT_CLUSTER_THEMES_YEAR_2 = DEFAULT_CLUSTER_THEMES
+
+DEFAULT_CLUSTER_THEMES_YEAR_3 = {
+    "CS": [
+        "Advanced Autonomous Systems & Edge AI",
+        "Generative AI & Large Language Models",
+        "Blockchain & Decentralized Architectures",
+        "Quantum Computing & Advanced Cryptography",
+        "Intelligent Cyber-Physical Systems",
+        "Cloud-Native Architectures & High-Performance Computing",
+        "Full-Stack Smart Applications & Systems Engineering",
+        "Big Data Analytics & Distributed Streaming Systems",
+        "AR/VR and Spatial Computing",
+    ],
+    "EC": [
+        "VLSI Architecture & System-on-Chip (SoC) Design",
+        "Advanced Drone & Unmanned Aerial Systems",
+        "Next-Gen 5G/6G Wireless Networks & RF Engineering",
+        "Smart Embedded Robotics & Autonomous Systems",
+        "Precision Biomedical Systems & Neural Engineering",
+        "Smart Energy Harvesting & Green IoT",
+        "Edge Hardware Acceleration for Deep Learning",
+    ],
+    "ME": [
+        "Advanced Autonomous Vehicles & Electric Powertrains",
+        "Industry 5.0, Smart Manufacturing & Industrial Robotics",
+        "Small Satellite Systems & Aerospace Propulsion",
+        "Clean Energy Systems & Advanced Fuel Cells",
+        "Additive Manufacturing & Advanced Metamaterials",
+        "Computational Fluid Dynamics & Thermal Management",
+        "Biomimetic & Soft Robotics",
+    ],
+    "CV": [
+        "Smart Infrastructure, Structural Health Monitoring & BIM",
+        "Climate-Resilient Urban Systems & Carbon Capture",
+        "Advanced Wastewater Recycling & Membrane Technologies",
+        "Geo-Environmental & Disaster Mitigation Engineering",
+        "Sustainable Construction Materials & Geopolymer Concrete",
+        "Computational Systems Biology & Bio-Manufacturing",
     ],
 }
 
@@ -211,7 +264,9 @@ def get_academic_settings(db):
             "branch_mappings": DEFAULT_BRANCH_NAMES,
             "cycle_mappings": DEFAULT_CYCLE_MAPPINGS,
             "cluster_mappings": DEFAULT_CLUSTER_MAPPINGS,
+            "first_year_themes": list(DEFAULT_FIRST_YEAR_THEMES),
             "cluster_themes": {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()},
+            "year3_cluster_themes": {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES_YEAR_3.items()},
             "cohort_mappings": dict(DEFAULT_COHORT_MAPPINGS),
             "google_form_feedback_url": DEFAULT_FEEDBACK_FORM_URL
         }
@@ -224,7 +279,9 @@ def get_academic_settings(db):
         b_map = settings.get("branch_mappings", {})
         c_map = settings.get("cycle_mappings", {})
         cl_map = settings.get("cluster_mappings", {})
+        first_yr_themes = settings.get("first_year_themes", [])
         cl_themes = settings.get("cluster_themes", {})
+        y3_cl_themes = settings.get("year3_cluster_themes", {})
         cohort_map = settings.get("cohort_mappings", {})
         feedback_url = (settings.get("google_form_feedback_url") or "").strip()
         if "campusnexus-feedback" in feedback_url or not feedback_url:
@@ -238,18 +295,28 @@ def get_academic_settings(db):
         for k, v in DEFAULT_CLUSTER_MAPPINGS.items():
             if k not in cl_map:
                 cl_map[k] = v
+        if not first_yr_themes:
+            first_yr_themes = list(DEFAULT_FIRST_YEAR_THEMES)
         if not cl_themes:
             cl_themes = {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()}
         else:
             for k, v in DEFAULT_CLUSTER_THEMES.items():
                 if k not in cl_themes:
                     cl_themes[k] = list(v)
+        if not y3_cl_themes:
+            y3_cl_themes = {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES_YEAR_3.items()}
+        else:
+            for k, v in DEFAULT_CLUSTER_THEMES_YEAR_3.items():
+                if k not in y3_cl_themes:
+                    y3_cl_themes[k] = list(v)
         if not cohort_map:
             cohort_map = dict(DEFAULT_COHORT_MAPPINGS)
         settings["branch_mappings"] = b_map
         settings["cycle_mappings"] = c_map
         settings["cluster_mappings"] = cl_map
+        settings["first_year_themes"] = first_yr_themes
         settings["cluster_themes"] = cl_themes
+        settings["year3_cluster_themes"] = y3_cl_themes
         settings["cohort_mappings"] = cohort_map
         settings["google_form_feedback_url"] = feedback_url
         try:
@@ -257,6 +324,37 @@ def get_academic_settings(db):
         except Exception:
             pass
     return settings
+
+def get_allowed_themes_for_year(year: int, cluster: Optional[str] = None, db = None) -> list[str]:
+    """
+    Returns the list of valid themes for a given academic year and optional cluster:
+    - Year 1: Non-cluster generic themes (DEFAULT_FIRST_YEAR_THEMES)
+    - Year 2: Cluster-wise themes for the specified cluster
+    - Year 3: Year 3 cluster-wise themes for the specified cluster
+    - Year 4+: Cluster-wise themes
+    """
+    settings = get_academic_settings(db) if db is not None else None
+    if year == 1:
+        if settings and settings.get("first_year_themes"):
+            return settings["first_year_themes"]
+        return list(DEFAULT_FIRST_YEAR_THEMES)
+    elif year == 3:
+        year3_map = (settings.get("year3_cluster_themes") if settings else None) or DEFAULT_CLUSTER_THEMES_YEAR_3
+        if cluster and cluster in year3_map:
+            return year3_map[cluster]
+        all_themes = []
+        for lst in year3_map.values():
+            all_themes.extend(lst)
+        return all_themes
+    else:
+        # Year 2 (and default)
+        cl_map = (settings.get("cluster_themes") if settings else None) or DEFAULT_CLUSTER_THEMES
+        if cluster and cluster in cl_map:
+            return cl_map[cluster]
+        all_themes = []
+        for lst in cl_map.values():
+            all_themes.extend(lst)
+        return all_themes
 
 def calculate_academic_year(joining_year: int = None, session_start_month: int = 8, email: str = "", cohort_mappings: dict = None, db = None) -> int:
     """

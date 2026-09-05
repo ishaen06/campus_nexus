@@ -402,6 +402,56 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     ],
   };
 
+  const DEFAULT_FIRST_YEAR_THEMES: string[] = [
+    "Agriculture, Livestock & Rural Development",
+    "Education, Skilling & Student-Centric Solutions",
+    "Health, Wellness & Traditional Medicine",
+    "Urban Development, Mobility & Smart Cities",
+    "Sustainability & Environment",
+    "Emerging Technology, Innovation & Industry 4.0",
+    "Ocean, Marine & Aerospace Technologies",
+  ];
+
+  const DEFAULT_CLUSTER_THEMES_YEAR_3: Record<string, string[]> = {
+    CS: [
+      "Advanced Autonomous Systems & Edge AI",
+      "Generative AI & Large Language Models",
+      "Blockchain & Decentralized Architectures",
+      "Quantum Computing & Advanced Cryptography",
+      "Intelligent Cyber-Physical Systems",
+      "Cloud-Native Architectures & High-Performance Computing",
+      "Full-Stack Smart Applications & Systems Engineering",
+      "Big Data Analytics & Distributed Streaming Systems",
+      "AR/VR and Spatial Computing",
+    ],
+    EC: [
+      "VLSI Architecture & System-on-Chip (SoC) Design",
+      "Advanced Drone & Unmanned Aerial Systems",
+      "Next-Gen 5G/6G Wireless Networks & RF Engineering",
+      "Smart Embedded Robotics & Autonomous Systems",
+      "Precision Biomedical Systems & Neural Engineering",
+      "Smart Energy Harvesting & Green IoT",
+      "Edge Hardware Acceleration for Deep Learning",
+    ],
+    ME: [
+      "Advanced Autonomous Vehicles & Electric Powertrains",
+      "Industry 5.0, Smart Manufacturing & Industrial Robotics",
+      "Small Satellite Systems & Aerospace Propulsion",
+      "Clean Energy Systems & Advanced Fuel Cells",
+      "Additive Manufacturing & Advanced Metamaterials",
+      "Computational Fluid Dynamics & Thermal Management",
+      "Biomimetic & Soft Robotics",
+    ],
+    CV: [
+      "Smart Infrastructure, Structural Health Monitoring & BIM",
+      "Climate-Resilient Urban Systems & Carbon Capture",
+      "Advanced Wastewater Recycling & Membrane Technologies",
+      "Geo-Environmental & Disaster Mitigation Engineering",
+      "Sustainable Construction Materials & Geopolymer Concrete",
+      "Computational Systems Biology & Bio-Manufacturing",
+    ],
+  };
+
   const DEFAULT_COHORT_MAPPINGS: Record<string, number> = {
     "26": 1,
     "25": 2,
@@ -414,7 +464,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     branch_mappings: Record<string, string>;
     cycle_mappings: Record<string, string>;
     cluster_mappings?: Record<string, string>;
+    first_year_themes?: string[];
     cluster_themes?: Record<string, string[]>;
+    year3_cluster_themes?: Record<string, string[]>;
     cohort_mappings?: Record<string, number>;
     google_form_feedback_url?: string;
     branch_counts: Record<string, number>;
@@ -436,6 +488,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
   const [newBranchCycle, setNewBranchCycle] = useState<'C' | 'P'>('C');
   const [newBranchCluster, setNewBranchCluster] = useState<string>('CS');
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
+  const [selectedThemeYear, setSelectedThemeYear] = useState<1 | 2 | 3>(2);
   const [selectedThemeCluster, setSelectedThemeCluster] = useState<'CS' | 'EC' | 'ME' | 'CV'>('CS');
   const [newThemeText, setNewThemeText] = useState('');
   const [themeSubmitting, setThemeSubmitting] = useState(false);
@@ -705,66 +758,170 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     const trimmed = newThemeText.trim();
     if (!trimmed) return;
 
-    const currentThemes = academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || [];
-    if (currentThemes.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
-      alert(`Theme "${trimmed}" already exists in ${selectedThemeCluster} Cluster.`);
-      return;
-    }
-
-    setThemeSubmitting(true);
-    const updatedList = [...currentThemes, trimmed];
-    const updatedThemesMap = {
-      ...(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES),
-      [selectedThemeCluster]: updatedList
-    };
-    // Optimistic UI update
-    setAcademicSettings(prev => prev ? { ...prev, cluster_themes: updatedThemesMap } : prev);
-
-    try {
-      const res = await api.post('/admin/academic-settings/themes', {
-        cluster: selectedThemeCluster,
-        theme: trimmed
-      });
-      if (res.data?.cluster_themes) {
-        setAcademicSettings(prev => prev ? { ...prev, cluster_themes: res.data.cluster_themes } : prev);
+    if (selectedThemeYear === 1) {
+      const currentThemes = academicSettings?.first_year_themes || DEFAULT_FIRST_YEAR_THEMES;
+      if (currentThemes.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        alert(`Theme "${trimmed}" already exists in 1st Year Themes.`);
+        return;
       }
-      setNewThemeText('');
-    } catch (err: any) {
-      console.error("Failed to add cluster theme", err);
-      // Revert optimistic update
-      setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
-      alert(err.response?.data?.detail || "Failed to add theme");
-    } finally {
-      setThemeSubmitting(false);
+
+      setThemeSubmitting(true);
+      const updatedList = [...currentThemes, trimmed];
+      setAcademicSettings(prev => prev ? { ...prev, first_year_themes: updatedList } : prev);
+
+      try {
+        const res = await api.post('/admin/academic-settings/themes', {
+          year: 1,
+          theme: trimmed
+        });
+        if (res.data?.first_year_themes) {
+          setAcademicSettings(prev => prev ? { ...prev, first_year_themes: res.data.first_year_themes } : prev);
+        }
+        setNewThemeText('');
+      } catch (err: any) {
+        console.error("Failed to add 1st year theme", err);
+        setAcademicSettings(prev => prev ? { ...prev, first_year_themes: currentThemes } : prev);
+        alert(err.response?.data?.detail || "Failed to add theme");
+      } finally {
+        setThemeSubmitting(false);
+      }
+    } else if (selectedThemeYear === 3) {
+      const currentThemes = academicSettings?.year3_cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES_YEAR_3[selectedThemeCluster] || [];
+      if (currentThemes.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        alert(`Theme "${trimmed}" already exists in 3rd Year ${selectedThemeCluster} Cluster.`);
+        return;
+      }
+
+      setThemeSubmitting(true);
+      const updatedList = [...currentThemes, trimmed];
+      const updatedThemesMap = {
+        ...(academicSettings?.year3_cluster_themes || DEFAULT_CLUSTER_THEMES_YEAR_3),
+        [selectedThemeCluster]: updatedList
+      };
+      setAcademicSettings(prev => prev ? { ...prev, year3_cluster_themes: updatedThemesMap } : prev);
+
+      try {
+        const res = await api.post('/admin/academic-settings/themes', {
+          year: 3,
+          cluster: selectedThemeCluster,
+          theme: trimmed
+        });
+        if (res.data?.year3_cluster_themes) {
+          setAcademicSettings(prev => prev ? { ...prev, year3_cluster_themes: res.data.year3_cluster_themes } : prev);
+        }
+        setNewThemeText('');
+      } catch (err: any) {
+        console.error("Failed to add 3rd year cluster theme", err);
+        setAcademicSettings(prev => prev ? { ...prev, year3_cluster_themes: { ...(prev?.year3_cluster_themes || DEFAULT_CLUSTER_THEMES_YEAR_3), [selectedThemeCluster]: currentThemes } } : prev);
+        alert(err.response?.data?.detail || "Failed to add theme");
+      } finally {
+        setThemeSubmitting(false);
+      }
+    } else {
+      // 2nd Year
+      const currentThemes = academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || [];
+      if (currentThemes.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        alert(`Theme "${trimmed}" already exists in 2nd Year ${selectedThemeCluster} Cluster.`);
+        return;
+      }
+
+      setThemeSubmitting(true);
+      const updatedList = [...currentThemes, trimmed];
+      const updatedThemesMap = {
+        ...(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES),
+        [selectedThemeCluster]: updatedList
+      };
+      setAcademicSettings(prev => prev ? { ...prev, cluster_themes: updatedThemesMap } : prev);
+
+      try {
+        const res = await api.post('/admin/academic-settings/themes', {
+          year: 2,
+          cluster: selectedThemeCluster,
+          theme: trimmed
+        });
+        if (res.data?.cluster_themes) {
+          setAcademicSettings(prev => prev ? { ...prev, cluster_themes: res.data.cluster_themes } : prev);
+        }
+        setNewThemeText('');
+      } catch (err: any) {
+        console.error("Failed to add 2nd year cluster theme", err);
+        setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev?.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
+        alert(err.response?.data?.detail || "Failed to add theme");
+      } finally {
+        setThemeSubmitting(false);
+      }
     }
   };
 
   const handleDeleteTheme = async (themeToDelete: string) => {
-    if (!window.confirm(`Are you sure you want to remove theme "${themeToDelete}" from ${selectedThemeCluster} Cluster?`)) return;
+    const yearLabel = selectedThemeYear === 1 ? '1st Year' : selectedThemeYear === 3 ? `3rd Year ${selectedThemeCluster} Cluster` : `2nd Year ${selectedThemeCluster} Cluster`;
+    if (!window.confirm(`Are you sure you want to remove theme "${themeToDelete}" from ${yearLabel}?`)) return;
 
-    const currentThemes = academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || [];
-    const updatedList = currentThemes.filter(t => t !== themeToDelete);
-    const updatedThemesMap = {
-      ...(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES),
-      [selectedThemeCluster]: updatedList
-    };
-    
-    // Optimistic update
-    setAcademicSettings(prev => prev ? { ...prev, cluster_themes: updatedThemesMap } : prev);
+    if (selectedThemeYear === 1) {
+      const currentThemes = academicSettings?.first_year_themes || DEFAULT_FIRST_YEAR_THEMES;
+      const updatedList = currentThemes.filter(t => t !== themeToDelete);
+      setAcademicSettings(prev => prev ? { ...prev, first_year_themes: updatedList } : prev);
 
-    try {
-      const res = await api.post('/admin/academic-settings/themes/delete', {
-        cluster: selectedThemeCluster,
-        theme: themeToDelete
-      });
-      if (res.data?.cluster_themes) {
-        setAcademicSettings(prev => prev ? { ...prev, cluster_themes: res.data.cluster_themes } : prev);
+      try {
+        const res = await api.post('/admin/academic-settings/themes/delete', {
+          year: 1,
+          theme: themeToDelete
+        });
+        if (res.data?.first_year_themes) {
+          setAcademicSettings(prev => prev ? { ...prev, first_year_themes: res.data.first_year_themes } : prev);
+        }
+      } catch (err: any) {
+        console.error("Failed to delete 1st year theme", err);
+        setAcademicSettings(prev => prev ? { ...prev, first_year_themes: currentThemes } : prev);
+        alert(err.response?.data?.detail || "Failed to remove theme");
       }
-    } catch (err: any) {
-      console.error("Failed to delete cluster theme", err);
-      // Revert
-      setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
-      alert(err.response?.data?.detail || "Failed to remove theme");
+    } else if (selectedThemeYear === 3) {
+      const currentThemes = academicSettings?.year3_cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES_YEAR_3[selectedThemeCluster] || [];
+      const updatedList = currentThemes.filter(t => t !== themeToDelete);
+      const updatedThemesMap = {
+        ...(academicSettings?.year3_cluster_themes || DEFAULT_CLUSTER_THEMES_YEAR_3),
+        [selectedThemeCluster]: updatedList
+      };
+      setAcademicSettings(prev => prev ? { ...prev, year3_cluster_themes: updatedThemesMap } : prev);
+
+      try {
+        const res = await api.post('/admin/academic-settings/themes/delete', {
+          year: 3,
+          cluster: selectedThemeCluster,
+          theme: themeToDelete
+        });
+        if (res.data?.year3_cluster_themes) {
+          setAcademicSettings(prev => prev ? { ...prev, year3_cluster_themes: res.data.year3_cluster_themes } : prev);
+        }
+      } catch (err: any) {
+        console.error("Failed to delete 3rd year cluster theme", err);
+        setAcademicSettings(prev => prev ? { ...prev, year3_cluster_themes: { ...(prev?.year3_cluster_themes || DEFAULT_CLUSTER_THEMES_YEAR_3), [selectedThemeCluster]: currentThemes } } : prev);
+        alert(err.response?.data?.detail || "Failed to remove theme");
+      }
+    } else {
+      // 2nd Year
+      const currentThemes = academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || [];
+      const updatedList = currentThemes.filter(t => t !== themeToDelete);
+      const updatedThemesMap = {
+        ...(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES),
+        [selectedThemeCluster]: updatedList
+      };
+      setAcademicSettings(prev => prev ? { ...prev, cluster_themes: updatedThemesMap } : prev);
+
+      try {
+        const res = await api.post('/admin/academic-settings/themes/delete', {
+          year: 2,
+          cluster: selectedThemeCluster,
+          theme: themeToDelete
+        });
+        if (res.data?.cluster_themes) {
+          setAcademicSettings(prev => prev ? { ...prev, cluster_themes: res.data.cluster_themes } : prev);
+        }
+      } catch (err: any) {
+        console.error("Failed to delete 2nd year cluster theme", err);
+        setAcademicSettings(prev => prev ? { ...prev, cluster_themes: { ...(prev?.cluster_themes || DEFAULT_CLUSTER_THEMES), [selectedThemeCluster]: currentThemes } } : prev);
+        alert(err.response?.data?.detail || "Failed to remove theme");
+      }
     }
   };
 
@@ -3810,37 +3967,45 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
                 </div>
 
-                {/* Cluster-Wise Project Theme Manager & Live Adder */}
+                {/* Academic Year Project Theme Manager & Live Adder */}
                 <div className="glass-panel p-6 space-y-4">
                   <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
                     <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles size={16} className="text-amber-500" /> Cluster Project Themes
+                      <Sparkles size={16} className="text-amber-500" /> Academic Project Themes
                     </h3>
                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                    Manage multidisciplinary project themes cluster-wise. Changes reflect instantly to students when selecting themes during team creation.
+                    Manage multidisciplinary project themes per academic year. 1st Year themes apply to all students (non-cluster), while 2nd and 3rd Year themes are mapped cluster-wise. Changes reflect instantly to students.
                   </p>
 
-                  {/* Cluster Selector Tabs */}
-                  <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
-                    {(['CS', 'EC', 'ME', 'CV'] as const).map(cKey => {
-                      const count = (academicSettings?.cluster_themes?.[cKey] || DEFAULT_CLUSTER_THEMES[cKey] || []).length;
-                      const isSelected = selectedThemeCluster === cKey;
+                  {/* Academic Year Selector Tabs */}
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                    {([
+                      { yr: 1 as const, label: '1st Year (General)' },
+                      { yr: 2 as const, label: '2nd Year (Cluster-wise)' },
+                      { yr: 3 as const, label: '3rd Year (Cluster-wise)' },
+                    ]).map(({ yr, label }) => {
+                      const isSelected = selectedThemeYear === yr;
+                      const count = yr === 1 
+                        ? (academicSettings?.first_year_themes || DEFAULT_FIRST_YEAR_THEMES).length
+                        : yr === 3
+                        ? Object.values(academicSettings?.year3_cluster_themes || DEFAULT_CLUSTER_THEMES_YEAR_3).reduce((acc, l) => acc + l.length, 0)
+                        : Object.values(academicSettings?.cluster_themes || DEFAULT_CLUSTER_THEMES).reduce((acc, l) => acc + l.length, 0);
                       return (
                         <button
-                          key={cKey}
+                          key={yr}
                           type="button"
-                          onClick={() => setSelectedThemeCluster(cKey)}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                          onClick={() => setSelectedThemeYear(yr)}
+                          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                             isSelected
                               ? 'bg-indigo-600 text-white shadow-md'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'
                           }`}
                         >
-                          <span>{cKey}</span>
+                          <span>{label}</span>
                           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-indigo-500/80 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                             {count}
                           </span>
@@ -3849,53 +4014,100 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     })}
                   </div>
 
-                  {/* Active Cluster Title */}
+                  {/* Cluster Selector Tabs (Only for Year 2 and Year 3) */}
+                  {selectedThemeYear !== 1 && (
+                    <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                      {(['CS', 'EC', 'ME', 'CV'] as const).map(cKey => {
+                        const count = selectedThemeYear === 3
+                          ? (academicSettings?.year3_cluster_themes?.[cKey] || DEFAULT_CLUSTER_THEMES_YEAR_3[cKey] || []).length
+                          : (academicSettings?.cluster_themes?.[cKey] || DEFAULT_CLUSTER_THEMES[cKey] || []).length;
+                        const isSelected = selectedThemeCluster === cKey;
+                        return (
+                          <button
+                            key={cKey}
+                            type="button"
+                            onClick={() => setSelectedThemeCluster(cKey)}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white shadow-md'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <span>{cKey}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-indigo-500/80 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Active Title */}
                   <div className="flex justify-between items-center pt-1">
                     <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                      {selectedThemeCluster === 'CS' && 'Computer Science Cluster'}
-                      {selectedThemeCluster === 'EC' && 'Electronics Cluster'}
-                      {selectedThemeCluster === 'ME' && 'Mechanical Cluster'}
-                      {selectedThemeCluster === 'CV' && 'Civil & Bio Cluster'}
+                      {selectedThemeYear === 1 && '1st Year Multidisciplinary Themes (Non-Cluster)'}
+                      {selectedThemeYear === 2 && `2nd Year • ${selectedThemeCluster} Cluster Themes`}
+                      {selectedThemeYear === 3 && `3rd Year • ${selectedThemeCluster} Cluster Themes`}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400">
-                      {(academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).length} Themes
+                      {selectedThemeYear === 1
+                        ? (academicSettings?.first_year_themes || DEFAULT_FIRST_YEAR_THEMES).length
+                        : selectedThemeYear === 3
+                        ? (academicSettings?.year3_cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES_YEAR_3[selectedThemeCluster] || []).length
+                        : (academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).length
+                      } Themes
                     </span>
                   </div>
 
                   {/* Themes List */}
                   <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 no-scrollbar divide-y divide-slate-100 dark:divide-slate-800/60 border border-slate-100 dark:border-slate-800/80 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/30">
-                    {(academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).map((themeName, idx) => (
-                      <div
-                        key={`${themeName}-${idx}`}
-                        className="flex items-center justify-between gap-2 p-2 hover:bg-white dark:hover:bg-slate-850 rounded-xl transition-all group"
-                      >
-                        <div className="flex items-start gap-2 min-w-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-snug break-words">
-                            {themeName}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTheme(themeName)}
-                          title={`Remove "${themeName}" from ${selectedThemeCluster}`}
-                          className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all opacity-80 group-hover:opacity-100 cursor-pointer shrink-0"
+                    {(() => {
+                      const list = selectedThemeYear === 1
+                        ? (academicSettings?.first_year_themes || DEFAULT_FIRST_YEAR_THEMES)
+                        : selectedThemeYear === 3
+                        ? (academicSettings?.year3_cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES_YEAR_3[selectedThemeCluster] || [])
+                        : (academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []);
+
+                      if (list.length === 0) {
+                        return (
+                          <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                            No themes added for this section yet.
+                          </div>
+                        );
+                      }
+
+                      return list.map((themeName, idx) => (
+                        <div
+                          key={`${themeName}-${idx}`}
+                          className="flex items-center justify-between gap-2 p-2 hover:bg-white dark:hover:bg-slate-850 rounded-xl transition-all group"
                         >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                    {(academicSettings?.cluster_themes?.[selectedThemeCluster] || DEFAULT_CLUSTER_THEMES[selectedThemeCluster] || []).length === 0 && (
-                      <div className="py-6 text-center text-xs text-slate-400 font-medium">
-                        No themes added for {selectedThemeCluster} Cluster yet.
-                      </div>
-                    )}
+                          <div className="flex items-start gap-2 min-w-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-snug break-words">
+                              {themeName}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTheme(themeName)}
+                            title={`Remove "${themeName}"`}
+                            className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all opacity-80 group-hover:opacity-100 cursor-pointer shrink-0"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ));
+                    })()}
                   </div>
 
                   {/* Add New Theme Form */}
                   <form onSubmit={handleAddTheme} className="space-y-2 pt-1">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Add New Theme to {selectedThemeCluster} Cluster
+                      {selectedThemeYear === 1
+                        ? 'Add New Theme to 1st Year (General)'
+                        : `Add New Theme to ${selectedThemeYear === 3 ? '3rd Year' : '2nd Year'} ${selectedThemeCluster} Cluster`
+                      }
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -3903,7 +4115,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         required
                         value={newThemeText}
                         onChange={(e) => setNewThemeText(e.target.value)}
-                        placeholder={`e.g. Next-Gen ${selectedThemeCluster} Technology...`}
+                        placeholder={selectedThemeYear === 1 ? "e.g. Clean Tech & Energy Innovation..." : `e.g. Next-Gen ${selectedThemeCluster} Technology...`}
                         className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
                       />
                       <button

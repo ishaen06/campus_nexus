@@ -4,7 +4,7 @@ import api, { getWsURL } from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, ArrowLeft, AlertTriangle, Users, Settings, X, Sparkles, UserMinus, UserPlus, Check, Lock } from 'lucide-react';
 import Avatar from '../components/Avatar';
-import { THEME_SUBTOPICS, BRANCH_CLUSTER_MAP, getYearOfStudy, getClusterForBranch } from './MyTeam';
+import { FIRST_YEAR_THEMES, CLUSTER_THEMES_YEAR_2, CLUSTER_THEMES_YEAR_3, BRANCH_CLUSTER_MAP, getYearOfStudy, getClusterForBranch } from './MyTeam';
 
 
 
@@ -39,6 +39,9 @@ export default function GroupChat() {
   const [connections, setConnections] = useState<any[]>([]);
   const [projectTopic, setProjectTopic] = useState('');
   const [projectTheme, setProjectTheme] = useState('');
+  const [dynamicClusterThemes, setDynamicClusterThemes] = useState<Record<string, string[]> | null>(null);
+  const [dynamicFirstYearThemes, setDynamicFirstYearThemes] = useState<string[] | null>(null);
+  const [dynamicYear3ClusterThemes, setDynamicYear3ClusterThemes] = useState<Record<string, string[]> | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   
   const ws = useRef<WebSocket | null>(null);
@@ -51,6 +54,13 @@ export default function GroupChat() {
       setUserId(res.data.id);
       setIsMentor(res.data.is_mentor);
     }).catch(() => navigate('/login'));
+
+    // Fetch live year-wise themes
+    api.get('/users/cohort-settings').then(res => {
+      if (res.data?.first_year_themes) setDynamicFirstYearThemes(res.data.first_year_themes);
+      if (res.data?.cluster_themes) setDynamicClusterThemes(res.data.cluster_themes);
+      if (res.data?.year3_cluster_themes) setDynamicYear3ClusterThemes(res.data.year3_cluster_themes);
+    }).catch(() => null);
     
     // 2. Get Group Info
     api.get(`/chat/groups/${groupId}`).then(res => {
@@ -535,7 +545,20 @@ export default function GroupChat() {
 
               {/* Project Theme Dropdown */}
               <div className="space-y-2 mb-6">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block text-left">Project Theme</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block text-left">
+                  Project Theme
+                  {(() => {
+                    const students = (groupDetails?.members || []).filter((m: any) => !m.is_mentor);
+                    if (students.length > 0) {
+                      const yr = getYearOfStudy(students[0]?.joining_year, students[0]?.email, students[0]?.usn);
+                      const cl = getClusterForBranch(students[0]?.branch_code || students[0]?.branch || '');
+                      if (yr === 1) return <span className="ml-2 text-indigo-500 normal-case font-semibold">(1st Year Multidisciplinary)</span>;
+                      if (yr === 2) return <span className="ml-2 text-indigo-500 normal-case font-semibold">({cl || ''} Cluster)</span>;
+                      if (yr === 3) return <span className="ml-2 text-indigo-500 normal-case font-semibold">(Year 3 {cl || ''} Cluster)</span>;
+                    }
+                    return null;
+                  })()}
+                </label>
                 <select
                   className="w-full glass-input rounded-2xl px-4 py-3 focus:outline-none transition-all text-slate-900 dark:text-slate-100 font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-75 disabled:cursor-not-allowed"
                   value={projectTheme}
@@ -543,9 +566,31 @@ export default function GroupChat() {
                   disabled={groupDetails?.created_by !== userId}
                 >
                   <option value="">-- Select a Theme --</option>
-                  {Object.keys(THEME_SUBTOPICS).map(theme => (
-                    <option key={theme} value={theme}>{theme}</option>
-                  ))}
+                  {(() => {
+                    const students = (groupDetails?.members || []).filter((m: any) => !m.is_mentor);
+                    if (students.length > 0) {
+                      const yr = getYearOfStudy(students[0]?.joining_year, students[0]?.email, students[0]?.usn);
+                      const cl = getClusterForBranch(students[0]?.branch_code || students[0]?.branch || '');
+                      if (yr === 1) {
+                        return (dynamicFirstYearThemes || FIRST_YEAR_THEMES).map(theme => (
+                          <option key={theme} value={theme}>{theme}</option>
+                        ));
+                      } else if (yr === 2) {
+                        const ths = cl ? ((dynamicClusterThemes && dynamicClusterThemes[cl]) || CLUSTER_THEMES_YEAR_2[cl] || []) : [];
+                        return ths.map(theme => (
+                          <option key={theme} value={theme}>{theme}</option>
+                        ));
+                      } else if (yr === 3) {
+                        const ths = cl ? ((dynamicYear3ClusterThemes && dynamicYear3ClusterThemes[cl]) || CLUSTER_THEMES_YEAR_3[cl] || []) : [];
+                        return ths.map(theme => (
+                          <option key={theme} value={theme}>{theme}</option>
+                        ));
+                      }
+                    }
+                    return (dynamicFirstYearThemes || FIRST_YEAR_THEMES).map(theme => (
+                      <option key={theme} value={theme}>{theme}</option>
+                    ));
+                  })()}
                 </select>
               </div>
 

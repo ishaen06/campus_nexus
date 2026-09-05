@@ -5,7 +5,7 @@ import { FolderGit, Sparkles, X, UploadCloud, FileText, MessageSquare, Search, C
 
 import { useNavigate } from 'react-router-dom';
 import EvaluationFormModal from '../components/EvaluationFormModal';
-import { THEME_SUBTOPICS, CLUSTER_THEMES, getYearOfStudy, getClusterForBranch } from './MyTeam';
+import { THEME_SUBTOPICS, FIRST_YEAR_THEMES, CLUSTER_THEMES_YEAR_2, CLUSTER_THEMES_YEAR_3, getYearOfStudy, getClusterForBranch } from './MyTeam';
 
 interface GroupItem {
   id: number;
@@ -53,6 +53,8 @@ export default function ProjectDashboard() {
   const [showMentorDropdown, setShowMentorDropdown] = useState(false);
   const [mentorValidationError, setMentorValidationError] = useState<string | null>(null);
   const [dynamicClusterThemes, setDynamicClusterThemes] = useState<Record<string, string[]> | null>(null);
+  const [dynamicFirstYearThemes, setDynamicFirstYearThemes] = useState<string[] | null>(null);
+  const [dynamicYear3ClusterThemes, setDynamicYear3ClusterThemes] = useState<Record<string, string[]> | null>(null);
 
   const navigate = useNavigate();
 
@@ -71,7 +73,11 @@ export default function ProjectDashboard() {
       const mentorRes = await api.get('/users/mentors');
       setRegisteredMentors(mentorRes.data || []);
 
-      api.get('/users/cluster-themes').then(res => setDynamicClusterThemes(res.data)).catch(() => {});
+      api.get('/users/cohort-settings').then(res => {
+        if (res.data?.first_year_themes) setDynamicFirstYearThemes(res.data.first_year_themes);
+        if (res.data?.cluster_themes) setDynamicClusterThemes(res.data.cluster_themes);
+        if (res.data?.year3_cluster_themes) setDynamicYear3ClusterThemes(res.data.year3_cluster_themes);
+      }).catch(() => {});
     } catch (err) {
       console.error(err);
     } finally {
@@ -500,26 +506,41 @@ export default function ProjectDashboard() {
 
                         <div>
                           {(() => {
-                            // Determine cluster from team members (2nd yr → cluster themes, 1st yr → generic)
                             const students = (team.members || []).filter((m: any) => !m.is_mentor);
-                            let clusterThemes: string[] | null = null;
+                            let displayedThemes: string[] = [];
                             let clusterLabel = '';
                             if (students.length > 0) {
-                              if (getYearOfStudy(students[0]?.joining_year, students[0]?.email, students[0]?.usn) >= 2) {
-
-                                const cluster = getClusterForBranch(students[0]?.branch_code || '');
-                                if (cluster) {
-                                  clusterThemes = (dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES[cluster] || null;
-                                  clusterLabel = cluster;
-                                }
+                              const yr = getYearOfStudy(students[0]?.joining_year, students[0]?.email, students[0]?.usn);
+                              const cluster = getClusterForBranch(students[0]?.branch_code || students[0]?.branch || '');
+                              if (yr === 1) {
+                                displayedThemes = dynamicFirstYearThemes || FIRST_YEAR_THEMES;
+                                clusterLabel = '1st Year Multidisciplinary';
+                              } else if (yr === 2) {
+                                displayedThemes = cluster
+                                  ? ((dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES_YEAR_2[cluster] || [])
+                                  : [];
+                                clusterLabel = cluster ? `Year 2 • ${cluster} Cluster` : 'Year 2';
+                              } else if (yr === 3) {
+                                displayedThemes = cluster
+                                  ? ((dynamicYear3ClusterThemes && dynamicYear3ClusterThemes[cluster]) || CLUSTER_THEMES_YEAR_3[cluster] || [])
+                                  : [];
+                                clusterLabel = cluster ? `Year 3 • ${cluster} Cluster` : 'Year 3';
+                              } else {
+                                displayedThemes = cluster
+                                  ? ((dynamicClusterThemes && dynamicClusterThemes[cluster]) || CLUSTER_THEMES_YEAR_2[cluster] || [])
+                                  : [];
+                                clusterLabel = cluster ? `${cluster} Cluster` : '';
                               }
+                            } else {
+                              displayedThemes = dynamicFirstYearThemes || FIRST_YEAR_THEMES;
                             }
+
                             return (
                               <>
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                                   Project Theme
                                   {clusterLabel && (
-                                    <span className="text-indigo-500 normal-case font-semibold text-[9px]">({clusterLabel} Cluster)</span>
+                                    <span className="text-indigo-500 normal-case font-semibold text-[9px]">({clusterLabel})</span>
                                   )}
                                 </label>
                                 <select
@@ -533,15 +554,34 @@ export default function ProjectDashboard() {
                                   }}
                                 >
                                   <option value="">-- Select a Theme --</option>
-                                  {clusterThemes
-                                    ? clusterThemes.map(t => <option key={t} value={t}>{t}</option>)
-                                    : Object.keys(THEME_SUBTOPICS).map(t => <option key={t} value={t}>{t}</option>)
-                                  }
+                                  {displayedThemes.map(t => (
+                                    <option key={t} value={t}>{t}</option>
+                                  ))}
                                 </select>
                               </>
                             );
                           })()}
                         </div>
+
+                        {/* Sub-Topic Selection (if available for selected theme, e.g. 1st Year) */}
+                        {THEME_SUBTOPICS[projectThemeInput] && THEME_SUBTOPICS[projectThemeInput].length > 0 && (
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                              Project Sub-Topic (Optional)
+                            </label>
+                            <select
+                              disabled={team.mentor_status === 'APPROVED'}
+                              className="w-full px-4 py-2.5 glass-input rounded-xl outline-none font-semibold text-xs disabled:opacity-75 bg-white dark:bg-slate-900"
+                              value={subTopicInput}
+                              onChange={e => setSubTopicInput(e.target.value)}
+                            >
+                              <option value="">-- Select a Sub-Topic (Optional) --</option>
+                              {THEME_SUBTOPICS[projectThemeInput].map(st => (
+                                <option key={st} value={st}>{st}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
 
 
 

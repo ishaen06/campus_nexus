@@ -1777,13 +1777,16 @@ class AcademicSettingsUpdateRequest(BaseModel):
     cycle_mappings: Optional[dict] = None
     cluster_mappings: Optional[dict] = None
     cluster_themes: Optional[dict] = None
+    first_year_themes: Optional[list] = None
+    year3_cluster_themes: Optional[dict] = None
     cohort_mappings: Optional[dict] = None
     google_form_feedback_url: Optional[str] = None
     year: Optional[int] = None
 
 class ThemeRequest(BaseModel):
-    cluster: str
+    cluster: Optional[str] = ""
     theme: str
+    year: Optional[int] = 2
 
 class AddBranchRequest(BaseModel):
     code: str
@@ -1802,7 +1805,9 @@ def get_admin_academic_settings(
         DEFAULT_BRANCH_NAMES, 
         DEFAULT_CYCLE_MAPPINGS, 
         DEFAULT_CLUSTER_MAPPINGS,
-        DEFAULT_CLUSTER_THEMES, 
+        DEFAULT_CLUSTER_THEMES,
+        DEFAULT_FIRST_YEAR_THEMES,
+        DEFAULT_CLUSTER_THEMES_YEAR_3,
         DEFAULT_COHORT_MAPPINGS,
         DEFAULT_FEEDBACK_FORM_URL
     )
@@ -1832,7 +1837,9 @@ def get_admin_academic_settings(
         "branch_mappings": settings.get("branch_mappings", DEFAULT_BRANCH_NAMES),
         "cycle_mappings": settings.get("cycle_mappings", DEFAULT_CYCLE_MAPPINGS),
         "cluster_mappings": settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
+        "first_year_themes": settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES),
         "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
+        "year3_cluster_themes": settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3),
         "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
         "google_form_feedback_url": "" if "campusnexus-feedback" in (settings.get("google_form_feedback_url") or "") else (settings.get("google_form_feedback_url") or "").strip(),
         "branch_counts": branch_counts,
@@ -1853,6 +1860,8 @@ def update_admin_academic_settings(
         get_academic_settings, 
         DEFAULT_CLUSTER_MAPPINGS, 
         DEFAULT_CLUSTER_THEMES, 
+        DEFAULT_FIRST_YEAR_THEMES,
+        DEFAULT_CLUSTER_THEMES_YEAR_3,
         DEFAULT_COHORT_MAPPINGS
     )
     settings = get_academic_settings(db)
@@ -1879,8 +1888,14 @@ def update_admin_academic_settings(
     if payload.cluster_mappings is not None:
         update_data["cluster_mappings"] = payload.cluster_mappings
 
+    if payload.first_year_themes is not None:
+        update_data["first_year_themes"] = payload.first_year_themes
+
     if payload.cluster_themes is not None:
         update_data["cluster_themes"] = payload.cluster_themes
+
+    if payload.year3_cluster_themes is not None:
+        update_data["year3_cluster_themes"] = payload.year3_cluster_themes
 
     if payload.cohort_mappings is not None:
         cleaned_cohort = {}
@@ -1915,7 +1930,9 @@ def update_admin_academic_settings(
         "branch_mappings": updated_settings.get("branch_mappings", {}),
         "cycle_mappings": updated_settings.get("cycle_mappings", {}),
         "cluster_mappings": updated_settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
+        "first_year_themes": updated_settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES),
         "cluster_themes": updated_settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
+        "year3_cluster_themes": updated_settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3),
         "cohort_mappings": updated_settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
         "google_form_feedback_url": updated_settings.get("google_form_feedback_url", ""),
         "can_edit_cycles": (target_year == 1 or target_year is None)
@@ -1991,37 +2008,84 @@ def add_cluster_theme(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
-    cluster = payload.cluster.strip().upper()
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_CLUSTER_THEMES,
+        DEFAULT_FIRST_YEAR_THEMES,
+        DEFAULT_CLUSTER_THEMES_YEAR_3
+    )
     theme = payload.theme.strip()
+    year = payload.year or 2
     
     if not theme:
         raise HTTPException(status_code=400, detail="Theme name cannot be empty.")
-    if cluster not in ["CS", "EC", "ME", "CV"]:
-        raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
         
     settings = get_academic_settings(db)
-    themes_map = dict(settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES))
-    cluster_list = list(themes_map.get(cluster, []))
     
-    if any(t.lower() == theme.lower() for t in cluster_list):
-        raise HTTPException(status_code=400, detail=f"Theme '{theme}' already exists in {cluster} cluster.")
-        
-    cluster_list.append(theme)
-    themes_map[cluster] = cluster_list
-    
-    db.academic_settings.update_one(
-        {"_id": "global"},
-        {"$set": {"cluster_themes": themes_map}},
-        upsert=True
-    )
-    return {
-        "status": "success",
-        "message": f"Theme '{theme}' added to {cluster} cluster successfully.",
-        "cluster": cluster,
-        "themes": cluster_list,
-        "cluster_themes": themes_map
-    }
+    if year == 1:
+        first_yr_list = list(settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES))
+        if any(t.lower() == theme.lower() for t in first_yr_list):
+            raise HTTPException(status_code=400, detail=f"Theme '{theme}' already exists in 1st Year themes.")
+        first_yr_list.append(theme)
+        db.academic_settings.update_one(
+            {"_id": "global"},
+            {"$set": {"first_year_themes": first_yr_list}},
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "message": f"Theme '{theme}' added to 1st Year successfully.",
+            "year": 1,
+            "themes": first_yr_list,
+            "first_year_themes": first_yr_list
+        }
+    elif year == 3:
+        cluster = (payload.cluster or "").strip().upper()
+        if cluster not in ["CS", "EC", "ME", "CV"]:
+            raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
+        themes_map = dict(settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3))
+        cluster_list = list(themes_map.get(cluster, []))
+        if any(t.lower() == theme.lower() for t in cluster_list):
+            raise HTTPException(status_code=400, detail=f"Theme '{theme}' already exists in 3rd Year {cluster} cluster.")
+        cluster_list.append(theme)
+        themes_map[cluster] = cluster_list
+        db.academic_settings.update_one(
+            {"_id": "global"},
+            {"$set": {"year3_cluster_themes": themes_map}},
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "message": f"Theme '{theme}' added to 3rd Year {cluster} cluster successfully.",
+            "year": 3,
+            "cluster": cluster,
+            "themes": cluster_list,
+            "year3_cluster_themes": themes_map
+        }
+    else:
+        # Year 2 (default)
+        cluster = (payload.cluster or "").strip().upper()
+        if cluster not in ["CS", "EC", "ME", "CV"]:
+            raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
+        themes_map = dict(settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES))
+        cluster_list = list(themes_map.get(cluster, []))
+        if any(t.lower() == theme.lower() for t in cluster_list):
+            raise HTTPException(status_code=400, detail=f"Theme '{theme}' already exists in 2nd Year {cluster} cluster.")
+        cluster_list.append(theme)
+        themes_map[cluster] = cluster_list
+        db.academic_settings.update_one(
+            {"_id": "global"},
+            {"$set": {"cluster_themes": themes_map}},
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "message": f"Theme '{theme}' added to 2nd Year {cluster} cluster successfully.",
+            "year": 2,
+            "cluster": cluster,
+            "themes": cluster_list,
+            "cluster_themes": themes_map
+        }
 
 @router.delete("/academic-settings/themes")
 def delete_cluster_theme(
@@ -2029,32 +2093,73 @@ def delete_cluster_theme(
     admin = Depends(get_admin_user), 
     db = Depends(get_mongo_db)
 ):
-    from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
-    cluster = payload.cluster.strip().upper()
-    theme = payload.theme.strip()
-    
-    if cluster not in ["CS", "EC", "ME", "CV"]:
-        raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
-        
-    settings = get_academic_settings(db)
-    themes_map = dict(settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES))
-    cluster_list = list(themes_map.get(cluster, []))
-    
-    updated_list = [t for t in cluster_list if t.lower() != theme.lower()]
-    themes_map[cluster] = updated_list
-    
-    db.academic_settings.update_one(
-        {"_id": "global"},
-        {"$set": {"cluster_themes": themes_map}},
-        upsert=True
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_CLUSTER_THEMES,
+        DEFAULT_FIRST_YEAR_THEMES,
+        DEFAULT_CLUSTER_THEMES_YEAR_3
     )
-    return {
-        "status": "success",
-        "message": f"Theme '{theme}' removed from {cluster} cluster successfully.",
-        "cluster": cluster,
-        "themes": updated_list,
-        "cluster_themes": themes_map
-    }
+    theme = payload.theme.strip()
+    year = payload.year or 2
+    settings = get_academic_settings(db)
+    
+    if year == 1:
+        first_yr_list = list(settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES))
+        updated_list = [t for t in first_yr_list if t.lower() != theme.lower()]
+        db.academic_settings.update_one(
+            {"_id": "global"},
+            {"$set": {"first_year_themes": updated_list}},
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "message": f"Theme '{theme}' removed from 1st Year successfully.",
+            "year": 1,
+            "themes": updated_list,
+            "first_year_themes": updated_list
+        }
+    elif year == 3:
+        cluster = (payload.cluster or "").strip().upper()
+        if cluster not in ["CS", "EC", "ME", "CV"]:
+            raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
+        themes_map = dict(settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3))
+        cluster_list = list(themes_map.get(cluster, []))
+        updated_list = [t for t in cluster_list if t.lower() != theme.lower()]
+        themes_map[cluster] = updated_list
+        db.academic_settings.update_one(
+            {"_id": "global"},
+            {"$set": {"year3_cluster_themes": themes_map}},
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "message": f"Theme '{theme}' removed from 3rd Year {cluster} cluster successfully.",
+            "year": 3,
+            "cluster": cluster,
+            "themes": updated_list,
+            "year3_cluster_themes": themes_map
+        }
+    else:
+        cluster = (payload.cluster or "").strip().upper()
+        if cluster not in ["CS", "EC", "ME", "CV"]:
+            raise HTTPException(status_code=400, detail="Invalid cluster. Must be CS, EC, ME, or CV.")
+        themes_map = dict(settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES))
+        cluster_list = list(themes_map.get(cluster, []))
+        updated_list = [t for t in cluster_list if t.lower() != theme.lower()]
+        themes_map[cluster] = updated_list
+        db.academic_settings.update_one(
+            {"_id": "global"},
+            {"$set": {"cluster_themes": themes_map}},
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "message": f"Theme '{theme}' removed from 2nd Year {cluster} cluster successfully.",
+            "year": 2,
+            "cluster": cluster,
+            "themes": updated_list,
+            "cluster_themes": themes_map
+        }
 
 @router.post("/academic-settings/themes/delete")
 def delete_cluster_theme_post(

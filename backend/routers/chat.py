@@ -205,58 +205,18 @@ def get_messages(connection_id: int, current_user = Depends(get_current_user), d
 
 
 
-# ─── 2nd Year: Cluster-wise Project Themes ─────────────────────────────────
-CLUSTER_THEMES: dict[str, list[str]] = {
-    "CS": [
-        "Artificial Intelligence",
-        "Internet of Things",
-        "AR, VR & MR",
-        "Quantum Security",
-        "Edge Computing",
-        "Ethical AI",
-        "Cloud Security",
-        "Programming Mechanics (Coding for App Development)",
-        "AI for Social Good",
-        "AI in Education",
-        "Data Science and Analytics",
-    ],
-    "EC": [
-        "Semiconductor Engineering",
-        "Cyber Physical Systems",
-        "Drone Technology",
-        "Biomedical Instrumentation",
-        "Bionics and Prosthetics",
-        "Renewable Energy Solutions",
-        "Embedded Systems and IoT",
-        "AI in Electronics",
-        "5G and Wireless Communications",
-        "Power Systems Engineering",
-        "Autonomous Vehicles",
-    ],
-    "ME": [
-        "Smart Manufacturing",
-        "Digital Metrology",
-        "Ergonomics in Automation",
-        "Advanced Materials",
-        "Energy Systems",
-        "Eco-friendly Materials and Waste Reduction Strategies",
-        "Mechatronics & Industrial Internet of Things",
-        "Thermodynamic Simulations",
-        "AI for Mechanical Systems",
-        "Electric Vehicle Technology",
-        "Supply Chain Management",
-    ],
-    "CV": [
-        "Environmental Engineering and Sustainability",
-        "Pollution Control, Waste Management and Bioremediation",
-        "Urban Planning and Development, including Digital Twins",
-        "Smart Materials and Structures",
-        "Innovative Solutions for Water and Wastewater Purification, Reuse and Recycling",
-        "Technologies to Mitigate Climate Change Impacts",
-        "Bioinformatics",
-        "Biomaterials and Computational Biology",
-    ],
-}
+# ─── Academic Year Project Themes ──────────────────────────────────────────
+from services.academic_service import (
+    DEFAULT_FIRST_YEAR_THEMES,
+    DEFAULT_CLUSTER_THEMES,
+    DEFAULT_CLUSTER_THEMES_YEAR_2,
+    DEFAULT_CLUSTER_THEMES_YEAR_3
+)
+
+FIRST_YEAR_THEMES = list(DEFAULT_FIRST_YEAR_THEMES)
+CLUSTER_THEMES_YEAR_2 = DEFAULT_CLUSTER_THEMES_YEAR_2
+CLUSTER_THEMES_YEAR_3 = DEFAULT_CLUSTER_THEMES_YEAR_3
+CLUSTER_THEMES: dict[str, list[str]] = DEFAULT_CLUSTER_THEMES
 
 # ─── Cluster definitions ───────────────────────────────────────────────────
 BRANCH_CLUSTERS = {
@@ -639,6 +599,71 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
     return True, ""
 
 
+def validate_team_project_theme(theme: Optional[str], member_users: list[dict], db) -> tuple[bool, str]:
+    """
+    Validates project theme based on the team's academic year:
+    - Year 1: Theme must be in first_year_themes (generic, non-cluster).
+    - Year 2: Theme must be in cluster_themes for that team's cluster.
+    - Year 3: Theme must be in year3_cluster_themes for that team's cluster.
+    - Year 4+: Theme must be in cluster themes.
+    """
+    if not theme or not theme.strip():
+        return True, ""
+    
+    clean_theme = theme.strip()
+    student_users = [u for u in member_users if not u.get("is_mentor")]
+    if not student_users:
+        return True, ""
+
+    study_years = []
+    clusters = set()
+    for u in student_users:
+        b_code, _, y_study = _extract_user_academic_info(u)
+        study_years.append(y_study)
+        cl = BRANCH_CLUSTERS.get(b_code)
+        if cl:
+            clusters.add(cl)
+
+    team_year = min(study_years) if study_years else 2
+    
+    from services.academic_service import (
+        get_academic_settings, 
+        DEFAULT_FIRST_YEAR_THEMES, 
+        DEFAULT_CLUSTER_THEMES, 
+        DEFAULT_CLUSTER_THEMES_YEAR_3
+    )
+    settings = get_academic_settings(db)
+
+    if team_year == 1:
+        allowed = settings.get("first_year_themes", DEFAULT_FIRST_YEAR_THEMES)
+        if clean_theme not in allowed:
+            return False, f"Invalid theme '{clean_theme}' for 1st Year. Choose from 1st Year themes: {', '.join(allowed)}"
+        return True, ""
+
+    cluster = next(iter(clusters)) if len(clusters) == 1 else (list(clusters)[0] if clusters else None)
+
+    if team_year == 3:
+        y3_map = settings.get("year3_cluster_themes", DEFAULT_CLUSTER_THEMES_YEAR_3)
+        allowed = y3_map.get(cluster, []) if cluster else []
+        if not allowed:
+            allowed = [t for sub in y3_map.values() for t in sub]
+        if allowed and clean_theme not in allowed:
+            cluster_msg = f" for {cluster} cluster" if cluster else ""
+            return False, f"Invalid theme '{clean_theme}' for 3rd Year{cluster_msg}. Choose from: {', '.join(allowed)}"
+        return True, ""
+
+    # Year 2 (and Year 4+)
+    y2_map = settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
+    allowed = y2_map.get(cluster, []) if cluster else []
+    if not allowed:
+        allowed = [t for sub in y2_map.values() for t in sub]
+    if allowed and clean_theme not in allowed:
+        cluster_msg = f" for {cluster} cluster" if cluster else ""
+        return False, f"Invalid theme '{clean_theme}' for 2nd Year{cluster_msg}. Choose from: {', '.join(allowed)}"
+
+    return True, ""
+
+
 def build_group_response(group: dict, db, current_user = None) -> dict:
     member_records = list(db.group_members.find({"group_id": group["id"]}))
     member_ids = [m["user_id"] for m in member_records]
@@ -760,6 +785,12 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
                 detail=f"{name_str} already in another team. A person can join only 1 team at a time."
             )
         
+    # Validate project theme for team's cohort year and cluster
+    if group_data.project_theme:
+        valid_th, th_err = validate_team_project_theme(group_data.project_theme, member_users, db)
+        if not valid_th:
+            raise HTTPException(status_code=400, detail=th_err)
+
     # 1. Create group
     new_group_id = get_next_sequence_value("group_chats")
     new_group = {
@@ -868,6 +899,12 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
     if group_data.project_sub_topic is not None:
         update_fields["project_sub_topic"] = group_data.project_sub_topic
     if group_data.project_theme is not None:
+        member_records = list(db.group_members.find({"group_id": group_id}))
+        member_ids = [m["user_id"] for m in member_records]
+        m_users = list(db.users.find({"id": {"$in": member_ids}})) if member_ids else []
+        valid_th, th_err = validate_team_project_theme(group_data.project_theme, m_users, db)
+        if not valid_th:
+            raise HTTPException(status_code=400, detail=th_err)
         update_fields["project_theme"] = group_data.project_theme
         
     # Update members if provided
@@ -1607,31 +1644,12 @@ def update_project_details(group_id: int, details: GroupChatUpdate, current_user
             
             
     if details.project_theme is not None:
-        # For 2nd year teams: validate theme is from the allowed cluster themes list
         member_records = list(db.group_members.find({"group_id": group_id}))
         member_ids = [m["user_id"] for m in member_records]
         members_raw = list(db.users.find({"id": {"$in": member_ids}})) if member_ids else []
-        students_raw = [m for m in members_raw if not m.get("is_mentor")]
-
-        if students_raw:
-            joining_years = [int(m["joining_year"]) for m in students_raw if m.get("joining_year")]
-            if joining_years:
-                year = _get_year_of_study(min(joining_years))
-                if year >= 2:
-                    branch_codes = [(m.get("branch_code") or "").strip().upper() for m in students_raw]
-                    clusters = {BRANCH_CLUSTERS.get(bc) for bc in branch_codes if bc}
-                    clusters.discard(None)
-                    if len(clusters) == 1:
-                        cluster = next(iter(clusters))
-                        from services.academic_service import get_academic_settings, DEFAULT_CLUSTER_THEMES
-                        settings = get_academic_settings(db)
-                        cl_themes = settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
-                        allowed = cl_themes.get(cluster, [])
-                        if allowed and details.project_theme not in allowed:
-                            raise HTTPException(
-                                status_code=400,
-                                detail=f"Invalid theme for {cluster} cluster. Choose from: {', '.join(allowed)}"
-                            )
+        valid_th, th_err = validate_team_project_theme(details.project_theme, members_raw, db)
+        if not valid_th:
+            raise HTTPException(status_code=400, detail=th_err)
 
         update_fields["project_theme"] = details.project_theme
         if details.project_theme != group.get("project_theme"):
