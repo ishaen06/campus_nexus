@@ -208,23 +208,47 @@ export default function Credits() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Dean Student Affairs */}
             <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 space-y-2">
               <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <GraduationCap size={15} className="text-indigo-600 dark:text-indigo-400" />
-                RV College of Engineering (RVCE)
+                <ShieldCheck size={16} className="text-purple-600 dark:text-purple-400" />
+                Dr. B. M. Sagar — Dean (Student Affairs)
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                An Autonomous Institution affiliated to Visvesvaraya Technological University, Belagavi. Approved by AICTE, New Delhi. Campus Nexus serves as the primary collaborative nexus for interdisciplinary engineering students.
+                Sincere gratitude to Dr. B. M. Sagar, Dean of Student Affairs at RV College of Engineering, for his visionary encouragement, institutional leadership, and steadfast support in empowering student-led innovation and multidisciplinary experiential platforms.
               </p>
             </div>
 
+            {/* College Faculty & Mentors */}
             <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 space-y-2">
               <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Users size={15} className="text-purple-600 dark:text-purple-400" />
-                Faculty Mentors & Project Coordinators
+                <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
+                College Faculty & Academic Mentors
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                Special gratitude to the faculty members, departmental coordinators, and student evaluators across CSE, AIML, CY, DS, ECE, EEE, and core engineering branches who provided feedback, rubric requirements, and validation.
+                Special thanks to the distinguished faculty members, departmental coordinators, and academic mentors across CSE, AIML, CY, DS, ECE, EEE, and core engineering branches who provided pedagogical insights, rubrics, and continuous guidance.
+              </p>
+            </div>
+
+            {/* Friends & Peers */}
+            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 space-y-2">
+              <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Users size={16} className="text-rose-600 dark:text-rose-400" />
+                Friends & Student Peers
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                Heartfelt appreciation to our wonderful peers and friends who dedicated their time to beta test the application, brainstorm team formation dynamics, simulate project workflows, and offer honest suggestions throughout development.
+              </p>
+            </div>
+
+            {/* RVCE Institution */}
+            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 space-y-2">
+              <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Award size={16} className="text-amber-600 dark:text-amber-400" />
+                RV College of Engineering (RVCE)
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                An Autonomous Institution affiliated to Visvesvaraya Technological University (VTU), Belagavi. Approved by AICTE, New Delhi. Dedicated to nurturing interdisciplinary engineering excellence, collaboration, and student-driven impact.
               </p>
             </div>
           </div>
