@@ -3724,14 +3724,14 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </p>
 
                   {/* Year Allocation Table: exactly 3 rows with Year column (editable) and Academic Year column (read-only) */}
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
-                    <table className="w-full text-left border-collapse">
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                          <th className="py-3 px-4 text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider w-1/2">
+                          <th className="py-2.5 px-3.5 text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider w-[48%]">
                             Year
                           </th>
-                          <th className="py-3 px-4 text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider w-1/2">
+                          <th className="py-2.5 px-3.5 text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider text-right w-[52%]">
                             Academic Year
                           </th>
                         </tr>
@@ -3744,8 +3744,8 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                         ].map(({ yr, label, sem, badgeClass }) => (
                           <tr key={yr} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                             {/* Column 1: Year (Editable) */}
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-2">
+                            <td className="py-3 px-3.5 align-middle">
+                              <div className="flex items-center gap-1.5">
                                 <input
                                   type="text"
                                   value={cohortYearInputs[yr] ?? ''}
@@ -3759,22 +3759,22 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                                   }}
                                   placeholder="e.g. 25"
                                   maxLength={4}
-                                  className="w-20 px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl text-xs font-black font-mono text-indigo-600 dark:text-indigo-400 outline-none transition-all focus:ring-2 focus:ring-indigo-500/20"
+                                  className="w-14 px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-lg text-xs font-black font-mono text-center text-indigo-600 dark:text-indigo-400 outline-none transition-all focus:ring-2 focus:ring-indigo-500/20"
                                 />
-                                <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-                                  (...{cohortYearInputs[yr] || 'YY'}@rvce.edu.in)
+                                <span className="text-[10px] text-slate-400 font-mono truncate">
+                                  ..{cohortYearInputs[yr] || 'YY'}@rvce
                                 </span>
                               </div>
                             </td>
 
                             {/* Column 2: Academic Year (Static / Non-editable) */}
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${badgeClass}`}>
+                            <td className="py-3 px-3.5 text-right align-middle">
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold border ${badgeClass} whitespace-nowrap`}>
                                   {label}
                                 </span>
-                                <span className="text-[11px] text-slate-400 font-medium">
-                                  ({sem})
+                                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                                  {sem}
                                 </span>
                               </div>
                             </td>
@@ -3785,15 +3785,15 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                   </div>
 
                   {/* Action Bar: Save Allocation */}
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
                     <span className="text-[11px] text-slate-400">
-                      Edit the Year column. Press Enter or click Save Allocation.
+                      Press Enter or click Save to apply.
                     </span>
                     <button
                       type="button"
                       onClick={handleSaveCohortAllocation}
                       disabled={cohortSaving}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
                     >
                       {cohortSaving ? (
                         <>
