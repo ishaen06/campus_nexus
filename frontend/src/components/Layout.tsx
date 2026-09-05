@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap, Star, ClipboardCheck, Sparkles, ExternalLink } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap, Star, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -25,28 +25,6 @@ export default function Layout() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [dropdownTimeout, setDropdownTimeout] = useState<any>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [feedbackFormUrl, setFeedbackFormUrl] = useState<string>('');
-
-  useEffect(() => {
-    api.get('/users/feedback-link')
-      .then(res => {
-        const url = (res.data?.url || '').trim();
-        if (url && !url.includes('campusnexus-feedback') && url.startsWith('http')) {
-          setFeedbackFormUrl(url);
-        } else {
-          setFeedbackFormUrl('');
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleOpenFeedback = () => {
-    if (feedbackFormUrl && !feedbackFormUrl.includes('campusnexus-feedback') && feedbackFormUrl.startsWith('http')) {
-      window.open(feedbackFormUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      navigate('/feedback');
-    }
-  };
   
   // Admin lock states
 
@@ -492,29 +470,8 @@ export default function Layout() {
               })}
             </div>
 
-            {/* Bottom Tabs Section: Feedback & Credits */}
+            {/* Bottom Tabs Section: Credits */}
             <div className="pt-3 mt-4 border-t border-slate-200/40 dark:border-white/10 space-y-1 pb-1">
-              {/* Feedback Link (opens Google Form) */}
-              <button
-                type="button"
-                onClick={handleOpenFeedback}
-                title={isCollapsed ? "App Feedback (Google Form)" : undefined}
-                className={cn(
-                  "w-full flex items-center transition-all duration-300 font-medium cursor-pointer text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 hover:bg-purple-500/10 rounded-2xl text-left",
-                  isCollapsed ? "justify-center p-3 mx-auto w-12" : "justify-between px-4 py-2.5"
-                )}
-              >
-                <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
-                  <ClipboardCheck size={20} className="shrink-0 text-purple-600 dark:text-purple-400" />
-                  {!isCollapsed && (
-                    <span className="text-sm font-semibold tracking-wide flex items-center gap-1.5">
-                      Feedback
-                      <ExternalLink size={12} className="opacity-60" />
-                    </span>
-                  )}
-                </div>
-              </button>
-
               {/* Credits Link */}
               <Link
                 to="/credits"
@@ -573,19 +530,6 @@ export default function Layout() {
                   >
                     <UserIcon size={14} />
                     Edit Profile
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowProfileDropdown(false);
-                      handleOpenFeedback();
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors flex items-center justify-between cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <ClipboardCheck size={14} />
-                      App Feedback
-                    </span>
-                    <ExternalLink size={11} className="opacity-60" />
                   </button>
                   <button
                     onClick={() => {
@@ -730,14 +674,6 @@ export default function Layout() {
                   </Link>
                 );
               })}
-            <button
-              type="button"
-              onClick={handleOpenFeedback}
-              title="App Feedback (Google Form)"
-              className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-purple-400 transition-all cursor-pointer"
-            >
-              <ClipboardCheck size={24} />
-            </button>
             <Link
               to="/credits"
               title="Platform Credits"

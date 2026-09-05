@@ -1,9 +1,29 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Award, Code2, Cpu, Database, GraduationCap, Heart, Mail, ShieldCheck, Terminal, Users, ArrowLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Sparkles, Award, Code2, Cpu, Database, GraduationCap, Heart, Mail, ShieldCheck, Terminal, Users, ArrowLeft, ClipboardCheck, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api';
 
 export default function Credits() {
   const navigate = useNavigate();
+  const [feedbackUrl, setFeedbackUrl] = useState<string>(
+    'https://docs.google.com/forms/d/e/1FAIpQLSdn1JLoy8JNgLMY1S7aXeDwiPLedtdsNwQFugVJk84KTJieNA/viewform'
+  );
+
+  useEffect(() => {
+    api.get('/users/feedback-link')
+      .then(res => {
+        const url = (res.data?.url || '').trim();
+        if (url && url.startsWith('http')) {
+          setFeedbackUrl(url);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenFeedback = () => {
+    window.open(feedbackUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 p-4 md:p-8 lg:p-12 transition-colors">
@@ -218,10 +238,60 @@ export default function Credits() {
             </div>
 
             <div className="flex items-center gap-4 text-xs font-bold">
-              <Link to="/feedback" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                Submit App Feedback →
-              </Link>
+              <button 
+                type="button"
+                onClick={handleOpenFeedback} 
+                className="text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1.5 cursor-pointer font-black"
+              >
+                <span>Submit App Feedback</span>
+                <ExternalLink size={13} />
+              </button>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Big & Prominent App Feedback CTA Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1e1338] via-slate-900 to-[#121c3b] border-2 border-purple-500/50 p-8 md:p-12 shadow-2xl text-center space-y-6"
+        >
+          {/* Glowing background ambient orbs */}
+          <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-purple-600/25 blur-3xl pointer-events-none" />
+          <div className="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-indigo-600/25 blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-xs font-black uppercase tracking-widest">
+              <ClipboardCheck size={16} className="text-purple-400" />
+              Student Experience & Platform Feedback
+            </div>
+
+            <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-snug">
+              Shape the Future of Campus Nexus
+            </h2>
+
+            <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium">
+              Your feedback directly shapes our future updates, multidisciplinary team matching algorithms, and project evaluation workflows. Please take 2–3 minutes to share your honest experience.
+            </p>
+
+            {/* Big, Prominent Button */}
+            <div className="pt-3 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleOpenFeedback}
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-[#673ab7] via-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-base md:text-lg shadow-2xl shadow-purple-600/50 hover:shadow-purple-600/70 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer group border border-white/20"
+              >
+                <ClipboardCheck size={26} className="group-hover:rotate-6 transition-transform text-purple-200 shrink-0" />
+                <span>Submit App Feedback (Google Form)</span>
+                <ExternalLink size={20} className="text-purple-200 group-hover:translate-x-1 transition-transform shrink-0" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 font-semibold flex items-center justify-center gap-1.5 pt-2">
+              <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+              <span>All responses are confidential and reviewed exclusively by the administrator (Ishaen Bethur).</span>
+            </p>
           </div>
         </motion.div>
 
