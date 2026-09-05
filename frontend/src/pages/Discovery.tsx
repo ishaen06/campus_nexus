@@ -57,13 +57,14 @@ const CLUSTERS = [
 
 const BRANCH_OPTIONS = [
   { code: 'CS', label: 'Computer Science & Engineering (CS)', cluster: 'CS' },
-  { code: 'CI', label: 'Artificial Intelligence & Machine Learning (CI)', cluster: 'CS' },
+  { code: 'CI', label: 'Artificial Intelligence & Machine Learning (CI/AI)', cluster: 'CS' },
+  { code: 'IS', label: 'Information Science & Engineering (IS)', cluster: 'CS' },
   { code: 'CD', label: 'Computer Science - Data Science (CD)', cluster: 'CS' },
   { code: 'CY', label: 'Cyber Security (CY)', cluster: 'CS' },
   { code: 'EC', label: 'Electronics & Communication (EC)', cluster: 'EC' },
   { code: 'EE', label: 'Electrical & Electronics (EE)', cluster: 'EC' },
   { code: 'ET', label: 'Electronics & Telecommunication (ET)', cluster: 'EC' },
-  { code: 'AS', label: 'Aerospace Engineering (AS)', cluster: 'ME' },
+  { code: 'AS', label: 'Aerospace Engineering (AS/AE)', cluster: 'ME' },
   { code: 'IM', label: 'Industrial Engineering & Management (IM)', cluster: 'ME' },
   { code: 'ME', label: 'Mechanical Engineering (ME)', cluster: 'ME' },
   { code: 'CV', label: 'Civil Engineering (CV)', cluster: 'CV' },

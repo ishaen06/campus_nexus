@@ -8,10 +8,12 @@ DEFAULT_BRANCH_NAMES = {
     "AI": "Artificial Intelligence and Machine Learning",
     "CD": "Computer Science (Data Science)",
     "CY": "Computer Science and Engineering (Cyber Security)",
+    "IS": "Information Science and Engineering",
     "EC": "Electronics and Communication Engineering",
     "EE": "Electrical and Electronics Engineering",
     "ET": "Electronics and Telecommunication Engineering",
     "AS": "Aerospace Engineering",
+    "AE": "Aerospace Engineering",
     "IM": "Industrial Engineering and Management",
     "ME": "Mechanical Engineering",
     "CV": "Civil Engineering",
@@ -26,12 +28,14 @@ DEFAULT_CYCLE_MAPPINGS = {
     "AI": "C",
     "CD": "C",
     "CY": "C",
+    "IS": "C",
     # P-Cycle (EC cluster)
     "EC": "P",
     "EE": "P",
     "ET": "P",
     # P-Cycle (ME cluster)
     "AS": "P",
+    "AE": "P",
     "IM": "P",
     "ME": "P",
     # P-Cycle (CV cluster)
@@ -41,9 +45,9 @@ DEFAULT_CYCLE_MAPPINGS = {
 }
 
 DEFAULT_CLUSTER_MAPPINGS = {
-    "CS": "CS", "CI": "CS", "AI": "CS", "CD": "CS", "CY": "CS",
+    "CS": "CS", "CI": "CS", "AI": "CS", "CD": "CS", "CY": "CS", "IS": "CS",
     "EC": "EC", "EE": "EC", "ET": "EC",
-    "AS": "ME", "IM": "ME", "ME": "ME",
+    "AS": "ME", "AE": "ME", "IM": "ME", "ME": "ME",
     "CV": "CV", "BT": "CV", "CH": "CV",
 }
 
@@ -183,7 +187,7 @@ def parse_rvce_email(email: str) -> dict:
     else:
         joining_year = 2025
 
-    b_match = re.search(r"\b(cs|ci|ai|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)\b", user_part) or re.search(r"(cs|ci|ai|cd|cy|ec|ee|et|as|im|me|cv|bt|ch)", user_part)
+    b_match = re.search(r"\b(cs|ci|ai|cd|cy|is|ec|ee|et|as|ae|im|me|cv|bt|ch)\b", user_part) or re.search(r"(cs|ci|ai|cd|cy|is|ec|ee|et|as|ae|im|me|cv|bt|ch)", user_part)
     b_code = b_match.group(1).upper() if b_match else "CS"
     if b_code == "AI":
         b_code = "CI"

@@ -206,7 +206,7 @@ export default function GroupChat() {
     return null;
   };
 
-  const VALID_COMBINATIONS_MAP: Record<string, Record<string, number>[]> = {
+  const VALID_COMBINATIONS_MAP_YEAR_2: Record<string, Record<string, number>[]> = {
     EC: [
       { EC: 3, EE: 1, ET: 1 }, { EC: 3, EE: 2 }, { EC: 3, ET: 2 },
       { EC: 4, EE: 1 }, { EC: 4, ET: 1 }, { EC: 3, EE: 1 }, { EC: 3, ET: 1 },
@@ -220,6 +220,32 @@ export default function GroupChat() {
     ],
     CV: [
       { CV: 1, CH: 2, BT: 2 }, { CV: 2, CH: 1, BT: 2 }, { CV: 1, CH: 1, BT: 2 },
+    ],
+  };
+
+  // Official Permitted Combinations for 3rd Year
+  const VALID_COMBINATIONS_MAP_YEAR_3: Record<string, Record<string, number>[]> = {
+    CS: [
+      { CS: 2, AI: 1, CD: 1 },
+      { CS: 2, CY: 1, IS: 2 },
+      { CS: 2, AI: 2, IS: 1 },
+      { CS: 2, AI: 1, CY: 1 },
+      { CS: 1, AI: 1, IS: 2 },
+    ],
+    EC: [
+      { EC: 3, EE: 1, ET: 1 },
+      { EC: 3, EE: 1 },
+      { EC: 3, ET: 1 },
+    ],
+    ME: [
+      { ME: 3, AS: 1, IM: 1 },
+      { ME: 2, AS: 2, IM: 1 },
+      { ME: 2, AS: 1, IM: 2 },
+    ],
+    CV: [
+      { CV: 2, CH: 1, BT: 2 },
+      { CV: 2, CH: 1, BT: 1 },
+      { CV: 1, CH: 2, BT: 2 },
     ],
   };
 
@@ -237,6 +263,7 @@ export default function GroupChat() {
   });
   const teamYear = memberYears[0] ?? 2;
 
+  const VALID_COMBINATIONS_MAP = teamYear === 3 ? VALID_COMBINATIONS_MAP_YEAR_3 : VALID_COMBINATIONS_MAP_YEAR_2;
 
   // 1st Year: Cycle counts
   const pCount = studentsInTeam.filter(uid => getCycleOfUser(uid) === 'P').length;
@@ -244,7 +271,7 @@ export default function GroupChat() {
   const isCycleBalanceValid = (totalSize === 4 && pCount === 2 && cCount === 2) ||
     (totalSize === 5 && ((pCount === 3 && cCount === 2) || (pCount === 2 && cCount === 3)));
 
-  // 2nd Year: Cluster & branch combinations
+  // 2nd / 3rd Year: Cluster & branch combinations
   const branchCounts: Record<string, number> = {};
   studentsInTeam.forEach(uid => {
     const memberObj = groupDetails?.members?.find((m: any) => m.id === uid);
@@ -256,10 +283,33 @@ export default function GroupChat() {
   const isSingleCluster = clustersInTeam.length === 1;
 
   const clusterCombos = teamCluster ? (VALID_COMBINATIONS_MAP[teamCluster] || []) : [];
-  const isClusterComboValid = isSingleCluster && clusterCombos.some(combo =>
-    Object.keys(combo).length === Object.keys(branchCounts).length &&
-    Object.entries(combo).every(([br, cnt]) => branchCounts[br] === cnt)
-  );
+
+  const canon = (b: string) => {
+    if (teamYear === 3) {
+      if (b === 'CI') return 'AI';
+      if (b === 'AE') return 'AS';
+    } else {
+      if (b === 'AI') return 'CI';
+      if (b === 'AE') return 'AS';
+    }
+    return b;
+  };
+
+  const canonTeamCounts: Record<string, number> = {};
+  Object.entries(branchCounts).forEach(([br, cnt]) => {
+    const c = canon(br);
+    canonTeamCounts[c] = (canonTeamCounts[c] || 0) + cnt;
+  });
+
+  const isClusterComboValid = isSingleCluster && clusterCombos.some(combo => {
+    const canonCombo: Record<string, number> = {};
+    Object.entries(combo).forEach(([br, cnt]) => {
+      const c = canon(br);
+      canonCombo[c] = (canonCombo[c] || 0) + cnt;
+    });
+    return Object.keys(canonCombo).length === Object.keys(canonTeamCounts).length &&
+      Object.entries(canonCombo).every(([br, cnt]) => canonTeamCounts[br] === cnt);
+  });
 
   const isBalanceValid = teamYear === 1 ? isCycleBalanceValid : isClusterComboValid;
 

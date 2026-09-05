@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle, Link2, Copy, Check, RefreshCw } from 'lucide-react';
+import { Users, X, Sparkles, FolderGit, Lock, AlertTriangle, Link2, Copy, Check, RefreshCw, BookOpen } from 'lucide-react';
 
 
 
@@ -137,11 +137,52 @@ export const CLUSTER_THEMES: Record<string, string[]> = {
 };
 
 export const BRANCH_CLUSTER_MAP: Record<string, string> = {
-  CS: "CS", CI: "CS", AI: "CS", CD: "CS", CY: "CS",
+  CS: "CS", CI: "CS", AI: "CS", CD: "CS", CY: "CS", IS: "CS",
   EC: "EC", EE: "EC", ET: "EC",
-  AS: "ME", IM: "ME", ME: "ME",
+  AS: "ME", AE: "ME", IM: "ME", ME: "ME",
   CV: "CV", BT: "CV", CH: "CV",
 };
+
+export const PERMITTED_COMBINATIONS_YEAR_3 = [
+  {
+    cluster: 'CS',
+    clusterName: 'CS Cluster',
+    combos: [
+      { text: '2 CS + 1 AI + 1 CD', maxTeams: 69, size: 4 },
+      { text: '2 CS + 1 CY + 2 IS', maxTeams: 64, size: 5 },
+      { text: '2 CS + 2 AI + 1 IS', maxTeams: 41, size: 5 },
+      { text: '2 CS + 1 AI + 1 CY', maxTeams: 6, size: 4 },
+      { text: '1 CS + 1 AI + 2 IS', maxTeams: 1, size: 4 },
+    ]
+  },
+  {
+    cluster: 'EC',
+    clusterName: 'EC Cluster',
+    combos: [
+      { text: '3 EC + 1 EE + 1 ET', maxTeams: 46, size: 5 },
+      { text: '3 EC + 1 EE', maxTeams: 25, size: 4 },
+      { text: '3 EC + 1 ET', maxTeams: 21, size: 4 },
+    ]
+  },
+  {
+    cluster: 'ME',
+    clusterName: 'ME Cluster',
+    combos: [
+      { text: '3 ME + 1 AS + 1 IM', maxTeams: 30, size: 5 },
+      { text: '2 ME + 2 AS + 1 IM', maxTeams: 13, size: 5 },
+      { text: '2 ME + 1 AS + 2 IM', maxTeams: 10, size: 5 },
+    ]
+  },
+  {
+    cluster: 'CV',
+    clusterName: 'CV Cluster',
+    combos: [
+      { text: '2 CV + 1 CH + 2 BT', maxTeams: 20, size: 5 },
+      { text: '2 CV + 1 CH + 1 BT', maxTeams: 8, size: 4 },
+      { text: '1 CV + 2 CH + 2 BT', maxTeams: 8, size: 5 },
+    ]
+  }
+];
 
 export function getYearOfStudy(
   joiningYear?: number | null, 
@@ -236,6 +277,7 @@ export default function MyTeam() {
   const [inviteData, setInviteData] = useState<{ invite_code: string; invite_enabled: boolean; group_id: number; team_name: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [showPermittedModal, setShowPermittedModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -576,10 +618,19 @@ export default function MyTeam() {
                       {/* Criteria Incomplete Warning Banner */}
                       {!team.criteria_met && team.validation_error && (
                         <div className="mb-5 p-3.5 rounded-xl border bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40 text-left">
-                          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
-                            <AlertTriangle size={14} /> Team Criteria Notice
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+                              <AlertTriangle size={14} /> Team Criteria Notice
+                            </div>
+                            <button
+                              onClick={() => setShowPermittedModal(true)}
+                              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/60 shadow-2xs transition cursor-pointer"
+                            >
+                              <BookOpen size={11} />
+                              <span>View Permitted Combinations</span>
+                            </button>
                           </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line font-medium leading-relaxed">
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-line font-medium leading-relaxed">
                             {team.validation_error}
                           </p>
                         </div>
@@ -1120,6 +1171,79 @@ export default function MyTeam() {
         onClose={() => setIsPreviewOpen(false)}
         user={previewUser}
       />
+
+      {/* Official Permitted Team Combinations Modal */}
+      <AnimatePresence>
+        {showPermittedModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="text-left">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="text-indigo-600 dark:text-indigo-400" size={18} />
+                    6. Permitted Team Combinations – Cluster-wise (3rd Year)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                    Official multidisciplinary team formation criteria prescribed for 3rd Year batches.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPermittedModal(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+                {PERMITTED_COMBINATIONS_YEAR_3.map((clusterItem) => (
+                  <div key={clusterItem.cluster} className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-850/50 flex flex-col">
+                    <div className="bg-slate-100 dark:bg-slate-800 px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-750 flex items-center justify-between">
+                      <span className="font-extrabold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider">{clusterItem.clusterName}</span>
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/50">Max Teams</span>
+                    </div>
+                    <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60 flex-1">
+                      {clusterItem.combos.map((combo, idx) => (
+                        <div key={idx} className="p-3 flex items-center justify-between hover:bg-white dark:hover:bg-slate-800/80 transition-colors">
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">{combo.text}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{combo.size} Members</span>
+                          </div>
+                          <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+                            {combo.maxTeams}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 text-[11px] text-slate-600 dark:text-slate-300 space-y-1 text-left">
+                <p className="font-bold text-indigo-900 dark:text-indigo-300">Department Code Equivalence Notes:</p>
+                <p>• <span className="font-semibold text-slate-800 dark:text-slate-200">AI and CI</span> are treated as equivalent (Artificial Intelligence & Machine Learning department).</p>
+                <p>• <span className="font-semibold text-slate-800 dark:text-slate-200">AS and AE</span> are treated as equivalent (Aerospace Engineering department).</p>
+                <p>• <span className="font-semibold text-slate-800 dark:text-slate-200">IS</span> refers to Information Science & Engineering (CS Cluster).</p>
+                <p>• All team members must belong to the same cluster and be in the 3rd Year cohort.</p>
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={() => setShowPermittedModal(false)}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

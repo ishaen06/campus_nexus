@@ -261,13 +261,13 @@ CLUSTER_THEMES: dict[str, list[str]] = {
 # ─── Cluster definitions ───────────────────────────────────────────────────
 BRANCH_CLUSTERS = {
     "EC": "EC", "EE": "EC", "ET": "EC",
-    "CS": "CS", "CI": "CS", "AI": "CS", "CD": "CS", "CY": "CS",
-    "ME": "ME", "AS": "ME", "IM": "ME",
+    "CS": "CS", "CI": "CS", "AI": "CS", "CD": "CS", "CY": "CS", "IS": "CS",
+    "ME": "ME", "AS": "ME", "AE": "ME", "IM": "ME",
     "CV": "CV", "CH": "CV", "BT": "CV",
 }
 
-# Each entry is a dict of {branch_code: required_count}
-VALID_TEAM_COMBINATIONS: dict[str, list[dict]] = {
+# 2nd Year Permitted Team Combinations
+VALID_TEAM_COMBINATIONS_YEAR_2: dict[str, list[dict]] = {
     "EC": [
         {"EC": 3, "EE": 1, "ET": 1},  # 5-member
         {"EC": 3, "EE": 2},            # 5-member
@@ -295,6 +295,34 @@ VALID_TEAM_COMBINATIONS: dict[str, list[dict]] = {
     ],
 }
 
+# 3rd Year Permitted Team Combinations (Official RVCE Multidisciplinary Circular)
+VALID_TEAM_COMBINATIONS_YEAR_3: dict[str, list[dict]] = {
+    "CS": [
+        {"CS": 2, "AI": 1, "CD": 1},  # 4-member: 2 CS + 1 AI + 1 CD (Max 69 teams)
+        {"CS": 2, "CY": 1, "IS": 2},  # 5-member: 2 CS + 1 CY + 2 IS (Max 64 teams)
+        {"CS": 2, "AI": 2, "IS": 1},  # 5-member: 2 CS + 2 AI + 1 IS (Max 41 teams)
+        {"CS": 2, "AI": 1, "CY": 1},  # 4-member: 2 CS + 1 AI + 1 CY (Max 6 teams)
+        {"CS": 1, "AI": 1, "IS": 2},  # 4-member: 1 CS + 1 AI + 2 IS (Max 1 team)
+    ],
+    "EC": [
+        {"EC": 3, "EE": 1, "ET": 1},  # 5-member: 3 EC + 1 EE + 1 ET (Max 46 teams)
+        {"EC": 3, "EE": 1},            # 4-member: 3 EC + 1 EE (Max 25 teams)
+        {"EC": 3, "ET": 1},            # 4-member: 3 EC + 1 ET (Max 21 teams)
+    ],
+    "ME": [
+        {"ME": 3, "AS": 1, "IM": 1},  # 5-member: 3 ME + 1 AS + 1 IM (Max 30 teams)
+        {"ME": 2, "AS": 2, "IM": 1},  # 5-member: 2 ME + 2 AS + 1 IM (Max 13 teams)
+        {"ME": 2, "AS": 1, "IM": 2},  # 5-member: 2 ME + 1 AS + 2 IM (Max 10 teams)
+    ],
+    "CV": [
+        {"CV": 2, "CH": 1, "BT": 2},  # 5-member: 2 CV + 1 CH + 2 BT (Max 20 teams)
+        {"CV": 2, "CH": 1, "BT": 1},  # 4-member: 2 CV + 1 CH + 1 BT (Max 8 teams)
+        {"CV": 1, "CH": 2, "BT": 2},  # 5-member: 1 CV + 2 CH + 2 BT (Max 8 teams)
+    ],
+}
+
+VALID_TEAM_COMBINATIONS = VALID_TEAM_COMBINATIONS_YEAR_3
+
 # ─── Branch code full names (used in emails & error messages) ──────────────
 BRANCH_FULL_NAMES = {
     "CS": "Computer Science and Engineering",
@@ -302,10 +330,12 @@ BRANCH_FULL_NAMES = {
     "AI": "Artificial Intelligence and Machine Learning",
     "CD": "Computer Science (Data Science)",
     "CY": "Computer Science and Engineering (Cyber Security)",
+    "IS": "Information Science and Engineering",
     "EC": "Electronics and Communication Engineering",
     "EE": "Electrical and Electronics Engineering",
     "ET": "Electronics and Telecommunication Engineering",
     "AS": "Aerospace Engineering",
+    "AE": "Aerospace Engineering",
     "IM": "Industrial Engineering and Management",
     "ME": "Mechanical Engineering",
     "CV": "Civil Engineering",
@@ -315,10 +345,10 @@ BRANCH_FULL_NAMES = {
 
 # P/C cycle mapping for 1st year branch codes
 BRANCH_CYCLE_MAP_1ST_YEAR = {
-    "CS": "C", "CI": "C", "AI": "C", "CD": "C", "CY": "C",   # CS cluster → C-Cycle
-    "EC": "P", "EE": "P", "ET": "P",               # EC cluster → P-Cycle
-    "AS": "P", "IM": "P", "ME": "P",               # ME cluster → P-Cycle
-    "CV": "P", "BT": "P", "CH": "P",               # CV cluster → P-Cycle
+    "CS": "C", "CI": "C", "AI": "C", "CD": "C", "CY": "C", "IS": "C",   # CS cluster → C-Cycle
+    "EC": "P", "EE": "P", "ET": "P",                                      # EC cluster → P-Cycle
+    "AS": "P", "AE": "P", "IM": "P", "ME": "P",                           # ME cluster → P-Cycle
+    "CV": "P", "BT": "P", "CH": "P",                                      # CV cluster → P-Cycle
 }
 
 _SESSION_START_MONTH = 8  # August
@@ -540,10 +570,10 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
             )
         return True, ""
 
-    # ── 2nd Year (and above): Cluster-based branch combination ────────────
+    # ── 2nd / 3rd Year: Cluster-based branch combination ──────────────────
     branch_counts: dict[str, int] = {}
     for m in member_data:
-        code = m["branch_code"]
+        code = (m.get("branch_code") or "").strip().upper()
         branch_counts[code] = branch_counts.get(code, 0) + 1
 
     clusters_in_team = {m["cluster"] for m in member_data if m["cluster"]}
@@ -557,17 +587,53 @@ def validate_team_criteria(member_users: List[dict]) -> tuple[bool, str]:
             "All members must be from the same cluster (EC, CS, ME, or CV)."
         )
 
-    cluster = next(iter(clusters_in_team))
-    valid_combos = VALID_TEAM_COMBINATIONS.get(cluster, [])
+    # 3rd year specifically uses the official permitted team combinations circular
+    if year == 3:
+        combos_map = VALID_TEAM_COMBINATIONS_YEAR_3
+        year_label = "3rd Year"
+    elif year == 2:
+        combos_map = VALID_TEAM_COMBINATIONS_YEAR_2
+        year_label = "2nd Year"
+    else:
+        combos_map = VALID_TEAM_COMBINATIONS_YEAR_3
+        year_label = f"Year {year}"
 
-    if not any(branch_counts == combo for combo in valid_combos):
+    cluster = next(iter(clusters_in_team))
+    valid_combos = combos_map.get(cluster, [])
+
+    # Canonical branch equivalence:
+    # In RVCE: AI and CI are the same department (AIML)
+    # AS and AE are the same department (Aerospace)
+    def _canon_branch(b: str, for_year: int) -> str:
+        b_up = (b or "").strip().upper()
+        if for_year == 3:
+            if b_up == "CI": return "AI"
+            if b_up == "AE": return "AS"
+        else:
+            if b_up == "AI": return "CI"
+            if b_up == "AE": return "AS"
+        return b_up
+
+    canon_team_counts: dict[str, int] = {}
+    for code, cnt in branch_counts.items():
+        c_code = _canon_branch(code, year)
+        canon_team_counts[c_code] = canon_team_counts.get(c_code, 0) + cnt
+
+    def _matches_combo(canon_team: dict, combo: dict, for_year: int) -> bool:
+        canon_combo: dict[str, int] = {}
+        for br, cnt in combo.items():
+            c_br = _canon_branch(br, for_year)
+            canon_combo[c_br] = canon_combo.get(c_br, 0) + cnt
+        return canon_team == canon_combo
+
+    if not any(_matches_combo(canon_team_counts, combo, year) for combo in valid_combos):
         combo_strs = [" + ".join(f"{cnt} {br}" for br, cnt in combo.items()) for combo in valid_combos]
         combos_display = "\n  • " + "\n  • ".join(combo_strs)
         current_str = " + ".join(f"{cnt} {br}" for br, cnt in sorted(branch_counts.items()))
         return False, (
-            f"Invalid branch combination for {cluster} Cluster. "
-            f"Current team: {current_str}. "
-            f"Approved {cluster} combinations:{combos_display}"
+            f"Invalid branch combination for {year_label} {cluster} Cluster.\n"
+            f"Current team: {current_str}.\n"
+            f"Approved {year_label} {cluster} combinations:{combos_display}"
         )
 
     return True, ""
