@@ -377,12 +377,23 @@ def get_cluster_themes(db = Depends(get_mongo_db)):
 
 @router.get("/cohort-settings")
 def get_cohort_settings(db = Depends(get_mongo_db)):
-    """Returns the current cohort-to-academic-year mappings and cluster themes."""
-    from services.academic_service import get_academic_settings, DEFAULT_COHORT_MAPPINGS, DEFAULT_CLUSTER_THEMES
+    """Returns the current cohort-to-academic-year mappings, cluster themes, and feedback form URL."""
+    from services.academic_service import get_academic_settings, DEFAULT_COHORT_MAPPINGS, DEFAULT_CLUSTER_THEMES, DEFAULT_FEEDBACK_FORM_URL
     settings = get_academic_settings(db)
     return {
         "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
-        "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES)
+        "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
+        "google_form_feedback_url": settings.get("google_form_feedback_url", DEFAULT_FEEDBACK_FORM_URL)
+    }
+
+
+@router.get("/feedback-link")
+def get_feedback_link(db = Depends(get_mongo_db)):
+    """Returns the Google Form feedback URL for students."""
+    from services.academic_service import get_academic_settings, DEFAULT_FEEDBACK_FORM_URL
+    settings = get_academic_settings(db)
+    return {
+        "url": settings.get("google_form_feedback_url", DEFAULT_FEEDBACK_FORM_URL)
     }
 
 

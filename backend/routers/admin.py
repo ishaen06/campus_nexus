@@ -1778,6 +1778,7 @@ class AcademicSettingsUpdateRequest(BaseModel):
     cluster_mappings: Optional[dict] = None
     cluster_themes: Optional[dict] = None
     cohort_mappings: Optional[dict] = None
+    google_form_feedback_url: Optional[str] = None
     year: Optional[int] = None
 
 class ThemeRequest(BaseModel):
@@ -1801,8 +1802,9 @@ def get_admin_academic_settings(
         DEFAULT_BRANCH_NAMES, 
         DEFAULT_CYCLE_MAPPINGS, 
         DEFAULT_CLUSTER_MAPPINGS,
-        DEFAULT_CLUSTER_THEMES,
-        DEFAULT_COHORT_MAPPINGS
+        DEFAULT_CLUSTER_THEMES, 
+        DEFAULT_COHORT_MAPPINGS,
+        DEFAULT_FEEDBACK_FORM_URL
     )
     settings = get_academic_settings(db)
     
@@ -1832,6 +1834,7 @@ def get_admin_academic_settings(
         "cluster_mappings": settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "cluster_themes": settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
         "cohort_mappings": settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
+        "google_form_feedback_url": settings.get("google_form_feedback_url", DEFAULT_FEEDBACK_FORM_URL),
         "branch_counts": branch_counts,
         "total_students": len(students),
         "year": year,
@@ -1897,6 +1900,9 @@ def update_admin_academic_settings(
             invalidate_cohort_map_cache(cleaned_cohort)
         except Exception:
             pass
+
+    if payload.google_form_feedback_url is not None:
+        update_data["google_form_feedback_url"] = (payload.google_form_feedback_url or "").strip()
         
     if update_data:
         db.academic_settings.update_one({"_id": "global"}, {"$set": update_data}, upsert=True)
@@ -1911,6 +1917,7 @@ def update_admin_academic_settings(
         "cluster_mappings": updated_settings.get("cluster_mappings", DEFAULT_CLUSTER_MAPPINGS),
         "cluster_themes": updated_settings.get("cluster_themes", DEFAULT_CLUSTER_THEMES),
         "cohort_mappings": updated_settings.get("cohort_mappings", DEFAULT_COHORT_MAPPINGS),
+        "google_form_feedback_url": updated_settings.get("google_form_feedback_url", ""),
         "can_edit_cycles": (target_year == 1 or target_year is None)
     }
 

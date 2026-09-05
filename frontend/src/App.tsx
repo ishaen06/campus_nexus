@@ -15,6 +15,8 @@ import GroupChat from './pages/GroupChat';
 import AdminDashboard from './pages/AdminDashboard';
 import Notifications from './pages/Notifications';
 import JoinTeam from './pages/JoinTeam';
+import Feedback from './pages/Feedback';
+import Credits from './pages/Credits';
 import Layout from './components/Layout';
 
 
@@ -60,6 +62,8 @@ function App() {
           <Route path="/admin/reports" element={<AdminDashboard tab="reports" />} />
           <Route path="/admin/ratings" element={<AdminDashboard tab="ratings" />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/feedback" element={<Feedback />} />
+          <Route path="/credits" element={<Credits />} />
 
           <Route path="/dashboard" element={<Navigate to="/discovery" replace />} />
         </Route>

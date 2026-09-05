@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap, Star } from 'lucide-react';
+import { Compass, Users, FolderGit, LogOut, User as UserIcon, Sun, Moon, MessageSquare, LayoutDashboard, ChevronDown, Bell, Download, AlertOctagon, BarChart3, Search, ChevronLeft, ChevronRight, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck, GraduationCap, Star, ClipboardCheck, Sparkles, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -25,6 +25,19 @@ export default function Layout() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [dropdownTimeout, setDropdownTimeout] = useState<any>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [feedbackFormUrl, setFeedbackFormUrl] = useState<string>('https://docs.google.com/forms/d/e/1FAIpQLScampusnexus-feedback/viewform');
+
+  useEffect(() => {
+    api.get('/users/feedback-link')
+      .then(res => {
+        if (res.data?.url) setFeedbackFormUrl(res.data.url);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenFeedback = () => {
+    window.open(feedbackFormUrl, '_blank', 'noopener,noreferrer');
+  };
   
   // Admin lock states
 
@@ -421,52 +434,96 @@ export default function Layout() {
             )}
           </div>
 
-          <div className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
-            {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
-              const isActive = item.path.startsWith('/admin')
-                ? location.pathname === item.path
-                : location.pathname.startsWith(item.path);
-              const Icon = item.icon;
-              const danger = (item as any).danger;
-              
-              const isAdminPath = item.path.startsWith('/admin');
-              return (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  title={isCollapsed ? item.name : undefined}
-                  className={cn(
-                    "flex items-center transition-all duration-300 font-medium relative",
-                    isCollapsed ? "justify-center p-3 rounded-xl mx-auto w-12" : "justify-between px-4 py-3",
-                    isAdminPath
-                      ? (isActive
-                          ? "border-l-4 border-[#1e3a8a] dark:border-blue-500 text-[#1e3a8a] dark:text-blue-400 bg-[#1e3a8a]/5 dark:bg-blue-950/20 rounded-none pl-3 font-semibold"
-                          : "border-l-4 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100/30 dark:hover:bg-slate-900/30 hover:text-slate-900 dark:hover:text-slate-100 rounded-none pl-3"
-                        )
-                      : (isActive
-                          ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl")
-                          : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl")
-                        )
-                  )}
-                >
-                  <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
-                    <Icon size={20} className={cn("shrink-0", danger ? "text-red-400" : (isActive ? (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400" : "text-indigo-400") : "text-slate-400"))} />
-                    {!isCollapsed && <span className="text-sm font-semibold tracking-wide">{item.name}</span>}
-                  </div>
-                  {!isCollapsed && (item as any).badge !== undefined && (item as any).badge > 0 && (
-                    <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded-full font-bold">
-                      {(item as any).badge}
+          <div className="flex-1 px-4 mt-4 overflow-y-auto no-scrollbar flex flex-col justify-between">
+            <div className="space-y-2">
+              {navItems.filter(item => item.name !== 'Profile' && item.name !== 'My Profile').map((item) => {
+                const isActive = item.path.startsWith('/admin')
+                  ? location.pathname === item.path
+                  : location.pathname.startsWith(item.path);
+                const Icon = item.icon;
+                const danger = (item as any).danger;
+                
+                const isAdminPath = item.path.startsWith('/admin');
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    title={isCollapsed ? item.name : undefined}
+                    className={cn(
+                      "flex items-center transition-all duration-300 font-medium relative",
+                      isCollapsed ? "justify-center p-3 rounded-xl mx-auto w-12" : "justify-between px-4 py-3",
+                      isAdminPath
+                        ? (isActive
+                            ? "border-l-4 border-[#1e3a8a] dark:border-blue-500 text-[#1e3a8a] dark:text-blue-400 bg-[#1e3a8a]/5 dark:bg-blue-950/20 rounded-none pl-3 font-semibold"
+                            : "border-l-4 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100/30 dark:hover:bg-slate-900/30 hover:text-slate-900 dark:hover:text-slate-100 rounded-none pl-3"
+                          )
+                        : (isActive
+                            ? (danger ? "bg-red-500/10 text-red-400 rounded-2xl" : "bg-slate-900/80 shadow-sm shadow-indigo-950/50 text-indigo-400 rounded-2xl")
+                            : (danger ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-2xl" : "text-slate-400 hover:bg-slate-900/30 hover:text-slate-100 rounded-2xl")
+                          )
+                    )}
+                  >
+                    <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
+                      <Icon size={20} className={cn("shrink-0", danger ? "text-red-400" : (isActive ? (isAdminPath ? "text-[#1e3a8a] dark:text-blue-400" : "text-indigo-400") : "text-slate-400"))} />
+                      {!isCollapsed && <span className="text-sm font-semibold tracking-wide">{item.name}</span>}
+                    </div>
+                    {!isCollapsed && (item as any).badge !== undefined && (item as any).badge > 0 && (
+                      <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded-full font-bold">
+                        {(item as any).badge}
+                      </span>
+                    )}
+                    {item.name === 'Notifications' && hasUnreadNotifications && (
+                      <span className="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                    )}
+                    {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
+                      <span className="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Bottom Tabs Section: Feedback & Credits */}
+            <div className="pt-3 mt-4 border-t border-slate-200/40 dark:border-white/10 space-y-1 pb-1">
+              {/* Feedback Link (opens Google Form) */}
+              <button
+                type="button"
+                onClick={handleOpenFeedback}
+                title={isCollapsed ? "App Feedback (Google Form)" : undefined}
+                className={cn(
+                  "w-full flex items-center transition-all duration-300 font-medium cursor-pointer text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 hover:bg-purple-500/10 rounded-2xl text-left",
+                  isCollapsed ? "justify-center p-3 mx-auto w-12" : "justify-between px-4 py-2.5"
+                )}
+              >
+                <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
+                  <ClipboardCheck size={20} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-semibold tracking-wide flex items-center gap-1.5">
+                      Feedback
+                      <ExternalLink size={12} className="opacity-60" />
                     </span>
                   )}
-                  {item.name === 'Notifications' && hasUnreadNotifications && (
-                    <span className="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
-                  )}
-                  {(item.name === 'Connections' || item.name === 'Chats') && hasUnread && (
-                    <span className="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950 animate-pulse" />
-                  )}
-                </Link>
-              );
-            })}
+                </div>
+              </button>
+
+              {/* Credits Link */}
+              <Link
+                to="/credits"
+                title={isCollapsed ? "Platform Credits" : undefined}
+                className={cn(
+                  "flex items-center transition-all duration-300 font-medium cursor-pointer",
+                  location.pathname === '/credits'
+                    ? "bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold"
+                    : "text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 rounded-2xl",
+                  isCollapsed ? "justify-center p-3 mx-auto w-12" : "justify-between px-4 py-2.5"
+                )}
+              >
+                <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
+                  <Sparkles size={20} className="shrink-0 text-amber-500 dark:text-amber-400" />
+                  {!isCollapsed && <span className="text-sm font-semibold tracking-wide">Credits</span>}
+                </div>
+              </Link>
+            </div>
           </div>
 
           <div className="p-3 border-t border-slate-200/20 dark:border-white/10 space-y-2">
@@ -507,6 +564,29 @@ export default function Layout() {
                   >
                     <UserIcon size={14} />
                     Edit Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      handleOpenFeedback();
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <ClipboardCheck size={14} />
+                      App Feedback
+                    </span>
+                    <ExternalLink size={11} className="opacity-60" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      navigate('/credits');
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles size={14} className="text-amber-500" />
+                    Platform Credits
                   </button>
                   <button
                     onClick={() => {
@@ -641,6 +721,24 @@ export default function Layout() {
                   </Link>
                 );
               })}
+            <button
+              type="button"
+              onClick={handleOpenFeedback}
+              title="App Feedback (Google Form)"
+              className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-purple-400 transition-all cursor-pointer"
+            >
+              <ClipboardCheck size={24} />
+            </button>
+            <Link
+              to="/credits"
+              title="Platform Credits"
+              className={cn(
+                "flex flex-col items-center gap-1 p-2 transition-all duration-300 relative",
+                location.pathname === '/credits' ? "text-indigo-400 scale-110" : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              <Sparkles size={24} />
+            </Link>
             <button
               onClick={toggleTheme}
               className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"

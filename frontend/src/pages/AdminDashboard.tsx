@@ -33,7 +33,10 @@ import {
   Sparkles,
   RefreshCw,
   Save,
-  Loader2
+  Loader2,
+  ClipboardCheck,
+  ExternalLink,
+  Copy
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -413,6 +416,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     cluster_mappings?: Record<string, string>;
     cluster_themes?: Record<string, string[]>;
     cohort_mappings?: Record<string, number>;
+    google_form_feedback_url?: string;
     branch_counts: Record<string, number>;
     total_students: number;
   } | null>(null);
@@ -424,6 +428,9 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
     3: '24'
   });
   const [cohortSaving, setCohortSaving] = useState(false);
+  const [feedbackUrlInput, setFeedbackUrlInput] = useState<string>('');
+  const [feedbackUrlSaving, setFeedbackUrlSaving] = useState(false);
+  const [feedbackUrlCopied, setFeedbackUrlCopied] = useState(false);
   const [newBranchCode, setNewBranchCode] = useState('');
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchCycle, setNewBranchCycle] = useState<'C' | 'P'>('C');
@@ -675,6 +682,7 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
         cluster_mappings: academicSettings.cluster_mappings,
         cluster_themes: academicSettings.cluster_themes,
         cohort_mappings: academicSettings.cohort_mappings,
+        google_form_feedback_url: feedbackUrlInput.trim() || academicSettings.google_form_feedback_url,
       };
       if (globalYear !== 2 && globalYear !== 3) {
         payload.cycle_mappings = academicSettings.cycle_mappings;
@@ -822,6 +830,36 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
       alert(err.response?.data?.detail || "Failed to update academic year allocation");
     } finally {
       setCohortSaving(false);
+    }
+  };
+
+  // Synchronize Google Form feedback URL with academicSettings
+  useEffect(() => {
+    if (academicSettings?.google_form_feedback_url !== undefined) {
+      setFeedbackUrlInput(academicSettings.google_form_feedback_url || '');
+    }
+  }, [academicSettings?.google_form_feedback_url]);
+
+  const handleSaveFeedbackUrl = async () => {
+    if (!feedbackUrlInput.trim()) {
+      alert("Please enter a valid Google Form URL.");
+      return;
+    }
+    setFeedbackUrlSaving(true);
+    try {
+      const res = await api.put('/admin/academic-settings', {
+        google_form_feedback_url: feedbackUrlInput.trim(),
+        year: globalYear
+      });
+      if (res.data?.google_form_feedback_url !== undefined) {
+        setAcademicSettings(prev => prev ? { ...prev, google_form_feedback_url: res.data.google_form_feedback_url } : prev);
+      }
+      alert("Feedback Google Form URL updated successfully! Students clicking 'Feedback' will now open this form.");
+    } catch (err: any) {
+      console.error("Failed to update feedback form URL", err);
+      alert(err.response?.data?.detail || "Failed to update feedback form URL");
+    } finally {
+      setFeedbackUrlSaving(false);
     }
   };
 
@@ -3884,6 +3922,75 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                       </button>
                     </div>
                   </form>
+                </div>
+
+                {/* Google Forms App Feedback Survey Link Configuration */}
+                <div className="glass-panel p-6 space-y-4 border border-purple-200/60 dark:border-purple-900/40">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <ClipboardCheck size={16} className="text-purple-600 dark:text-purple-400" /> App Feedback Survey (Google Forms)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                      <ExternalLink size={11} /> Live Launcher
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                    Set the Google Form URL that opens when students click <span className="font-bold text-slate-700 dark:text-slate-300">Feedback</span> in the navigation tabs. Because you create and host this form under your Google account, only you have access to responses and spreadsheets.
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Google Form URL
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={feedbackUrlInput}
+                        onChange={(e) => setFeedbackUrlInput(e.target.value)}
+                        placeholder="https://docs.google.com/forms/d/e/.../viewform"
+                        className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-medium text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveFeedbackUrl}
+                        disabled={feedbackUrlSaving || !feedbackUrlInput.trim()}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-500/20 cursor-pointer transition-all shrink-0 flex items-center gap-1.5"
+                      >
+                        {feedbackUrlSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                        <span>Save Link</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => window.open(feedbackUrlInput || 'https://docs.google.com/forms', '_blank', 'noopener,noreferrer')}
+                        className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <ExternalLink size={12} /> Test Live Form
+                      </button>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(feedbackUrlInput);
+                          setFeedbackUrlCopied(true);
+                          setTimeout(() => setFeedbackUrlCopied(false), 2000);
+                        }}
+                        className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        {feedbackUrlCopied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                        {feedbackUrlCopied ? 'Copied!' : 'Copy Link'}
+                      </button>
+                    </div>
+
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      create_google_form.gs in project root
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

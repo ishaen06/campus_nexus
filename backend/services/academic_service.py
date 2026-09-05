@@ -104,6 +104,8 @@ DEFAULT_COHORT_MAPPINGS = {
     "23": 4,  # 4th Year (2023 Batch)
 }
 
+DEFAULT_FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScampusnexus-feedback/viewform"
+
 ALLOWED_GMAIL_ACCOUNTS = {
     "ishaen06@gmail.com",
     "ishaen.vihaan@gmail.com"
@@ -197,7 +199,8 @@ def get_academic_settings(db):
             "cycle_mappings": DEFAULT_CYCLE_MAPPINGS,
             "cluster_mappings": DEFAULT_CLUSTER_MAPPINGS,
             "cluster_themes": {k: list(v) for k, v in DEFAULT_CLUSTER_THEMES.items()},
-            "cohort_mappings": dict(DEFAULT_COHORT_MAPPINGS)
+            "cohort_mappings": dict(DEFAULT_COHORT_MAPPINGS),
+            "google_form_feedback_url": DEFAULT_FEEDBACK_FORM_URL
         }
         try:
             db.academic_settings.insert_one(settings)
@@ -210,6 +213,7 @@ def get_academic_settings(db):
         cl_map = settings.get("cluster_mappings", {})
         cl_themes = settings.get("cluster_themes", {})
         cohort_map = settings.get("cohort_mappings", {})
+        feedback_url = settings.get("google_form_feedback_url") or DEFAULT_FEEDBACK_FORM_URL
         for k, v in DEFAULT_BRANCH_NAMES.items():
             if k not in b_map:
                 b_map[k] = v
@@ -232,6 +236,7 @@ def get_academic_settings(db):
         settings["cluster_mappings"] = cl_map
         settings["cluster_themes"] = cl_themes
         settings["cohort_mappings"] = cohort_map
+        settings["google_form_feedback_url"] = feedback_url
         try:
             db.academic_settings.update_one({"_id": "global"}, {"$set": settings})
         except Exception:
