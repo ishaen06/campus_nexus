@@ -8,13 +8,14 @@ from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
+import re
 
 router = APIRouter()
 
 @router.post("/google", response_model=Token)
 def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
     token = payload.credential
-    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "917861196656-ir7d9pgojdukvfi8i5lufu3fdia1ljdj.apps.googleusercontent.com")
     
     # Mock token fallback for local automated testing/development
     if token.startswith("mock_google_token_"):
@@ -49,7 +50,24 @@ def google_auth(payload: GoogleLoginRequest, db = Depends(get_mongo_db)):
         )
 
     # Check if user already exists
-    user = db.users.find_one({"email": email})
+    clean_email = email.lower().strip()
+    user = db.users.find_one({"email": clean_email})
+    
+    # In RVCE: AI and CI are the same department (AI/ML). Resolve alias if not found.
+    if not user:
+        alt_email = None
+        if re.search(r"\.ai(\d{2})@rvce\.edu\.in$", clean_email):
+            alt_email = re.sub(r"\.ai(\d{2})@rvce\.edu\.in$", r".ci\1@rvce.edu.in", clean_email)
+        elif re.search(r"\.ci(\d{2})@rvce\.edu\.in$", clean_email):
+            alt_email = re.sub(r"\.ci(\d{2})@rvce\.edu\.in$", r".ai\1@rvce.edu.in", clean_email)
+            
+        if alt_email:
+            user = db.users.find_one({"email": alt_email})
+            if user:
+                # Sync user record email to the exact Google authenticated email
+                db.users.update_one({"id": user["id"]}, {"$set": {"email": clean_email}})
+                user["email"] = clean_email
+
     
     # Check if student email
     is_student_email = email.endswith("@rvce.edu.in")

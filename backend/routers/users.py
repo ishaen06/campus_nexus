@@ -21,7 +21,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_mongo
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid auth credentials")
         
-    user = db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+    clean_email = (email or "").strip().lower()
+    user = db.users.find_one({"email": clean_email})
+    if user is None:
+        import re
+        user = db.users.find_one({"email": re.compile(f"^{re.escape(clean_email)}$", re.IGNORECASE)})
+    if user is None:
+        alt_email = None
+        if ".ai" in clean_email:
+            alt_email = clean_email.replace(".ai", ".ci")
+        elif ".ci" in clean_email:
+            alt_email = clean_email.replace(".ci", ".ai")
+        if alt_email:
+            user = db.users.find_one({"email": alt_email})
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     if user.get("is_banned", False):

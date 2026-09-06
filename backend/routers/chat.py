@@ -62,9 +62,19 @@ def get_user_from_token(token: str, db):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
-            return None
-        return db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+        clean_email = (email or "").strip().lower()
+        u = db.users.find_one({"email": clean_email})
+        if u is None:
+            u = db.users.find_one({"email": re.compile(f"^{re.escape(clean_email)}$", re.IGNORECASE)})
+        if u is None:
+            alt_email = None
+            if ".ai" in clean_email:
+                alt_email = clean_email.replace(".ai", ".ci")
+            elif ".ci" in clean_email:
+                alt_email = clean_email.replace(".ci", ".ai")
+            if alt_email:
+                u = db.users.find_one({"email": alt_email})
+        return u
     except JWTError:
         return None
 

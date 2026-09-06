@@ -24,6 +24,43 @@ export default function Login() {
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState<boolean>(false);
+
+  // Auto-redirect if already logged in with valid token
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      api.get('/users/me')
+        .then(res => {
+          if (res.data) {
+            const isUserAdmin = res.data.is_admin || (res.data.email || '').toLowerCase().trim() === 'ishaen.vihaan@gmail.com';
+            if (isUserAdmin) {
+              navigate('/admin/analytics', { replace: true });
+            } else if (!res.data.usn && !res.data.is_mentor) {
+              navigate('/profile-setup', { replace: true });
+            } else {
+              const redirectUrl = sessionStorage.getItem('post_login_redirect');
+              if (redirectUrl) {
+                sessionStorage.removeItem('post_login_redirect');
+                navigate(redirectUrl, { replace: true });
+              } else {
+                navigate('/discovery', { replace: true });
+              }
+            }
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+        });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+    const isWebview = /FBAN|FBAV|Instagram|WhatsApp|Line|MicroMessenger|Snapchat/i.test(ua);
+    setIsInAppBrowser(isWebview);
+  }, []);
+
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -212,6 +249,19 @@ export default function Login() {
             Sign in to your peer network
           </p>
         </div>
+
+        {isInAppBrowser && (
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-amber-600 dark:text-amber-400 text-xs font-semibold text-center bg-amber-50/80 dark:bg-amber-950/40 backdrop-blur-sm border border-amber-200/60 dark:border-amber-800/50 p-3 rounded-2xl shadow-sm space-y-1"
+          >
+            <p className="font-bold text-[11px] uppercase tracking-wide">Opened in WhatsApp / In-App Browser</p>
+            <p className="text-[11px] font-normal leading-relaxed opacity-95">
+              Google Sign-In may be restricted here. Tap the three dots (⋮) in the top right corner and tap <strong>"Open in Chrome"</strong> or <strong>"Open in Safari"</strong>.
+            </p>
+          </motion.div>
+        )}
 
         {error && (
           <motion.div 
