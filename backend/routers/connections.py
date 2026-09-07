@@ -25,6 +25,15 @@ def send_connection_request(conn_data: ConnectionBase, current_user = Depends(ge
     _, _, sender_year = _extract_user_academic_info(current_user)
     _, _, receiver_year = _extract_user_academic_info(receiver)
 
+    # Enforce strict academic year isolation: students can only connect with students of their OWN academic year
+    if not current_user.get("is_mentor") and not current_user.get("is_admin"):
+        if not receiver.get("is_mentor") and not receiver.get("is_admin"):
+            if sender_year and receiver_year and sender_year != receiver_year:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cross-year connections are not allowed. You are in Year {sender_year} and cannot connect with a Year {receiver_year} student."
+                )
+
     if not current_user.get("is_mentor") and not current_user.get("is_admin"):
         if sender_year != 1 and not (current_user.get("usn") or "").strip():
             raise HTTPException(status_code=400, detail="USN is compulsory. You must complete your profile with your USN before sending connection requests.")
@@ -154,10 +163,25 @@ def accept_connection(conn_id: int, current_user = Depends(get_current_user), db
     if conn["receiver_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized to accept this request")
         
+    sender = db.users.find_one({"id": conn["sender_id"]})
+    if not sender:
+        raise HTTPException(status_code=404, detail="Sender not found")
+
+    # Enforce strict academic year isolation on accept
+    if not current_user.get("is_mentor") and not current_user.get("is_admin"):
+        if not sender.get("is_mentor") and not sender.get("is_admin"):
+            from routers.chat import _extract_user_academic_info
+            _, _, receiver_year = _extract_user_academic_info(current_user)
+            _, _, sender_year = _extract_user_academic_info(sender)
+            if receiver_year and sender_year and receiver_year != sender_year:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cross-year connections are not allowed. You are in Year {receiver_year} and cannot accept a request from a Year {sender_year} student."
+                )
+
     db.connections.update_one({"id": conn_id}, {"$set": {"status": "ACCEPTED"}})
     
     # Auto-inject AI Icebreaker!
-    sender = db.users.find_one({"id": conn["sender_id"]})
     icebreaker_text = generate_icebreaker(MongoUser(sender), MongoUser(current_user))
     new_msg_id = get_next_sequence_value("messages")
     db.messages.insert_one({
@@ -203,8 +227,10 @@ def reject_connection(conn_id: int, current_user = Depends(get_current_user), db
 
 
 @router.get("/")
-
 def list_connections(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
+    from routers.chat import _extract_user_academic_info
+    _, _, cur_year = _extract_user_academic_info(current_user)
+
     # Return both pending requests received and accepted matches
     connections = list(db.connections.find({
         "$or": [
@@ -219,6 +245,14 @@ def list_connections(current_user = Depends(get_current_user), db = Depends(get_
         other_user = db.users.find_one({"id": other_user_id})
         if not other_user:
             continue
+
+        # Strictly isolate students: each student only connects with peers in their own academic year
+        # (Mentors and admins can connect across years)
+        if not current_user.get("is_mentor") and not current_user.get("is_admin"):
+            if not other_user.get("is_mentor") and not other_user.get("is_admin"):
+                _, _, other_year = _extract_user_academic_info(other_user)
+                if cur_year and other_year and cur_year != other_year:
+                    continue
             
         other_user_obj = MongoUser(other_user)
         

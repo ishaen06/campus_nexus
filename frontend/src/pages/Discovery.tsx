@@ -26,6 +26,7 @@ interface UserProfile {
   cycle?: string;
   joining_year?: number;
   usn?: string;
+  email?: string;
 }
 
 interface GroupItem {
@@ -216,7 +217,12 @@ export default function Discovery() {
   const filteredUsers = users.filter(user => {
     if ((user as any).is_admin || (user as any).role === 'admin' || user.bio?.includes('Platform Administrator')) return false;
     
-    // Academic Year filter: Year 2 uses Cluster; Year 1 uses Cycle
+    // Strict academic year isolation: each student only sees peers from their OWN year
+    const myYear = getYearOfStudy(me?.joining_year, me?.email, me?.usn);
+    const uYear = getYearOfStudy(user.joining_year, user.email, user.usn);
+    if (myYear && uYear && myYear !== uYear) return false;
+
+    // Academic Year filter: Year 2+ uses Cluster; Year 1 uses Cycle
     if (isSecondYear) {
       if (clusterFilter !== 'all') {
         const uCluster = getUserCluster(user);
@@ -407,7 +413,15 @@ export default function Discovery() {
               const visiblePublicTeams = publicTeams.filter(team => {
                 if (me && team.member_ids.includes(me.id)) return false;
                 
-                // Cluster filter for Year 2, Cycle filter for Year 1
+                // Strict academic year isolation: each student only sees recruiting teams from their OWN year
+                const myYear = getYearOfStudy(me?.joining_year, me?.email, me?.usn);
+                const studentMembers = (team.members || []).filter((m: any) => !m.is_mentor);
+                if (studentMembers.length > 0) {
+                  const teamYear = getYearOfStudy(studentMembers[0].joining_year, studentMembers[0].email, studentMembers[0].usn);
+                  if (myYear && teamYear && myYear !== teamYear) return false;
+                }
+
+                // Cluster filter for Year 2+, Cycle filter for Year 1
                 if (isSecondYear) {
                   if (clusterFilter !== 'all') {
                     const members = (team.members || []).filter((m: any) => !m.is_mentor);

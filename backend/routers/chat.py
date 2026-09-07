@@ -771,12 +771,19 @@ def create_group_chat(group_data: GroupChatCreate, current_user = Depends(get_cu
             detail="One or more member IDs are invalid."
         )
 
+    _, _, creator_study_year = _extract_user_academic_info(current_user)
     for u in member_users:
         if u.get("is_admin") or (u.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
             raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is an administrator and cannot be added to a student team.")
         if u.get("is_mentor"):
             raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is a mentor and cannot be added as a student team member.")
         _, _, u_study_year = _extract_user_academic_info(u)
+        if u_study_year != creator_study_year:
+            name_str = "You are" if u["id"] == current_user["id"] else f"Student '{u.get('full_name')}' is"
+            raise HTTPException(
+                status_code=400,
+                detail=f"Academic year mismatch: All team members must be from the same academic year (Year {creator_study_year}). {name_str} in Year {u_study_year}."
+            )
         if u_study_year != 1 and not (u.get("usn") or "").strip():
             name_str = "You have" if u["id"] == current_user["id"] else f"Student '{u.get('full_name')}' has"
             raise HTTPException(
@@ -844,15 +851,33 @@ def get_user_group_chats(current_user = Depends(get_current_user), db = Depends(
     return [build_group_response(g, db, current_user) for g in groups]
 
 @router.get("/groups/public", response_model=List[GroupChatResponse])
-def get_public_group_chats(db = Depends(get_mongo_db)):
+def get_public_group_chats(current_user = Depends(get_current_user), db = Depends(get_mongo_db)):
     # Find all public groups
     public_groups = list(db.group_chats.find({"is_public": True}))
     
+    # Determine current user's academic year
+    _, _, cur_y_study = _extract_user_academic_info(current_user)
+
     results = []
     for g in public_groups:
-        resp = build_group_response(g, db, None)
+        resp = build_group_response(g, db, current_user)
         # Only show groups that have fewer than 5 members (open to accept people)
         if len(resp["member_ids"]) < 5:
+            # Check team's academic year from student members or creator
+            team_year = None
+            student_members = [m for m in resp["members"] if not m.get("is_mentor")]
+            if student_members:
+                _, _, team_year = _extract_user_academic_info(student_members[0])
+            elif g.get("created_by"):
+                creator = db.users.find_one({"id": g["created_by"]})
+                if creator:
+                    _, _, team_year = _extract_user_academic_info(creator)
+
+            # Strictly isolate students: each student only sees teams of their own academic year
+            if not current_user.get("is_admin") and not current_user.get("is_mentor"):
+                if team_year is not None and team_year != cur_y_study:
+                    continue
+
             results.append(resp)
     return results
 
@@ -934,11 +959,25 @@ def update_group_chat(group_id: int, group_data: GroupChatUpdate, current_user =
                 detail="One or more member IDs are invalid."
             )
 
+        _, _, creator_study_year = _extract_user_academic_info(current_user)
         for u in member_users:
             if u.get("is_admin") or (u.get("email") or "").lower() == "ishaen.vihaan@gmail.com":
                 raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is an administrator and cannot be added to a student team.")
             if u.get("is_mentor"):
                 raise HTTPException(status_code=400, detail=f"User '{u.get('full_name')}' is a mentor and cannot be added as a student team member.")
+            _, _, u_study_year = _extract_user_academic_info(u)
+            if u_study_year != creator_study_year:
+                name_str = "You are" if u["id"] == current_user["id"] else f"Student '{u.get('full_name')}' is"
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Academic year mismatch: All team members must be from Year {creator_study_year}. {name_str} in Year {u_study_year}."
+                )
+            if u_study_year != 1 and not (u.get("usn") or "").strip():
+                name_str = "You have" if u["id"] == current_user["id"] else f"Student '{u.get('full_name')}' has"
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{name_str} not entered a USN. USN is compulsory for all student team members."
+                )
 
             
         # Enforce that a user can only be in one team at a time
@@ -1133,12 +1172,21 @@ def get_invite_preview(invite_code: str, current_user = Depends(get_current_user
                 reason = "USN is compulsory. You must complete your profile with your USN before joining a team."
             else:
                 student_members = [m for m in member_users if not m.get("is_mentor")]
-                if student_members:
-                    team_years = {m.get("year_of_study") for m in student_members if m.get("year_of_study")}
-                    if team_years and u_y_study not in team_years:
-                        team_year_val = next(iter(team_years))
-                        can_join = False
-                        reason = f"Academic Year Mismatch: Team members are in Year {team_year_val}, while your profile is Year {u_y_study}."
+                team_years = set()
+                for sm in student_members:
+                    _, _, sm_y = _extract_user_academic_info(sm)
+                    if sm_y:
+                        team_years.add(sm_y)
+                if not team_years and group.get("created_by"):
+                    creator = db.users.find_one({"id": group["created_by"]})
+                    if creator:
+                        _, _, cr_y = _extract_user_academic_info(creator)
+                        if cr_y:
+                            team_years.add(cr_y)
+                if team_years and u_y_study not in team_years:
+                    team_year_val = next(iter(team_years))
+                    can_join = False
+                    reason = f"Academic Year Mismatch: Team members are in Year {team_year_val}, while your profile is Year {u_y_study}."
 
     return {
         "group_id": group["id"],
@@ -1211,14 +1259,23 @@ def join_group_via_invite(invite_code: str, current_user = Depends(get_current_u
     member_users = list(db.users.find({"id": {"$in": member_ids}}))
     u_b_code, u_j_yr, u_y_study = _extract_user_academic_info(current_user)
     student_members = [m for m in member_users if not m.get("is_mentor")]
-    if student_members:
-        team_years = {m.get("year_of_study") for m in student_members if m.get("year_of_study")}
-        if team_years and u_y_study not in team_years:
-            team_year_val = next(iter(team_years))
-            raise HTTPException(
-                status_code=400,
-                detail=f"Academic year mismatch: Team members are in Year {team_year_val}, while you are in Year {u_y_study}."
-            )
+    team_years = set()
+    for sm in student_members:
+        _, _, sm_y = _extract_user_academic_info(sm)
+        if sm_y:
+            team_years.add(sm_y)
+    if not team_years and group.get("created_by"):
+        creator = db.users.find_one({"id": group["created_by"]})
+        if creator:
+            _, _, cr_y = _extract_user_academic_info(creator)
+            if cr_y:
+                team_years.add(cr_y)
+    if team_years and u_y_study not in team_years:
+        team_year_val = next(iter(team_years))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Academic year mismatch: Team members are in Year {team_year_val}, while you are in Year {u_y_study}."
+        )
 
     # Add user to group_members
     new_member_id = get_next_sequence_value("group_members")

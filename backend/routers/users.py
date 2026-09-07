@@ -322,16 +322,22 @@ def get_discovery(
 
     if branch:
         query_filter["branch"] = branch
-    if year_of_study:
+    if year_of_study and (current_user.get("is_admin") or current_user.get("is_mentor")):
         query_filter["year_of_study"] = year_of_study
         
-    users = list(db.users.find(query_filter).limit(20))
+    users = list(db.users.find(query_filter).limit(30))
     
     discovery_feed = []
     current_user_obj = MongoUser(current_user)
     
     from services.academic_service import enrich_user_academic_profile
     for u in users:
+        # Strict post-filter safety: ensure the peer is genuinely from the viewer's academic year
+        if not current_user.get("is_admin") and not current_user.get("is_mentor"):
+            _, _, u_y = _extract_user_academic_info(u)
+            if u_y != cur_year_of_study:
+                continue
+
         u_obj = MongoUser(u)
         ai_data = calculate_compatibility(current_user_obj, u_obj)
         user_dict = enrich_user_academic_profile(dict(u), db)
