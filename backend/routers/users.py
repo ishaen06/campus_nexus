@@ -252,7 +252,36 @@ def get_discovery(
         if cur_year_of_study != 1 and not (current_user.get("usn") or "").strip():
             raise HTTPException(status_code=400, detail="USN is compulsory. Please complete your profile with your USN to access Discovery.")
 
-    # Base query - show students who have a valid USN, OR are 1st year students
+    # -----------------------------------------------------------------------
+    # YEAR ISOLATION: each student only sees peers from their OWN academic year
+    # -----------------------------------------------------------------------
+    # Determine the joining-year digits and email regex for the viewer's year
+    YEAR_TO_EMAIL_SUFFIX = {1: "26", 2: "25", 3: "24", 4: "23"}
+    year_suffix = YEAR_TO_EMAIL_SUFFIX.get(cur_year_of_study, "")
+
+    if cur_year_of_study == 1:
+        # 1st years: no USN required — match by year_of_study, joining_year or email
+        year_filter = {
+            "$or": [
+                {"year_of_study": 1},
+                {"joining_year": 2026},
+                {"email": {"$regex": r"26@rvce\.edu\.in$", "$options": "i"}}
+            ]
+        }
+    else:
+        # 2nd/3rd/4th years: must have USN AND belong to same year
+        joining_year = 2027 - cur_year_of_study  # 2→2025, 3→2024, 4→2023
+        year_filter = {
+            "$and": [
+                {"usn": {"$nin": [None, "", "NONE", "null", "NULL"]}},
+                {"$or": [
+                    {"year_of_study": cur_year_of_study},
+                    {"joining_year": joining_year},
+                    {"email": {"$regex": rf"{year_suffix}@rvce\.edu\.in$", "$options": "i"}}
+                ]}
+            ]
+        }
+
     query_filter = {
         "id": {"$nin": exclude_ids},
         "is_verified": True,
@@ -260,16 +289,10 @@ def get_discovery(
         "is_mentor": False,
         "is_admin": False,
         "role": {"$nin": ["admin"]},
-        "$or": [
-            {"usn": {"$nin": [None, "", "NONE", "null", "NULL"]}},
-            {"year_of_study": 1},
-            {"joining_year": 2026},
-            {"email": {"$regex": r"26@rvce\.edu\.in$", "$options": "i"}}
-        ]
+        **year_filter
     }
-    
+
     # Apply smart cycle matchmaking filter only for 1st year student teams
-    
     if cur_year_of_study == 1:
         active_teams = list(db.group_chats.find({"created_by": current_user["id"]}))
         if active_teams:
@@ -288,7 +311,7 @@ def get_discovery(
                             p_count += 1
                         elif cycle == "C":
                             c_count += 1
-                    
+
                     if p_count > c_count:
                         query_filter["cycle"] = "C"
                         break
