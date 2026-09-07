@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Camera, X, Eye, EyeOff, Lock, ChevronLeft } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import Logo from '../components/Logo';
+import { getStudentYearOfStudy } from '../utils/academic';
 
 const INTERESTS_LIST = [
   "Startups", "Entrepreneurship", "Artificial Intelligence", "Robotics",
@@ -43,6 +44,13 @@ export default function ProfileSetup() {
   const navigate = useNavigate();
   const [showSkip, setShowSkip] = useState(false);
 
+  const isFirstYear = getStudentYearOfStudy({
+    email: userEmail,
+    joining_year: joiningYear,
+    year_of_study: yearOfStudy,
+    usn
+  }) === 1;
+
   useEffect(() => {
     api.get('/users/me').then(res => {
       setFullName(res.data.full_name || '');
@@ -50,6 +58,7 @@ export default function ProfileSetup() {
       setUserEmail(userEmail);
       const isRvce = userEmail.endsWith('@rvce.edu.in');
       const userIsMentor = isRvce ? false : res.data.is_mentor;
+      const isFirstYr = getStudentYearOfStudy(res.data) === 1;
       
       if (userIsMentor !== null && userIsMentor !== undefined) {
         setIsMentor(userIsMentor);
@@ -68,7 +77,7 @@ export default function ProfileSetup() {
       
       const isComplete = userIsMentor === true 
         ? Boolean(res.data.department && res.data.post)
-        : Boolean(res.data.usn);
+        : (isFirstYr || Boolean(res.data.usn));
       setShowSkip(isComplete);
       
       setUsn(res.data.usn || '');
@@ -110,43 +119,45 @@ export default function ProfileSetup() {
         return;
       }
     } else {
-      if (!usn.trim()) {
+      if (!isFirstYear && !usn.trim()) {
         alert('USN is mandatory for student setup. Please enter your valid USN.');
         return;
       }
-      const cleanUsn = usn.trim().toLowerCase();
-      const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
-      if (!pattern.test(cleanUsn)) {
-        alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV24CS001)");
-        return;
-      }
+      if (usn.trim()) {
+        const cleanUsn = usn.trim().toLowerCase();
+        const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
+        if (!pattern.test(cleanUsn)) {
+          alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV24CS001)");
+          return;
+        }
 
-      // Validate USN matches college email ID prefix
-      const cleanEmail = (userEmail || '').trim().toLowerCase();
-      if (cleanEmail.endsWith('@rvce.edu.in')) {
-        const emailPrefix = cleanEmail.split('@')[0].trim();
-        if (emailPrefix.startsWith('1rv') || emailPrefix.startsWith('1rz')) {
-          const normPrefix = emailPrefix.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
-          const normUsn = cleanUsn.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
-          if (cleanUsn !== emailPrefix && normUsn !== normPrefix) {
-            alert(`USN validation error: Your USN (${cleanUsn.toUpperCase()}) does not match your college email ID (${cleanEmail}). Expected USN: ${emailPrefix.toUpperCase()}`);
-            return;
-          }
-        } else {
-          const match = cleanEmail.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
-          if (match) {
-            const emailBranch = match[2].toLowerCase();
-            const emailYear = match[3];
-            const usnMatch = cleanUsn.match(/^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$/);
-            if (usnMatch) {
-              const usnYear = usnMatch[2];
-              const usnBranch = usnMatch[3].toLowerCase();
-              // Normalization: In RVCE, AI and CI are the same branch (AI/ML)
-              const normEmailBranch = (emailBranch === 'ai' || emailBranch === 'ci') ? 'ci' : emailBranch;
-              const normUsnBranch = (usnBranch === 'ai' || usnBranch === 'ci') ? 'ci' : usnBranch;
-              if (normUsnBranch !== normEmailBranch || usnYear !== emailYear) {
-                alert(`USN validation error: USN branch/year (${usnBranch.toUpperCase()}/${usnYear}) does not match your college email details (${emailBranch.toUpperCase()}/${emailYear}).`);
-                return;
+        // Validate USN matches college email ID prefix
+        const cleanEmail = (userEmail || '').trim().toLowerCase();
+        if (cleanEmail.endsWith('@rvce.edu.in')) {
+          const emailPrefix = cleanEmail.split('@')[0].trim();
+          if (emailPrefix.startsWith('1rv') || emailPrefix.startsWith('1rz')) {
+            const normPrefix = emailPrefix.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
+            const normUsn = cleanUsn.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
+            if (cleanUsn !== emailPrefix && normUsn !== normPrefix) {
+              alert(`USN validation error: Your USN (${cleanUsn.toUpperCase()}) does not match your college email ID (${cleanEmail}). Expected USN: ${emailPrefix.toUpperCase()}`);
+              return;
+            }
+          } else {
+            const match = cleanEmail.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
+            if (match) {
+              const emailBranch = match[2].toLowerCase();
+              const emailYear = match[3];
+              const usnMatch = cleanUsn.match(/^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$/);
+              if (usnMatch) {
+                const usnYear = usnMatch[2];
+                const usnBranch = usnMatch[3].toLowerCase();
+                // Normalization: In RVCE, AI and CI are the same branch (AI/ML)
+                const normEmailBranch = (emailBranch === 'ai' || emailBranch === 'ci') ? 'ci' : emailBranch;
+                const normUsnBranch = (usnBranch === 'ai' || usnBranch === 'ci') ? 'ci' : usnBranch;
+                if (normUsnBranch !== normEmailBranch || usnYear !== emailYear) {
+                  alert(`USN validation error: USN branch/year (${usnBranch.toUpperCase()}/${usnYear}) does not match your college email details (${emailBranch.toUpperCase()}/${emailYear}).`);
+                  return;
+                }
               }
             }
           }
@@ -425,20 +436,28 @@ export default function ProfileSetup() {
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-left flex items-center justify-between">
                   <span>USN (University Seat Number)</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-black border border-rose-500/20">
-                    * Compulsory
-                  </span>
+                  {isFirstYear ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
+                      Optional for 1st Year
+                    </span>
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-black border border-rose-500/20">
+                      * Compulsory
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. 1RV25CS088"
+                  required={!isFirstYear}
+                  placeholder={isFirstYear ? "Optional (Not yet issued for 1st Year)" : "e.g. 1RV25CS088"}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/45 border border-slate-200 dark:border-slate-850 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-black uppercase tracking-wider text-xs text-slate-900 dark:text-slate-100 shadow-inner font-mono"
                   value={usn}
                   onChange={e => setUsn(e.target.value.toUpperCase())}
                 />
                 <p className="text-[11px] text-slate-400 font-medium mt-1.5 text-left">
-                  Entering your verified RVCE USN is mandatory to activate team matchmaking, peer requests, and academic grading.
+                  {isFirstYear
+                    ? "VTU has not yet issued USNs for 1st-year students. You can leave this blank and start using the app immediately."
+                    : "Entering your verified RVCE USN is mandatory to activate team matchmaking, peer requests, and academic grading."}
                 </p>
               </div>
 

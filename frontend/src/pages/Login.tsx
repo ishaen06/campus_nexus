@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../api';
 import Logo from '../components/Logo';
 import { HeartHandshake } from 'lucide-react';
+import { getStudentYearOfStudy } from '../utils/academic';
 
 declare global {
   interface Window {
@@ -34,9 +35,10 @@ export default function Login() {
         .then(res => {
           if (res.data) {
             const isUserAdmin = res.data.is_admin || (res.data.email || '').toLowerCase().trim() === 'ishaen.vihaan@gmail.com';
+            const isFirstYear = getStudentYearOfStudy(res.data) === 1;
             if (isUserAdmin) {
               navigate('/admin/analytics', { replace: true });
-            } else if (!res.data.usn && !res.data.is_mentor) {
+            } else if (!res.data.usn && !res.data.is_mentor && !isFirstYear) {
               navigate('/profile-setup', { replace: true });
             } else {
               const redirectUrl = sessionStorage.getItem('post_login_redirect');
@@ -203,7 +205,8 @@ export default function Login() {
           navigate('/mentor-dashboard');
         }
       } else {
-        if (!meRes.data.usn) {
+        const isFirstYear = getStudentYearOfStudy(meRes.data) === 1;
+        if (!meRes.data.usn && !isFirstYear) {
           navigate('/profile-setup');
         } else {
           const redirectUrl = sessionStorage.getItem('post_login_redirect');
@@ -214,7 +217,6 @@ export default function Login() {
             navigate('/discovery');
           }
         }
-
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Google Authentication failed');

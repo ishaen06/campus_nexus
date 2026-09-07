@@ -96,64 +96,84 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
         update_data["goals"] = None
         
     elif is_mentor is False:
+        from services.academic_service import calculate_academic_year
+        user_email_str = (current_user.get("email") or "").strip().lower()
+        user_jy = current_user.get("joining_year")
+        calculated_study_year = calculate_academic_year(
+            joining_year=user_jy,
+            email=user_email_str,
+            db=db
+        )
+        is_first_year = (
+            calculated_study_year == 1
+            or "26" in user_email_str
+            or user_jy == 2026
+            or profile_data.year_of_study == 1
+            or current_user.get("year_of_study") == 1
+        )
+        
         usn_val = (profile_data.usn or "").strip()
         current_usn = (current_user.get("usn") or "").strip()
         
-        if not usn_val and not current_usn:
+        if not is_first_year and not usn_val and not current_usn:
             raise HTTPException(status_code=400, detail="USN is compulsory for all student accounts.")
             
         if profile_data.usn is not None:
             usn_clean = profile_data.usn.strip().lower()
             if not usn_clean:
-                raise HTTPException(status_code=400, detail="USN is compulsory and cannot be blank.")
-            import re
-            pattern = re.compile(r"^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$", re.IGNORECASE)
-            if not pattern.match(usn_clean):
-                raise HTTPException(status_code=400, detail="USN must start with '1rv' or '1rz', have 2-digit year, 2 to 3 letter branch, and end with a 3-digit number (e.g. 1RV24CS001)")
-            
-            # Check USN match against college email ID
-            email_clean = (current_user.get("email") or "").strip().lower()
-            if email_clean.endswith("@rvce.edu.in"):
-                email_prefix = email_clean.split("@")[0].strip()
-                if email_prefix.startswith(("1rv", "1rz")):
-                    norm_prefix = re.sub(r"^(1rv|1rz)(\d{2})(ai|ci)", r"\g<1>\g<2>ci", email_prefix)
-                    norm_usn = re.sub(r"^(1rv|1rz)(\d{2})(ai|ci)", r"\g<1>\g<2>ci", usn_clean)
-                    if usn_clean != email_prefix and norm_usn != norm_prefix:
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"USN '{usn_clean.upper()}' does not match your college email ID '{email_clean}'. Expected USN: {email_prefix.upper()}"
-                        )
+                if not is_first_year:
+                    raise HTTPException(status_code=400, detail="USN is compulsory and cannot be blank.")
                 else:
-                    from services.academic_service import parse_rvce_email
-                    parsed = parse_rvce_email(email_clean)
-                    if parsed.get("is_valid_rvce_student"):
-                        b_code = parsed.get("branch_code", "").lower()
-                        yy_str = str(parsed.get("joining_year", 2025))[-2:]
-                        usn_match = re.match(r"^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$", usn_clean)
-                        if usn_match:
-                            u_yy, u_branch = usn_match.group(2), usn_match.group(3).lower()
-                            # CI and AI are the exact same branch (Artificial Intelligence and Machine Learning)
-                            norm_u_branch = "ci" if u_branch in ("ai", "ci") else u_branch
-                            norm_b_code = "ci" if b_code in ("ai", "ci") else b_code
-                            if norm_u_branch != norm_b_code or u_yy != yy_str:
-                                raise HTTPException(
-                                    status_code=400,
-                                    detail=f"USN branch/year ({u_branch.upper()}/{u_yy}) does not match your college email details ({b_code.upper()}/{yy_str})."
-                                )
+                    update_data["usn"] = None
+            else:
+                import re
+                pattern = re.compile(r"^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$", re.IGNORECASE)
+                if not pattern.match(usn_clean):
+                    raise HTTPException(status_code=400, detail="USN must start with '1rv' or '1rz', have 2-digit year, 2 to 3 letter branch, and end with a 3-digit number (e.g. 1RV24CS001)")
+                
+                # Check USN match against college email ID
+                email_clean = (current_user.get("email") or "").strip().lower()
+                if email_clean.endswith("@rvce.edu.in"):
+                    email_prefix = email_clean.split("@")[0].strip()
+                    if email_prefix.startswith(("1rv", "1rz")):
+                        norm_prefix = re.sub(r"^(1rv|1rz)(\d{2})(ai|ci)", r"\g<1>\g<2>ci", email_prefix)
+                        norm_usn = re.sub(r"^(1rv|1rz)(\d{2})(ai|ci)", r"\g<1>\g<2>ci", usn_clean)
+                        if usn_clean != email_prefix and norm_usn != norm_prefix:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"USN '{usn_clean.upper()}' does not match your college email ID '{email_clean}'. Expected USN: {email_prefix.upper()}"
+                            )
+                    else:
+                        from services.academic_service import parse_rvce_email
+                        parsed = parse_rvce_email(email_clean)
+                        if parsed.get("is_valid_rvce_student"):
+                            b_code = parsed.get("branch_code", "").lower()
+                            yy_str = str(parsed.get("joining_year", 2025))[-2:]
+                            usn_match = re.match(r"^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$", usn_clean)
+                            if usn_match:
+                                u_yy, u_branch = usn_match.group(2), usn_match.group(3).lower()
+                                # CI and AI are the exact same branch (Artificial Intelligence and Machine Learning)
+                                norm_u_branch = "ci" if u_branch in ("ai", "ci") else u_branch
+                                norm_b_code = "ci" if b_code in ("ai", "ci") else b_code
+                                if norm_u_branch != norm_b_code or u_yy != yy_str:
+                                    raise HTTPException(
+                                        status_code=400,
+                                        detail=f"USN branch/year ({u_branch.upper()}/{u_yy}) does not match your college email details ({b_code.upper()}/{yy_str})."
+                                    )
 
-            existing = db.users.find_one({
-                "usn": {"$regex": f"^{usn_clean}$", "$options": "i"},
-                "id": {"$ne": current_user["id"]}
-            })
-            if existing:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"This USN '{usn_clean.upper()}' is already registered to another student account. Each USN can only be used once."
-                )
-            
-            update_data["usn"] = profile_data.usn.upper().strip()
+                existing = db.users.find_one({
+                    "usn": {"$regex": f"^{usn_clean}$", "$options": "i"},
+                    "id": {"$ne": current_user["id"]}
+                })
+                if existing:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"This USN '{usn_clean.upper()}' is already registered to another student account. Each USN can only be used once."
+                    )
+                
+                update_data["usn"] = profile_data.usn.upper().strip()
         else:
-            if not current_usn:
+            if not is_first_year and not current_usn:
                 raise HTTPException(status_code=400, detail="USN is compulsory for all student accounts.")
                 
         if profile_data.branch is not None:
@@ -223,12 +243,16 @@ def get_discovery(
     # Combine all exclusions (do NOT exclude dismissed_list so rejected students can reappear)
     exclude_ids = list(set([current_user["id"]] + connected_list + blocked_list + approved_member_ids))
 
-    # Ensure current user has a compulsory USN to view discovery
+    # Extract academic info for current user
+    from routers.chat import _extract_user_academic_info
+    _, _, cur_year_of_study = _extract_user_academic_info(current_user)
+
+    # Ensure current user has a compulsory USN to view discovery (exempt 1st years)
     if not current_user.get("is_mentor") and not current_user.get("is_admin"):
-        if not (current_user.get("usn") or "").strip():
+        if cur_year_of_study != 1 and not (current_user.get("usn") or "").strip():
             raise HTTPException(status_code=400, detail="USN is compulsory. Please complete your profile with your USN to access Discovery.")
 
-    # Base query - only show students who have completed profile setup with a valid USN
+    # Base query - show students who have a valid USN, OR are 1st year students
     query_filter = {
         "id": {"$nin": exclude_ids},
         "is_verified": True,
@@ -236,12 +260,15 @@ def get_discovery(
         "is_mentor": False,
         "is_admin": False,
         "role": {"$nin": ["admin"]},
-        "usn": {"$nin": [None, "", "NONE", "null", "NULL"]}
+        "$or": [
+            {"usn": {"$nin": [None, "", "NONE", "null", "NULL"]}},
+            {"year_of_study": 1},
+            {"joining_year": 2026},
+            {"email": {"$regex": r"26@rvce\.edu\.in$", "$options": "i"}}
+        ]
     }
     
     # Apply smart cycle matchmaking filter only for 1st year student teams
-    from routers.chat import _extract_user_academic_info
-    _, _, cur_year_of_study = _extract_user_academic_info(current_user)
     
     if cur_year_of_study == 1:
         active_teams = list(db.group_chats.find({"created_by": current_user["id"]}))

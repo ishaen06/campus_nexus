@@ -3,6 +3,7 @@ import api from '../api';
 import { motion } from 'framer-motion';
 import { Camera, X } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { getStudentYearOfStudy } from '../utils/academic';
 
 const INTERESTS_LIST = [
   "Startups", "Entrepreneurship", "Artificial Intelligence", "Robotics",
@@ -34,6 +35,13 @@ export default function ProfileEdit() {
   const [department, setDepartment] = useState('');
   const [post, setPost] = useState('');
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const isFirstYear = getStudentYearOfStudy({
+    email,
+    joining_year: joiningYear,
+    year_of_study: year ? parseInt(year, 10) : null,
+    usn
+  }) === 1;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1000, y: -1000, active: false });
@@ -252,47 +260,49 @@ export default function ProfileEdit() {
         return;
       }
     } else {
-      if (!usn.trim()) {
+      if (!isFirstYear && !usn.trim()) {
         alert('USN is compulsory for students. Please enter your valid USN.');
         setSaving(false);
         return;
       }
-      const cleanUsn = usn.trim().toLowerCase();
-      const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
-      if (!pattern.test(cleanUsn)) {
-        alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV24CS001)");
-        setSaving(false);
-        return;
-      }
+      if (usn.trim()) {
+        const cleanUsn = usn.trim().toLowerCase();
+        const pattern = /^(1rv|1rz)\d{2}[a-z]{2,3}\d{3}$/;
+        if (!pattern.test(cleanUsn)) {
+          alert("Invalid USN format. USN must start with '1RV' or '1RZ', followed by a 2-digit year, 2-3 letter branch code, and end with 3 digits (e.g. 1RV24CS001)");
+          setSaving(false);
+          return;
+        }
 
-      // Validate USN matches college email ID prefix
-      const cleanEmail = (email || '').trim().toLowerCase();
-      if (cleanEmail.endsWith('@rvce.edu.in')) {
-        const emailPrefix = cleanEmail.split('@')[0].trim();
-        if (emailPrefix.startsWith('1rv') || emailPrefix.startsWith('1rz')) {
-          const normPrefix = emailPrefix.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
-          const normUsn = cleanUsn.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
-          if (cleanUsn !== emailPrefix && normUsn !== normPrefix) {
-            alert(`USN validation error: Your USN (${cleanUsn.toUpperCase()}) does not match your college email ID (${cleanEmail}). Expected USN: ${emailPrefix.toUpperCase()}`);
-            setSaving(false);
-            return;
-          }
-        } else {
-          const match = cleanEmail.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
-          if (match) {
-            const emailBranch = match[2].toLowerCase();
-            const emailYear = match[3];
-            const usnMatch = cleanUsn.match(/^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$/);
-            if (usnMatch) {
-              const usnYear = usnMatch[2];
-              const usnBranch = usnMatch[3].toLowerCase();
-              // Normalization: In RVCE, AI and CI are the same branch (AI/ML)
-              const normEmailBranch = (emailBranch === 'ai' || emailBranch === 'ci') ? 'ci' : emailBranch;
-              const normUsnBranch = (usnBranch === 'ai' || usnBranch === 'ci') ? 'ci' : usnBranch;
-              if (normUsnBranch !== normEmailBranch || usnYear !== emailYear) {
-                alert(`USN validation error: USN branch/year (${usnBranch.toUpperCase()}/${usnYear}) does not match your college email details (${emailBranch.toUpperCase()}/${emailYear}).`);
-                setSaving(false);
-                return;
+        // Validate USN matches college email ID prefix
+        const cleanEmail = (email || '').trim().toLowerCase();
+        if (cleanEmail.endsWith('@rvce.edu.in')) {
+          const emailPrefix = cleanEmail.split('@')[0].trim();
+          if (emailPrefix.startsWith('1rv') || emailPrefix.startsWith('1rz')) {
+            const normPrefix = emailPrefix.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
+            const normUsn = cleanUsn.replace(/^(1rv|1rz)(\d{2})(ai|ci)/, '$1$2ci');
+            if (cleanUsn !== emailPrefix && normUsn !== normPrefix) {
+              alert(`USN validation error: Your USN (${cleanUsn.toUpperCase()}) does not match your college email ID (${cleanEmail}). Expected USN: ${emailPrefix.toUpperCase()}`);
+              setSaving(false);
+              return;
+            }
+          } else {
+            const match = cleanEmail.match(/^([a-z0-9\._]+)\.([a-z]{2,5})(\d{2})@rvce\.edu\.in$/);
+            if (match) {
+              const emailBranch = match[2].toLowerCase();
+              const emailYear = match[3];
+              const usnMatch = cleanUsn.match(/^(1rv|1rz)(\d{2})([a-z]{2,3})\d{3}$/);
+              if (usnMatch) {
+                const usnYear = usnMatch[2];
+                const usnBranch = usnMatch[3].toLowerCase();
+                // Normalization: In RVCE, AI and CI are the same branch (AI/ML)
+                const normEmailBranch = (emailBranch === 'ai' || emailBranch === 'ci') ? 'ci' : emailBranch;
+                const normUsnBranch = (usnBranch === 'ai' || usnBranch === 'ci') ? 'ci' : usnBranch;
+                if (normUsnBranch !== normEmailBranch || usnYear !== emailYear) {
+                  alert(`USN validation error: USN branch/year (${usnBranch.toUpperCase()}/${usnYear}) does not match your college email details (${emailBranch.toUpperCase()}/${emailYear}).`);
+                  setSaving(false);
+                  return;
+                }
               }
             }
           }
@@ -303,7 +313,7 @@ export default function ProfileEdit() {
       await api.put('/users/me/profile', {
         full_name: fullName,
         is_mentor: isMentor,
-        usn: isMentor ? null : usn.trim().toUpperCase(),
+        usn: isMentor ? null : (usn.trim() ? usn.trim().toUpperCase() : null),
         department: isMentor ? department : null,
         post: isMentor ? post : null,
         bio,
@@ -471,18 +481,29 @@ export default function ProfileEdit() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
                           <span>USN (University Seat Number)</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-black border border-rose-500/20">
-                            * Compulsory
-                          </span>
+                          {isFirstYear ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
+                              Optional for 1st Year
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-black border border-rose-500/20">
+                              * Compulsory
+                            </span>
+                          )}
                         </label>
                         <input
                           type="text"
-                          required
-                          placeholder="e.g. 1RV25CS088"
+                          required={!isFirstYear}
+                          placeholder={isFirstYear ? "Optional (Not yet issued for 1st Year)" : "e.g. 1RV25CS088"}
                           className="w-full px-4 py-3 glass-input rounded-2xl outline-none font-bold shadow-sm uppercase tracking-wider text-slate-800 dark:text-slate-100 font-mono"
                           value={usn}
                           onChange={e => setUsn(e.target.value.toUpperCase())}
                         />
+                        {isFirstYear && (
+                          <p className="text-[11px] text-slate-400 font-medium mt-1 text-left">
+                            VTU has not yet issued USNs for 1st-year students. You can leave this blank.
+                          </p>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">

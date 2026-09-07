@@ -8,7 +8,7 @@ import Logo from './Logo';
 import Avatar from './Avatar';
 import RatingModal from './RatingModal';
 import { motion } from 'framer-motion';
-import { getStudentSemester } from '../utils/academic';
+import { getStudentSemester, getStudentYearOfStudy } from '../utils/academic';
 
 
 
@@ -113,9 +113,11 @@ export default function Layout() {
         }
         
         // Redirect to profile-setup if mentor role is not yet chosen,
-        // or if student is missing USN, or if mentor is missing department/post.
+        // or if student (not 1st year) is missing USN, or if mentor is missing department/post.
+        const isFirstYear = getStudentYearOfStudy(res.data) === 1;
+        const studentMissingUsn = res.data.is_mentor === false && !isFirstYear && (!res.data.usn || !String(res.data.usn).trim());
         const needsSetup = res.data.is_mentor === null || res.data.is_mentor === undefined
-          || (res.data.is_mentor === false && !res.data.usn)
+          || studentMissingUsn
           || (res.data.is_mentor === true && (!res.data.department || !res.data.post));
           
         if (needsSetup && location.pathname !== '/profile-setup') {
@@ -173,7 +175,8 @@ export default function Layout() {
     const userIsAdmin = currentUser.is_admin || currentUser.email === 'ishaen.vihaan@gmail.com';
     if (userIsAdmin) return;
 
-    const studentMissingUsn = currentUser.is_mentor === false && (!currentUser.usn || !String(currentUser.usn).trim());
+    const isFirstYear = getStudentYearOfStudy(currentUser) === 1;
+    const studentMissingUsn = currentUser.is_mentor === false && !isFirstYear && (!currentUser.usn || !String(currentUser.usn).trim());
     const mentorMissingDetails = currentUser.is_mentor === true && (!currentUser.department || !currentUser.post);
     const roleNotSelected = currentUser.is_mentor === null || currentUser.is_mentor === undefined;
 

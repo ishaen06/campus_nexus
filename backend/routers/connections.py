@@ -21,12 +21,16 @@ def send_connection_request(conn_data: ConnectionBase, current_user = Depends(ge
     if receiver.get("is_mentor", False):
         raise HTTPException(status_code=400, detail="Cannot send connection request to a mentor")
 
+    from routers.chat import _extract_user_academic_info
+    _, _, sender_year = _extract_user_academic_info(current_user)
+    _, _, receiver_year = _extract_user_academic_info(receiver)
+
     if not current_user.get("is_mentor") and not current_user.get("is_admin"):
-        if not (current_user.get("usn") or "").strip():
+        if sender_year != 1 and not (current_user.get("usn") or "").strip():
             raise HTTPException(status_code=400, detail="USN is compulsory. You must complete your profile with your USN before sending connection requests.")
             
     if not receiver.get("is_mentor") and not receiver.get("is_admin"):
-        if not (receiver.get("usn") or "").strip():
+        if receiver_year != 1 and not (receiver.get("usn") or "").strip():
             raise HTTPException(status_code=400, detail="This student has not yet entered their USN and cannot receive connection requests.")
 
     # Check if a connection already exists
