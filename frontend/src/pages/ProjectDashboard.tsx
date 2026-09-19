@@ -362,7 +362,7 @@ export default function ProjectDashboard() {
                   </div>
 
                   {/* Academic Evaluation Sheets */}
-                  <div data-tour="file-organize-section" className="glass-panel p-6">
+                  <div data-tour="eval-sheets-section" className="glass-panel p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Experiential Learning Records</span>
@@ -371,7 +371,7 @@ export default function ProjectDashboard() {
                       </div>
                     </div>
                     
-                    <div className="mt-4 flex flex-col gap-3 p-4 bg-slate-50/50 dark:bg-slate-950/10 border border-slate-100 dark:border-slate-800/80 rounded-2xl">
+                    <div data-tour="eval-progress-section" className="mt-4 flex flex-col gap-3 p-4 bg-slate-50/50 dark:bg-slate-950/10 border border-slate-100 dark:border-slate-800/80 rounded-2xl">
                       {(() => {
                         const myEval2 = currentUser
                           ? ((team.student_evaluations || {})[String(currentUser.id)] || {})
@@ -882,11 +882,17 @@ export default function ProjectDashboard() {
                 </div>
               </div>
 
-              <div data-tour="file-organize-section" className="glass-panel p-6">
+              <div data-tour="eval-sheets-section" className="glass-panel p-6">
                 <div>
                   <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Experiential Learning Records</span>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Academic Evaluation Sheets</h2>
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Access the fillable RVCE Experiential Learning Observation Record and Phase Evaluation books.</p>
+                </div>
+                <div data-tour="eval-progress-section" className="mt-4 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800/80">
+                  <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span>Evaluation Status:</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-bold">Phase Reviews In Progress</span>
+                  </div>
                 </div>
               </div>
             </div>

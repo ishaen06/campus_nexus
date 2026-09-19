@@ -363,9 +363,10 @@ export default function Discovery() {
               </div>
             ) : filteredUsers.length === 0 ? (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="glass-panel p-10 text-center w-full shadow-2xl flex flex-col items-center justify-center"
+                data-tour="student-card"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-full h-[450px] flex flex-col items-center justify-center text-center p-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-3xl border border-dashed border-gray-200 dark:border-slate-800"
               >
                 <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No profiles found</h3>
                 <p className="text-gray-500 dark:text-slate-450 mb-8 text-sm">

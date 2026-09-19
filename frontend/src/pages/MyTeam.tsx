@@ -591,7 +591,7 @@ export default function MyTeam() {
           </div>
           {groups.length === 0 ? (
             <button
-              data-tour="create-team-btn"
+              data-tour="team-add-member"
               onClick={() => setShowCreateGroup(true)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-full text-xs transition-all shadow-md cursor-pointer uppercase tracking-wider whitespace-nowrap self-start md:self-auto"
             >
@@ -599,7 +599,7 @@ export default function MyTeam() {
             </button>
           ) : (
             <button
-              data-tour="create-team-btn"
+              data-tour="team-add-member"
               onClick={() => setShowCreateGroup(true)}
               className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold py-2 px-4 rounded-xl text-xs transition-all border border-indigo-200 dark:border-indigo-800/40 cursor-pointer uppercase tracking-wider whitespace-nowrap self-start md:self-auto"
             >
@@ -773,6 +773,7 @@ export default function MyTeam() {
                       {/* CTA / Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-3 items-center">
                         <button
+                          data-tour="team-chat-btn"
                           onClick={() => navigate(`/chat/group/${team.id}`, { state: { groupName: team.name } })}
                           className="flex-1 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
                         >
@@ -781,6 +782,7 @@ export default function MyTeam() {
                         </button>
 
                         <button
+                          data-tour="team-invite-link"
                           onClick={() => handleOpenInviteModal(team)}
                           className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold py-3 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider border border-slate-200 dark:border-slate-700/60 shrink-0"
                           title="Share invite link to join this team"
@@ -942,7 +944,7 @@ export default function MyTeam() {
               </p>
               <div className="flex gap-4">
                 <button
-                  data-tour="create-team-btn"
+                  data-tour="team-add-member"
                   onClick={() => setShowCreateGroup(true)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl text-xs shadow-md transition-all cursor-pointer uppercase tracking-wider"
                 >
@@ -953,6 +955,24 @@ export default function MyTeam() {
                   className="bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-bold py-3 px-6 rounded-xl text-xs transition-all cursor-pointer uppercase tracking-wider"
                 >
                   Find Teams
+                </button>
+              </div>
+
+              {/* Preview action buttons for tour in empty state */}
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 w-full flex flex-col sm:flex-row gap-3 justify-center items-center opacity-85">
+                <button
+                  data-tour="team-invite-link"
+                  onClick={() => alert("Invite links are available once you create or join a team.")}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Link2 size={14} className="text-indigo-500" /> Share Invite Link
+                </button>
+                <button
+                  data-tour="team-chat-btn"
+                  onClick={() => alert("Team chat is available once your team is formed.")}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/30 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Users size={14} /> Team Chat
                 </button>
               </div>
             </div>
