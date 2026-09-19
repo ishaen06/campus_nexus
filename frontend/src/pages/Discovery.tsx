@@ -279,7 +279,7 @@ export default function Discovery() {
         </div>
 
         {/* Filter Bar */}
-        <div className="flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-sm text-xs">
+        <div data-tour="discovery-filters" className="flex flex-row flex-wrap gap-2.5 items-center justify-center p-1.5 bg-slate-100/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-sm text-xs">
           {/* Year 2: Cluster Filter | Year 1: Cycle Filter */}
           {isSecondYear ? (
             <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
@@ -705,7 +705,10 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
       whileTap={isTop ? { cursor: "grabbing" } : undefined}
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
-      <div className="discover-swipe-card w-full h-full overflow-hidden flex flex-col cursor-grab active:cursor-grabbing relative bg-white dark:bg-[#1e1e24] select-none">
+      <div 
+        data-tour={isTop ? "student-card" : undefined}
+        className="discover-swipe-card w-full h-full overflow-hidden flex flex-col cursor-grab active:cursor-grabbing relative bg-white dark:bg-[#1e1e24] select-none"
+      >
         
         {/* Like Overlay — fades in from left side as you drag right */}
         <motion.div 
@@ -797,6 +800,8 @@ function SwipeableCard({ user, index, onSwipeRight, onSwipeLeft, mutualBadge }: 
               <X size={28} strokeWidth={3.5} />
             </motion.button>
             <motion.button 
+              data-tour={isTop ? "connect-button" : undefined}
+              title="Connect"
               whileHover={{ scale: 1.12, rotate: 8, boxShadow: '0 8px 25px rgba(16,185,129,0.3)' }}
               whileTap={{ scale: 0.88 }}
               onClick={(e) => { e.stopPropagation(); triggerSwipe('right'); }}

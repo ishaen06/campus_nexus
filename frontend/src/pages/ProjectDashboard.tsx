@@ -280,7 +280,7 @@ export default function ProjectDashboard() {
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Left Column: File Management (Main) - md:col-span-2 */}
                 <div className="md:col-span-2 space-y-6">
-                  <div className="glass-panel p-6 flex flex-col justify-between">
+                  <div data-tour="files-section" className="glass-panel p-6 flex flex-col justify-between">
                     <div className="text-left">
                       <div className="flex justify-between items-center mb-4">
                         <div>
@@ -290,7 +290,7 @@ export default function ProjectDashboard() {
                       </div>
 
                       {/* File upload action */}
-                      <div className="border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl p-6 text-center mb-6 bg-slate-50/50 dark:bg-slate-950/10 hover:bg-slate-50 dark:hover:bg-slate-950/20 transition-all">
+                      <div data-tour="file-upload-btn" className="border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl p-6 text-center mb-6 bg-slate-50/50 dark:bg-slate-950/10 hover:bg-slate-50 dark:hover:bg-slate-950/20 transition-all">
                         <input
                           type="file"
                           id="file-upload"
@@ -308,7 +308,7 @@ export default function ProjectDashboard() {
                       </div>
 
                       {/* Files list */}
-                      <div className="space-y-3">
+                      <div data-tour="file-actions" className="space-y-3">
                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Uploaded Files ({team.project_files?.length || 0})</h4>
                         
                         {(!team.project_files || team.project_files.length === 0) ? (
@@ -362,7 +362,7 @@ export default function ProjectDashboard() {
                   </div>
 
                   {/* Academic Evaluation Sheets */}
-                  <div className="glass-panel p-6">
+                  <div data-tour="file-organize-section" className="glass-panel p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Experiential Learning Records</span>
@@ -827,22 +827,69 @@ export default function ProjectDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-panel p-12 text-center max-w-xl mx-auto flex flex-col items-center"
+          className="space-y-8"
         >
-          <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/20 mb-6">
-            <Sparkles size={32} />
+          <div className="glass-panel p-10 text-center max-w-xl mx-auto flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/20 mb-5">
+              <Sparkles size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Project Dashboard</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-6 leading-relaxed">
+              You need to be in an active team to submit files and request mentor approvals. Explore the repository and evaluation preview below.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => navigate('/connections')}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-md transition-all cursor-pointer uppercase tracking-wider"
+              >
+                Go to Connections
+              </button>
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Project Dashboard Locked</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-8 leading-relaxed">
-            You need to be in an active team to access the Project Dashboard. Once you join or create a team, you will be able to enter mentor details and upload project files here.
-          </p>
-          <div className="flex gap-4">
-            <button
-              onClick={() => navigate('/connections')}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl text-xs shadow-md transition-all cursor-pointer uppercase tracking-wider"
-            >
-              Go to Connections
-            </button>
+
+          {/* Preview cards for tour walkthrough & onboarding */}
+          <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+            <div className="md:col-span-2 space-y-6">
+              <div data-tour="files-section" className="glass-panel p-6 flex flex-col justify-between">
+                <div className="text-left">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Project Documents & Repository</span>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">File Management</h2>
+                    </div>
+                  </div>
+
+                  <div data-tour="file-upload-btn" className="border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl p-6 text-center mb-6 bg-slate-50/50 dark:bg-slate-950/10">
+                    <UploadCloud className="w-8 h-8 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 block">
+                      Click to Upload Project Files
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">Upload project synopsis, report, source code zip, etc.</span>
+                  </div>
+
+                  <div data-tour="file-actions" className="space-y-3">
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Uploaded Files</h4>
+                    <div className="py-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80">
+                      <div className="flex items-center gap-3">
+                        <FileText className="text-indigo-600 dark:text-indigo-400 w-5 h-5 shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Sample_Project_Synopsis.pdf</p>
+                          <span className="text-[9px] text-slate-400 font-medium block mt-0.5">1.2 MB • Ready for mentor review</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-tour="file-organize-section" className="glass-panel p-6">
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">Experiential Learning Records</span>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Academic Evaluation Sheets</h2>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Access the fillable RVCE Experiential Learning Observation Record and Phase Evaluation books.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}

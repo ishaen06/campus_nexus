@@ -582,13 +582,30 @@ export default function MyTeam() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+            <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
               My Team
             </h1>
             <p className="text-gray-500 font-medium mt-1">
               Manage your team details, topic, and members list
             </p>
           </div>
+          {groups.length === 0 ? (
+            <button
+              data-tour="create-team-btn"
+              onClick={() => setShowCreateGroup(true)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-full text-xs transition-all shadow-md cursor-pointer uppercase tracking-wider whitespace-nowrap self-start md:self-auto"
+            >
+              <Users size={14} /> Create a Team
+            </button>
+          ) : (
+            <button
+              data-tour="create-team-btn"
+              onClick={() => setShowCreateGroup(true)}
+              className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold py-2 px-4 rounded-xl text-xs transition-all border border-indigo-200 dark:border-indigo-800/40 cursor-pointer uppercase tracking-wider whitespace-nowrap self-start md:self-auto"
+            >
+              <Users size={14} /> Team Roster
+            </button>
+          )}
         </div>
 
         <motion.div
@@ -617,10 +634,10 @@ export default function MyTeam() {
 
 
               return (
-                <div className="grid gap-6 md:grid-cols-3">
+                <div data-tour="team-workspace" className="grid gap-6 md:grid-cols-3">
                   {/* Left: General info and project topic */}
                   <div className="md:col-span-2 space-y-6">
-                    <div className="glass-panel p-6 flex flex-col justify-between relative overflow-hidden">
+                    <div data-tour="team-details-section" className="glass-panel p-6 flex flex-col justify-between relative overflow-hidden">
                       
                       <div className="flex justify-between items-start mb-6">
                         <div>
@@ -821,7 +838,7 @@ export default function MyTeam() {
                     </div>
   
                     {/* Right: Members list */}
-                    <div className="space-y-4 text-left">
+                    <div data-tour="team-members-selection" className="space-y-4 text-left">
                       <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Team Members ({members.length}/5)</h3>
                       <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
                         {members.map((member: any) => {
@@ -915,7 +932,7 @@ export default function MyTeam() {
             })()
           ) : (
             /* Empty state when not in a team */
-            <div className="glass-panel p-12 text-center max-w-xl mx-auto flex flex-col items-center">
+            <div data-tour="team-workspace" className="glass-panel p-12 text-center max-w-xl mx-auto flex flex-col items-center">
               <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/20 mb-6">
                 <Users size={32} />
               </div>
@@ -925,6 +942,7 @@ export default function MyTeam() {
               </p>
               <div className="flex gap-4">
                 <button
+                  data-tour="create-team-btn"
                   onClick={() => setShowCreateGroup(true)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl text-xs shadow-md transition-all cursor-pointer uppercase tracking-wider"
                 >
@@ -973,8 +991,9 @@ export default function MyTeam() {
               </div>
 
               <form onSubmit={handleCreateGroup} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Group Name</label>
+                <div data-tour="team-details-section" className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Group Name</label>
                   <input 
                     type="text" 
                     required 
@@ -1080,11 +1099,9 @@ export default function MyTeam() {
                     </select>
                   </div>
                 )}
+                </div>
 
-
-
-
-                <div>
+                <div data-tour="team-members-selection">
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Members</label>
                   {connections.filter(c => c.status === 'ACCEPTED').length === 0 ? (
                     <p className="text-sm text-slate-400 italic">No matches available to create a team.</p>

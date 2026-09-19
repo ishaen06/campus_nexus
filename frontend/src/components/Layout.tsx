@@ -9,16 +9,24 @@ import Avatar from './Avatar';
 import RatingModal from './RatingModal';
 import { motion } from 'framer-motion';
 import { getStudentSemester, getStudentYearOfStudy } from '../utils/academic';
-
-
+import { WalkthroughProvider, WalkthroughOverlay, WelcomeModal, useWalkthrough } from './Walkthrough';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
 export default function Layout() {
+  return (
+    <WalkthroughProvider>
+      <LayoutContent />
+    </WalkthroughProvider>
+  );
+}
+
+function LayoutContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { startTour } = useWalkthrough();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMentor, setIsMentor] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -488,8 +496,25 @@ export default function Layout() {
               })}
             </div>
 
-            {/* Bottom Tabs Section: Credits */}
+            {/* Bottom Tabs Section: Credits & Product Tour */}
             <div className="pt-3 mt-4 border-t border-slate-200/40 dark:border-white/10 space-y-1 pb-1">
+              {!isAdmin && !isMentor && (
+                <button
+                  onClick={() => startTour()}
+                  title={isCollapsed ? "Product Tour" : undefined}
+                  className={cn(
+                    "w-full flex items-center transition-all duration-300 font-medium cursor-pointer text-left",
+                    "text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 rounded-2xl",
+                    isCollapsed ? "justify-center p-3 mx-auto w-12" : "justify-between px-4 py-2.5"
+                  )}
+                >
+                  <div className={cn("flex items-center gap-3", isCollapsed && "justify-center gap-0")}>
+                    <Compass size={20} className="shrink-0 text-indigo-600 dark:text-indigo-400" />
+                    {!isCollapsed && <span className="text-sm font-semibold tracking-wide">Product Tour</span>}
+                  </div>
+                </button>
+              )}
+
               {/* Credits Link */}
               <Link
                 to="/credits"
@@ -559,6 +584,18 @@ export default function Layout() {
                     <Sparkles size={14} className="text-amber-500" />
                     Platform Credits
                   </button>
+                  {!isAdmin && !isMentor && (
+                    <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        startTour();
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                    >
+                      <Compass size={14} className="text-indigo-500" />
+                      Product Tour
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowProfileDropdown(false);
@@ -692,6 +729,15 @@ export default function Layout() {
                   </Link>
                 );
               })}
+            {!isAdmin && !isMentor && (
+              <button
+                onClick={() => startTour()}
+                title="Product Tour"
+                className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-indigo-400 transition-all cursor-pointer"
+              >
+                <Compass size={24} />
+              </button>
+            )}
             <Link
               to="/credits"
               title="Platform Credits"
@@ -914,6 +960,12 @@ export default function Layout() {
           </motion.div>
         </div>
       )}
+
+      {/* Product Walkthrough Spotlight Overlay & Coach Mark Tooltip */}
+      <WalkthroughOverlay />
+
+      {/* First-Time Student Welcome Onboarding Modal */}
+      {!isAdmin && !isMentor && <WelcomeModal />}
 
       {/* Global Rating Box on App Open / Login */}
       <RatingModal
