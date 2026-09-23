@@ -509,5 +509,25 @@ def enrich_user_academic_profile(user_dict: dict, db) -> dict:
     except Exception:
         res["has_rated"] = False
 
+    # Check if user is in an active team & team availability
+    try:
+        user_id = res.get("id")
+        in_team = False
+        if user_id is not None:
+            membership = db.group_members.find_one({"user_id": user_id})
+            if membership:
+                group = db.group_chats.find_one({"id": membership.get("group_id")})
+                if group:
+                    in_team = True
+        res["in_team"] = in_team
+        if in_team:
+            res["is_open_for_team"] = False
+        elif "is_open_for_team" not in res or res.get("is_open_for_team") is None:
+            res["is_open_for_team"] = True
+    except Exception:
+        res["in_team"] = False
+        if "is_open_for_team" not in res or res.get("is_open_for_team") is None:
+            res["is_open_for_team"] = True
+
     return res
 

@@ -395,6 +395,17 @@ export default function MyTeam() {
     }
   };
 
+  const handleTogglePublic = async () => {
+    if (!groups[0]) return;
+    const current = Boolean(groups[0].is_public);
+    try {
+      await api.put(`/chat/groups/${groups[0].id}`, { is_public: !current });
+      fetchData();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to update team visibility.");
+    }
+  };
+
 
 
   const [loading, setLoading] = useState(true);
@@ -645,13 +656,32 @@ export default function MyTeam() {
                           <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight capitalize">{team.name}</h2>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${
-                            team.is_public 
-                              ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800/20' 
-                              : 'bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/30'
-                          }`}>
-                            {team.is_public ? '🌐 Public' : '🔒 Private'}
-                          </span>
+                          {isAdmin ? (
+                            <button
+                              data-tour="team-public-toggle"
+                              onClick={handleTogglePublic}
+                              className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1.5 ${
+                                team.is_public 
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40' 
+                                  : 'bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50'
+                              }`}
+                              title={team.is_public ? "Team is Public. Click to make Private." : "Team is Private. Click to make Public and allow more people to join."}
+                            >
+                              <span>{team.is_public ? '🌐 Public Team' : '🔒 Private Team'}</span>
+                              <span className="text-[8px] opacity-70 underline ml-0.5">Toggle</span>
+                            </button>
+                          ) : (
+                            <span 
+                              data-tour="team-public-toggle"
+                              className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${
+                                team.is_public 
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800/20' 
+                                  : 'bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/30'
+                              }`}
+                            >
+                              {team.is_public ? '🌐 Public Team' : '🔒 Private Team'}
+                            </span>
+                          )}
                           
                           {/* Members Rule Status Indicator */}
                           <div 
@@ -959,7 +989,7 @@ export default function MyTeam() {
               </div>
 
               {/* Preview action buttons for tour in empty state */}
-              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 w-full flex flex-col sm:flex-row gap-3 justify-center items-center opacity-85">
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 w-full flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-center opacity-85">
                 <button
                   data-tour="team-invite-link"
                   onClick={() => alert("Invite links are available once you create or join a team.")}
@@ -967,6 +997,13 @@ export default function MyTeam() {
                 >
                   <Link2 size={14} className="text-indigo-500" /> Share Invite Link
                 </button>
+                <div
+                  data-tour="team-public-toggle"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/30 flex items-center justify-center gap-2"
+                >
+                  <span>🌐 Public Recruiting</span>
+                  <span className="text-[10px] text-slate-400">• Allow joins</span>
+                </div>
                 <button
                   data-tour="team-chat-btn"
                   onClick={() => alert("Team chat is available once your team is formed.")}
@@ -1164,7 +1201,7 @@ export default function MyTeam() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/60 text-left">
+                <div data-tour="team-public-toggle" className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/60 text-left">
                   <div>
                     <label className="block text-xs font-bold text-slate-900 dark:text-white tracking-tight">Make Team Public</label>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold block mt-0.5">Let others find and join this team</span>

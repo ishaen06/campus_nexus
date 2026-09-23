@@ -27,9 +27,10 @@ class UserResponse(BaseModel):
     post: Optional[str] = None
     is_online: bool = False
     has_rated: Optional[bool] = False
+    is_open_for_team: Optional[bool] = True
+    in_team: Optional[bool] = False
     
     class Config:
-
         from_attributes = True
 
 class DiscoveryUserResponse(UserResponse):
@@ -48,6 +49,10 @@ class ProfileUpdate(BaseModel):
     cycle: Optional[str] = None
     department: Optional[str] = None
     post: Optional[str] = None
+    is_open_for_team: Optional[bool] = None
+
+class TeamStatusUpdate(BaseModel):
+    is_open_for_team: bool
 
 class GoogleLoginRequest(BaseModel):
     credential: str

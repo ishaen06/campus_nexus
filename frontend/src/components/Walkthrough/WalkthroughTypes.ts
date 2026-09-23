@@ -22,7 +22,7 @@ export const TOUR_STEPS: TourStepConfig[] = [
   {
     id: 'filter-students',
     stepNumber: 1,
-    totalSteps: 8,
+    totalSteps: 9,
     section: 'CONNECT',
     sectionNumber: '01',
     sectionTitle: 'Connect',
@@ -35,7 +35,7 @@ export const TOUR_STEPS: TourStepConfig[] = [
   {
     id: 'swipe-students',
     stepNumber: 2,
-    totalSteps: 8,
+    totalSteps: 9,
     section: 'CONNECT',
     sectionNumber: '01',
     sectionTitle: 'Connect',
@@ -46,11 +46,11 @@ export const TOUR_STEPS: TourStepConfig[] = [
     preferredPlacement: 'right'
   },
 
-  // ── 2. TEAM FORMATION (3 Steps: Add Teammate -> Send Link -> Chat) ─────────
+  // ── 2. TEAM FORMATION (4 Steps: Add Teammate -> Send Link -> Make Public -> Chat) ─
   {
     id: 'add-teammates',
     stepNumber: 3,
-    totalSteps: 8,
+    totalSteps: 9,
     section: 'BUILD',
     sectionNumber: '02',
     sectionTitle: 'Team',
@@ -63,7 +63,7 @@ export const TOUR_STEPS: TourStepConfig[] = [
   {
     id: 'send-invite-link',
     stepNumber: 4,
-    totalSteps: 8,
+    totalSteps: 9,
     section: 'BUILD',
     sectionNumber: '02',
     sectionTitle: 'Team',
@@ -74,9 +74,22 @@ export const TOUR_STEPS: TourStepConfig[] = [
     preferredPlacement: 'bottom'
   },
   {
-    id: 'team-chat',
+    id: 'make-team-public',
     stepNumber: 5,
-    totalSteps: 8,
+    totalSteps: 9,
+    section: 'BUILD',
+    sectionNumber: '02',
+    sectionTitle: 'Team',
+    title: 'Make Team Public',
+    description: 'Make your team public so more classmates can discover and join.',
+    targetSelector: '[data-tour="team-public-toggle"]',
+    route: '/my-team',
+    preferredPlacement: 'bottom'
+  },
+  {
+    id: 'team-chat',
+    stepNumber: 6,
+    totalSteps: 9,
     section: 'BUILD',
     sectionNumber: '02',
     sectionTitle: 'Team',
@@ -90,8 +103,8 @@ export const TOUR_STEPS: TourStepConfig[] = [
   // ── 3. FILE MANAGEMENT (3 Steps: File -> Auto Evaluation Sheet -> In Progress) ─
   {
     id: 'project-files',
-    stepNumber: 6,
-    totalSteps: 8,
+    stepNumber: 7,
+    totalSteps: 9,
     section: 'MANAGE',
     sectionNumber: '03',
     sectionTitle: 'Files',
@@ -103,8 +116,8 @@ export const TOUR_STEPS: TourStepConfig[] = [
   },
   {
     id: 'auto-eval-sheets',
-    stepNumber: 7,
-    totalSteps: 8,
+    stepNumber: 8,
+    totalSteps: 9,
     section: 'MANAGE',
     sectionNumber: '03',
     sectionTitle: 'Files',
@@ -116,8 +129,8 @@ export const TOUR_STEPS: TourStepConfig[] = [
   },
   {
     id: 'eval-in-progress',
-    stepNumber: 8,
-    totalSteps: 8,
+    stepNumber: 9,
+    totalSteps: 9,
     section: 'MANAGE',
     sectionNumber: '03',
     sectionTitle: 'Files',

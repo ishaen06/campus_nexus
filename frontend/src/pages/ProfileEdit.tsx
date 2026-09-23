@@ -34,6 +34,8 @@ export default function ProfileEdit() {
   const [isMentor, setIsMentor] = useState(false);
   const [department, setDepartment] = useState('');
   const [post, setPost] = useState('');
+  const [isOpenForTeam, setIsOpenForTeam] = useState<boolean>(true);
+  const [inTeam, setInTeam] = useState<boolean>(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const isFirstYear = getStudentYearOfStudy({
@@ -232,6 +234,8 @@ export default function ProfileEdit() {
       setPost(res.data.post || '');
       setInterests(res.data.interests || []);
       setGoals(res.data.goals || []);
+      setIsOpenForTeam(res.data.is_open_for_team !== false);
+      setInTeam(Boolean(res.data.in_team));
       if (res.data.profile_photo) {
         setProfilePhoto(res.data.profile_photo);
       }
@@ -319,7 +323,8 @@ export default function ProfileEdit() {
         bio,
         interests: isMentor ? null : interests,
         goals: isMentor ? null : goals,
-        profile_photo: profilePhoto
+        profile_photo: profilePhoto,
+        is_open_for_team: isMentor ? null : isOpenForTeam
       });
       alert('Profile updated successfully!');
     } catch (err: any) {
@@ -530,6 +535,50 @@ export default function ProfileEdit() {
                             {cycle === 'C' ? 'C-Cycle (Chemistry)' : 'P-Cycle (Physics)'}
                           </span>
                         </div>
+                      </div>
+
+                      {/* Team Availability Status */}
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-800 dark:text-slate-100">Team Availability Status</label>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {inTeam 
+                              ? "You are an active member of a team. Active team members are hidden from the Discovery tab." 
+                              : isOpenForTeam 
+                                ? "Open for a Team: Your profile is discoverable by peers seeking project teammates." 
+                                : "Marked In a Team: Your profile is hidden from the Discovery tab."}
+                          </p>
+                        </div>
+                        {inTeam ? (
+                          <span className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 self-start sm:self-auto">
+                            👥 Active Team Member
+                          </span>
+                        ) : (
+                          <div className="inline-flex p-1 bg-slate-200/60 dark:bg-slate-800/80 rounded-xl self-start sm:self-auto gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setIsOpenForTeam(true)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                isOpenForTeam
+                                  ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs"
+                                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              🟢 Open for Team
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsOpenForTeam(false)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                !isOpenForTeam
+                                  ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs"
+                                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              🔒 In a Team
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
 
 from database_mongo import get_mongo_db, get_next_sequence_value, MongoUser
-from schemas import UserResponse, ProfileUpdate, DiscoveryUserResponse, ReportCreate
+from schemas import UserResponse, ProfileUpdate, DiscoveryUserResponse, ReportCreate, TeamStatusUpdate
 from security import SECRET_KEY, ALGORITHM
 from ai_service import calculate_compatibility
 
@@ -195,13 +195,31 @@ def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_curre
         update_data["bio"] = profile_data.bio
     if profile_data.profile_photo is not None:
         update_data["profile_photo"] = profile_data.profile_photo
+    if profile_data.is_open_for_team is not None:
+        update_data["is_open_for_team"] = profile_data.is_open_for_team
         
     if update_data:
         db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
         
     updated_user = db.users.find_one({"id": current_user["id"]})
-    updated_user.pop("_id", None)
-    return updated_user
+    from services.academic_service import enrich_user_academic_profile
+    return enrich_user_academic_profile(dict(updated_user), db)
+
+@router.put("/team-status", response_model=UserResponse)
+def update_team_status(
+    status_data: TeamStatusUpdate,
+    current_user = Depends(get_current_user),
+    db = Depends(get_mongo_db)
+):
+    from services.academic_service import enrich_user_academic_profile
+    db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"is_open_for_team": status_data.is_open_for_team}}
+    )
+    updated_user = db.users.find_one({"id": current_user["id"]})
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return enrich_user_academic_profile(dict(updated_user), db)
 
 @router.get("/discovery", response_model=List[DiscoveryUserResponse])
 def get_discovery(
@@ -234,14 +252,14 @@ def get_discovery(
         blocked_list.append(b["blocker_id"])
         blocked_list.append(b["blocked_id"])
 
-    # Filter out users who are already in a mentor-approved group
-    approved_groups = list(db.group_chats.find({"mentor_status": "APPROVED"}))
-    approved_group_ids = [g["id"] for g in approved_groups]
-    approved_members = list(db.group_members.find({"group_id": {"$in": approved_group_ids}}))
-    approved_member_ids = [m["user_id"] for m in approved_members]
+    # Filter out users who are already in ANY active team on the platform
+    all_teams = list(db.group_chats.find({}, {"id": 1}))
+    team_ids = [g["id"] for g in all_teams]
+    team_members = list(db.group_members.find({"group_id": {"$in": team_ids}}))
+    team_member_ids = [m["user_id"] for m in team_members if "user_id" in m]
 
     # Combine all exclusions (do NOT exclude dismissed_list so rejected students can reappear)
-    exclude_ids = list(set([current_user["id"]] + connected_list + blocked_list + approved_member_ids))
+    exclude_ids = list(set([current_user["id"]] + connected_list + blocked_list + team_member_ids))
 
     # Extract academic info for current user
     from routers.chat import _extract_user_academic_info
@@ -289,6 +307,7 @@ def get_discovery(
         "is_mentor": False,
         "is_admin": False,
         "role": {"$nin": ["admin"]},
+        "is_open_for_team": {"$ne": False},
         **year_filter
     }
 
@@ -332,6 +351,10 @@ def get_discovery(
     
     from services.academic_service import enrich_user_academic_profile
     for u in users:
+        # Exclude anyone in any team or not open for a team
+        if u.get("id") in team_member_ids or u.get("is_open_for_team") is False:
+            continue
+
         # Strict post-filter safety: ensure the peer is genuinely from the viewer's academic year
         if not current_user.get("is_admin") and not current_user.get("is_mentor"):
             _, _, u_y = _extract_user_academic_info(u)
@@ -341,6 +364,8 @@ def get_discovery(
         u_obj = MongoUser(u)
         ai_data = calculate_compatibility(current_user_obj, u_obj)
         user_dict = enrich_user_academic_profile(dict(u), db)
+        if user_dict.get("is_open_for_team") is False or user_dict.get("in_team") is True:
+            continue
         user_dict.pop("_id", None)
         user_dict["is_online"] = u_obj.is_online
         

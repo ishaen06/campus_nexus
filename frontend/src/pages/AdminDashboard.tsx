@@ -1639,18 +1639,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
             }`}
           >
             <span>All Years</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
-              globalYear === null ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
-            }`}>
-              {(cohortStudentCounts[1] ?? 0) + (cohortStudentCounts[2] ?? 0) + (cohortStudentCounts[3] ?? 0)}
-            </span>
           </button>
 
           {[
             { yr: 1, label: "1st Year", batch: "2026", count: cohortStudentCounts[1] ?? 0 },
             { yr: 2, label: "2nd Year", batch: "2025", count: cohortStudentCounts[2] ?? 0 },
             { yr: 3, label: "3rd Year", batch: "2024", count: cohortStudentCounts[3] ?? 0 }
-          ].map(({ yr, label, batch, count }) => {
+          ].map(({ yr, label, batch }) => {
             const isSelected = globalYear === yr;
             return (
               <button
@@ -1662,18 +1657,13 @@ export default function AdminDashboard({ tab }: AdminDashboardProps) {
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
-                title={`${label} (${batch} Batch) - ${count} Enrolled Students`}
+                title={`${label} (${batch} Batch)`}
               >
                 <span>{label}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
                   isSelected ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                 }`}>
                   {batch}
-                </span>
-                <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
-                  isSelected ? "bg-white/20 text-white" : "bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                }`}>
-                  {count} students
                 </span>
               </button>
             );
