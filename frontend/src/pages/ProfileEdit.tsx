@@ -557,7 +557,14 @@ export default function ProfileEdit() {
                           <div className="inline-flex p-1 bg-slate-200/60 dark:bg-slate-800/80 rounded-xl self-start sm:self-auto gap-1">
                             <button
                               type="button"
-                              onClick={() => setIsOpenForTeam(true)}
+                              onClick={async () => {
+                                setIsOpenForTeam(true);
+                                try {
+                                  await api.put('/users/team-status', { is_open_for_team: true });
+                                } catch (e) {
+                                  console.error(e);
+                                }
+                              }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                 isOpenForTeam
                                   ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs"
@@ -568,7 +575,14 @@ export default function ProfileEdit() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setIsOpenForTeam(false)}
+                              onClick={async () => {
+                                setIsOpenForTeam(false);
+                                try {
+                                  await api.put('/users/team-status', { is_open_for_team: false });
+                                } catch (e) {
+                                  console.error(e);
+                                }
+                              }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                 !isOpenForTeam
                                   ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs"

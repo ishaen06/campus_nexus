@@ -141,24 +141,6 @@ export default function Discovery() {
     }
   };
 
-  const [togglingStatus, setTogglingStatus] = useState(false);
-
-  const handleToggleTeamStatus = async () => {
-    if (!me || togglingStatus) return;
-    const newStatus = me.is_open_for_team === false ? true : false;
-    setTogglingStatus(true);
-    try {
-      const res = await api.put('/users/team-status', { is_open_for_team: newStatus });
-      setMe(res.data);
-      const discRes = await api.get('/users/discovery');
-      setUsers(discRes.data);
-    } catch (err: any) {
-      alert(err.response?.data?.detail || "Failed to update team availability status.");
-    } finally {
-      setTogglingStatus(false);
-    }
-  };
-
   const fetchPublicTeams = async () => {
     try {
       const res = await api.get('/chat/groups/public');
@@ -369,68 +351,6 @@ export default function Discovery() {
           )}
         </div>
       </div>
-
-      {/* Student Availability Toggle Banner */}
-      {activeTab === 'people' && me && !me.is_admin && !me.is_mentor && (
-        <div className="w-full max-w-md mx-auto mb-6 px-4 py-2.5 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex items-center justify-between gap-3 transition-all">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                me.in_team ? 'bg-amber-400' : (me.is_open_for_team !== false ? 'bg-emerald-400' : 'bg-slate-400')
-              }`}></span>
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                me.in_team ? 'bg-amber-500' : (me.is_open_for_team !== false ? 'bg-emerald-500' : 'bg-slate-500')
-              }`}></span>
-            </span>
-            <div className="flex flex-col min-w-0 text-left">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
-                {me.in_team ? "In a Team" : (me.is_open_for_team !== false ? "Open for a Team" : "Marked In a Team")}
-                <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-semibold ${
-                  me.in_team 
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' 
-                    : (me.is_open_for_team !== false 
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
-                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')
-                }`}>
-                  {me.in_team ? 'Team Member' : (me.is_open_for_team !== false ? 'Visible' : 'Hidden')}
-                </span>
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                {me.in_team 
-                  ? "You belong to an active team and are hidden from Discovery"
-                  : (me.is_open_for_team !== false 
-                      ? "Classmates looking for teammates can discover you" 
-                      : "Your profile is hidden from classmates looking for teammates")}
-              </span>
-            </div>
-          </div>
-
-          {!me.in_team ? (
-            <button
-              onClick={handleToggleTeamStatus}
-              disabled={togglingStatus}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border shadow-xs cursor-pointer flex items-center gap-1 ${
-                me.is_open_for_team !== false
-                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
-              }`}
-              title="Click to toggle your availability status"
-            >
-              {togglingStatus ? (
-                <RefreshCw size={12} className="animate-spin" />
-              ) : me.is_open_for_team !== false ? (
-                <>✓ Open for Team</>
-              ) : (
-                <>🔒 In a Team</>
-              )}
-            </button>
-          ) : (
-            <span className="shrink-0 text-[10px] font-bold text-amber-600 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-950/40 rounded-lg border border-amber-200 dark:border-amber-800/30">
-              Active Team
-            </span>
-          )}
-        </div>
-      )}
 
       <AnimatePresence mode="wait">
         {activeTab === 'people' ? (
